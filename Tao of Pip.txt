@@ -1,0 +1,11 @@
+Pip isn't Python.
+Pip isn't Perl.
+Pip isn't PHP.
+
+What is Pip?
+
+Pip is procedural.
+Pip is portable.
+Pip is precise.
+Pip is pithy.
+Pip is Pip!
