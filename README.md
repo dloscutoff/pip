@@ -7,7 +7,9 @@ Pip is an interpreted, imperative code-golf language.
 Pip is implemented in Python3. The main interpreter is the pip.py file. It should run on most systems with Py3 installed simply by invoking `pip.py` in the shell (you'll need to make the file executable first on *nix systems). Typical invocation patterns:
 
 `pip.py [flags] path/to/codefile.pip [args]`
+
 `pip.py -e 'code' [flags] [args]`
+
 `pip.py` (interactive mode)
 
 Execute `pip.py --help` for more detailed information.
