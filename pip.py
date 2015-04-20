@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
+#  O statement
+#  MX, MN, TP (or TZ for transpo'z'e?) operators
+#  Make subscripts cyclic, like CJam: [1 2 3]@4 == 2
 #  Figure out how _ expressions are going to work: currently leaning toward
 #    generating them at runtime when expressions are evaluated, so that
 #    2+t+_ turns into {12+a} (but note wrinkle: _+2+t turns into {a+2+10}
@@ -25,7 +28,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.04.18"
+VERSION = "0.15.04.20"
 
 def pip(interactive=True):
     if interactive:

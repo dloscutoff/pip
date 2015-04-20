@@ -182,9 +182,9 @@ precedenceTable = [
      ("FB", "FROMBASE", "L", RVALS | RANGE_EACH | LIST_EACH),
      ],
     [2,
-     ("@", "AT", "L", RVALS),
-     ("@<", "LEFTOF", "L", RVALS),
-     ("@>", "RIGHTOF", "L", RVALS),
+     ("@", "AT", "L", VALS),
+     ("@<", "LEFTOF", "L", VALS),
+     ("@>", "RIGHTOF", "L", VALS),
      ],
     [1,
      ("++", "INC", "L", VALS),
@@ -209,7 +209,7 @@ highestPrecedence = len(precedenceTable)
 group = Operator("GRP", "GROUP", 1, highestPrecedence, "L", VALS)
 enlist = Operator("LIST", "LIST", 1, highestPrecedence, "L", RVALS)
 block = Operator("BLOCK", "BLOCK", 1, highestPrecedence, "L", 0)
-send = Operator("SEND", "SEND", 1, highestPrecedence, "L", RVALS)
+send = Operator("SEND", "SEND", 1, highestPrecedence, "L", VALS)
 chain = None  # We define this "operator" later to make sure it gets the same
               # precedence as the comparison operators it comprises
 

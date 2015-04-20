@@ -174,6 +174,14 @@ class ProgramState:
             # TBD: what do we do for empty sequences? Need default
             # value for each operator?
             result = self.FOLD(opFunction, *args)
+        elif operator.assign:
+            # This is a compute-and-assign operator like +:
+            # Compute the expression, and then assign it back to the lval
+            lval = self.evaluate(args[0])
+            normalOp = operator.copy()
+            normalOp.assign = False
+            result = self.evaluate([normalOp] + args)
+            result = self.ASSIGN(lval, result)
         else:
 ##            blockArg = False
 ##            if operator.modifiesBlocks:
@@ -245,12 +253,6 @@ class ProgramState:
                 # Probably the wrong number of args
                 errMsg = "evaluate(%s) raised TypeError" % expression
                 self.err.die("Implementation error:", errMsg, e)
-        if operator.assign:
-            # This is a compute-and-assign operator like +:
-            # We need an unevaluated Name object so we can assign to it; get
-            # this from the original expression, since args[0] has probably
-            # already been evaluated
-            result = self.ASSIGN(self.evaluate(expression[1]), result)
         #!print(fnName, "returned", result)
         return result
 

@@ -67,7 +67,7 @@ def tokenize(code):
         m = commentRgx.match(code)
         if m:
             # Discard comments
-            print(repr(m.group()))
+            #!print(repr(m.group()))
             code = code[m.end():]
         elif whitespaceRgx.match(code):
             # Discard leading whitespace
