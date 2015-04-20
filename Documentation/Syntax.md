@@ -18,7 +18,7 @@ Comments come in two types: lines that start with a (possibly indented) semicolo
 
 `; This is a comment.`
 
-`x:42  This is a comment too.`
+<code>x:42&ensp; This is a comment too.</code>
 
 Whitespace is not significant except for indicating comments and separating tokens; for example, `(- -5)` returns 5, but `(--5)` returns 4 because `--` is the decrement operator.
 
