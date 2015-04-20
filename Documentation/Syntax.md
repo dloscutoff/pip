@@ -17,6 +17,7 @@ Any of the following is a token in Pip:
 Comments come in two types: lines that start with a (possibly indented) semicolon, and anything at the end of a line if preceded by two or more spaces.
 
 `; This is a comment.`
+
 `x:42  This is a comment too.`
 
 Whitespace is not significant except for indicating comments and separating tokens; for example, `(- -5)` returns 5, but `(--5)` returns 4 because `--` is the decrement operator.
@@ -27,13 +28,13 @@ There are currently 5 data types in Pip:
 
  - **Scalar** represents strings and numbers, similar to scalar variables in Perl. A string in numeric context is converted to a number by taking the leading run of digits, possibly with a minus sign or decimal point.
  - **List** is similar to lists in Python: dynamically resizeable, can hold items of any type including other lists, etc.
- - **Range** has a lower and upper bound, and represents all integers >= to the lower bound and < the upper bound. `5,10` is functionally equivalent to `[5 6 7 8 9]` in most contexts, but potentially more efficient since the numbers need not all be generated. Infinite ranges can be created by passing an upper bound of nil.
+ - **Range** has a lower and upper bound, and generally represents all integers >= to the lower bound and < the upper bound. `5,10` is functionally equivalent to `[5 6 7 8 9]` in most contexts, but potentially more efficient since the numbers need not all be generated. Infinite ranges can be created by passing an upper bound of nil. Ranges are also used for string/array slicing, in which context negative indices may be used: `"Hello"@(1,-1)` == `"ell"`.
  - **Block** represents a code block or function.
  - **Nil** is a singleton type, similar to `null` or `None` from other languages. Note that many situations that would cause a runtime error in other languages (such as dividing by zero) simply return nil in Pip (unless warnings are turned on using the -w or -d flags). Most operators, when given nil as an operand, return nil.
 
 A sixth type, Pattern, is planned (for regular expressions).
 
-Boolean expressions return 0 and 1. The values 0 (and variants like 0.0), "", [], and nil are falsy; all others are truthy.
+Boolean expressions return `0` and `1`. The values `0` (and variants like `0.0`), `""`, `[]`, and nil are falsy; all others are truthy.
 
 Many operations, including arithmetic and most string operators, function memberwise on ranges and lists, similar to array-programming languages like APL. For example, `[1 2 3]+[6 5 4]` is `[7 7 7]`, and `"Hello".1,3` is `["Hello1" "Hello2"]`.
 
@@ -48,7 +49,7 @@ Expressions use infix operators; precedence/associativity may be coerced using p
  - Ternary operators do not have a symbol between their second and third arguments: `a?"Yes""No"`
  - Increment `++` and decrement `--` are pre- only (i.e. you can do `++x` but not `x++`)
 
-Lists are constructed via square braces: `[1 2 3]`. No separator is necessary, except in cases of ambiguity in scanning or parsing: `[-1 2 3]` works as expected, but `[1 -2 3]` is actually `[-1 3]` because the `-` is treated as a binary operator if possible. Here, the expression terminator `;` can be used to eliminate the ambiguity: `[1;-2 3]`.
+Lists are constructed via square braces: `[1 2 3]`. No separator is necessary, except in cases of ambiguity in scanning or parsing: `[-1 2 3]` works as expected, but `[1 -2 3]` is actually `[-1 3]` because the `-` is treated as a binary operator if possible. Here, the expression terminator `;` can be used to eliminate the ambiguity: `[1;-2 3]`. (`;` can also be useful with ternary operators: `a?1;-1`.)
 
 As in C, assignments are valid expressions that can be used anywhere an expression can be used: in a loop test, for example. Appending a colon to any operator turns it into a compound assignment operator: `x+:5` is equivalent to `x:x+5`; note that this also works with unary and ternary operators: `-:x` flips the sign of the variable.
 
@@ -56,12 +57,10 @@ Another meta-operator is `$`, fold. Prepended to a binary operator, it turns it 
 
 As in C, loops and if statements use curly braces to mark off their blocks; the curly braces can be dropped if the block is a single statement.
 
-Curly braces are also used to construct functions, which are first-class objects and can be assigned to variables, passed to other functions, etc. Functions are called via a Lisp-like syntax: `(fxyz)` calls the function f with arguments x, y, and z. (This syntax makes parsing much, much easier!)
+Curly braces are also used to construct functions, which are first-class objects and can be assigned to variables, passed to other functions, etc. Functions are called via a Lisp-like syntax: `(fxyz)` calls the function `f` with arguments `x`, `y`, and `z`. (This syntax makes parsing much, much easier!) If the `(fxyz)` syntax is used with `f` being a list, scalar, or range rather than a function, it is an alternate syntax for subscripting: `(lij)` is equivalent to `l@i@j`, or `l[i][j]` in most languages.
 
-Within the function, the arguments are available through the local variables a-e. For example, the function `{a+b}` takes two arguments and adds them; it could be called like so: `({a+b}1 2)`, or assigned to a variable first. For functions with more than five arguments, the local variable g contains the entire list of arguments that were passed in (mnemonic: arGs). The local variable f contains a reference to the current function, allowing recursion even in anonymous functions. Functions do not have a set arity, although a function cannot be called with zero arguments. The last bare expression in a function is its return value. If a function does not end in an expression, it returns nil.
+Within a function, the arguments are available through the local variables `a-e`. For example, the function `{a+b}` takes two arguments and adds them; it could be called like so: `({a+b}1 2)`, or assigned to a variable first. For functions with more than five arguments, the local variable `g` contains the entire list of arguments that were passed in (mnemonic: ar**g**s). The local variable `f` contains a reference to the current function, allowing recursion even in anonymous functions. Functions do not have a set arity, although a function cannot be called with zero arguments. The last bare expression in a function is its return value. If a function does not end in an expression, it returns nil.
 
-The main program is an implicitly declared anonymous function, which gets its arguments from the command-line args and prints its return value. Thus, a full factorial program can be written as `a?a*(fa-1)1`. Wrap it in curly braces, and it's a factorial function.
-
-If the `(fxyz)` syntax is used with `s` being a list, scalar, or range rather than a function, it is an alternate syntax for subscripting: `(lij)` is equivalent to `l@i@j`, or `l[i][j]` in most languages.
+The main program is an implicitly declared anonymous function, which gets its arguments from the command-line args and prints its return value. Thus, a full factorial program can be written using recursion as `a?a*(fa-1)1`--identical to a factorial function, just without the curly braces.
 
 The `M` operator is used to map a function to each element of a list, range, or scalar: `{a*a}M,5` gives `[0 1 4 9 16]`. Currently, the result is always a list.
