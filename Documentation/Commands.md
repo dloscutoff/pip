@@ -28,11 +28,19 @@ Since both the if and else branches may drop the curly braces if they contain si
 
 Like a for loop, but takes a number rather than an iterable, and does not assign to a loop variable. Equivalent of `{...}*10` in some languages.
 
+### Output statement
+
+`O"Hello world"`
+
+`write("Hello world")`
+
+Same as `P`, but does not output a newline at the end.
+
 ### Print statement
 
 `P"Hello world"`
 
-`printline("Hello world")`
+`writeline("Hello world")`
 
 Converts value to a string using `ST` and outputs the result. Always has a trailing newline, unless the value is nil, in which case no output happens at all. **Note**: only takes a single expression! To print more than one value on the same line, use string concatenation or put them in a list.
 

@@ -15,7 +15,7 @@ generator = type(i for i in [])
 class Scalar:
     """Represents a string or number."""
     
-    def __init__(self, value):
+    def __init__(self, value=""):
         # Store the value as a Python string
         if type(value) is bool:
             # Convert to an integer first
@@ -32,7 +32,8 @@ class Scalar:
         return self._value
 
     def __repr__(self):
-        if intRgx.match(self._value) or floatRgx.match(self._value):
+        m = floatRgx.match(self._value) or intRgx.match(self._value)
+        if m and m.end() == len(self._value):
             # Numbers can be displayed without quotes
             return self._value
         else:
@@ -77,8 +78,9 @@ class Scalar:
     def __getitem__(self, index):
         if type(index) is List:
             return List(self[i] for i in index)
-        elif type(index) is Scalar:
-            index = int(index)
+        elif type(index) in (Scalar, int):
+            index = int(index) % len(self._value)
+            # TODO: warn if index < -len or len >= index
         
         if type(index) in (int, slice):
             return Scalar(self._value.__getitem__(index))
@@ -95,6 +97,9 @@ class Scalar:
     def __iter__(self):
         for char in self._value:
             yield Scalar(char)
+
+    def __hash__(self):
+        return hash(self._value)
 
     def count(self, substring):
         if type(substring) is Scalar:
@@ -115,13 +120,15 @@ class List:
     # l: Print as multiple lines, with each line joined on space
     outFormat = None
 
-    def __init__(self, value):
-        if type(value) in (tuple, generator, Range):
+    def __init__(self, value=None):
+        if type(value) in (tuple, generator, set, Range):
             self._value = list(value)
         elif type(value) is List:
             self._value = deepcopy(value._value)
         elif type(value) is list:
             self._value = deepcopy(value)
+        elif value is None:
+            self._value = []
         else:
             print("In List constructor:", value, type(value))
 
@@ -164,14 +171,20 @@ class List:
     def __len__(self):
         return len(self._value)
 
+    def toNumber(self):
+        # Returns a Python list containing Python number types, if possible
+        # Raises AttributeError if one of the items doesn't have toNumber()
+        return [item.toNumber() for item in self]
+
     def __contains__(self, item):
         return item in self._value
 
     def __getitem__(self, index):
         if type(index) is List:
             return List(self[i] for i in index)
-        elif type(index) is Scalar:
-            index = int(index)
+        elif type(index) in (Scalar, int):
+            index = int(index) % len(self._value)
+            # TODO: warn if index < -len or len >= index
         
         if type(index) is int:
             return self._value.__getitem__(index)
@@ -187,8 +200,20 @@ class List:
     def __iter__(self):
         return iter(self._value)
 
+    def __hash__(self):
+        return hash(self._value)
+
     def count(self, item):
         return self._value.count(item)
+
+    def append(self, item):
+        # This assumes that item is an instance of a Pip type--unpredictable
+        # behavior may follow if it's not
+        self._value.append(item)
+
+    def extend(self, iterable):
+        # This assumes that iterable is either a Python type or a List/Range
+        self._value.extend(list(iterable))
 
 
 class Range:
@@ -249,13 +274,22 @@ class Range:
                 and self._upper == rhs._upper)
 
     def __len__(self):
-        # TODO: what if one of them (or both) is None?
+        # TBD: what if one of them (or both) is None?
         lower = self._lower or 0
         if self._upper is not None:
             return max(0, self._upper - lower)
         else:
             # A Range with no upper bound has an infinite length
             return nil
+
+    def toNumber(self):
+        # Returns a Python list containing Python ints, if possible
+        if self._upper is not None:
+            return [int(item) for item in self]
+        else:
+            # TBD: possibly return a generator instead? Check contexts where
+            # this is used
+            return []
 
     def __contains__(self, item):
         if type(item) is Scalar:
@@ -292,9 +326,18 @@ class Range:
             print("Attempting to iterate over an infinite Range")
             return iter([])
 
+    def __hash__(self):
+        # Since Range is not straightforwardly convertible to Python's range,
+        # use a tuple of the two values instead
+        return hash((self._lower, self._upper))
+
     def __getitem__(self, index):
-        if type(index) is Scalar:
-            index = int(index)
+        if type(index) in (Scalar, int):
+            if self._upper:
+                index = int(index) % (self._upper - (self._lower or 0))
+                # TODO: warn if index < -size or size >= index
+            else:
+                index = int(index)
         elif type(index) is Range:
             index = index.toSlice()
         
@@ -415,6 +458,9 @@ class Nil:
 
     def __getitem__(self, index):
         return self
+
+    def __hash__(self):
+        return hash(None)
 
 nil = Nil()
 

@@ -1,9 +1,7 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  O statement
-#  MX, MN, TP (or TZ for transpo'z'e?) operators
-#  Make subscripts cyclic, like CJam: [1 2 3]@4 == 2
+#  TZ (for transpo'z'e) operator
 #  Figure out how _ expressions are going to work: currently leaning toward
 #    generating them at runtime when expressions are evaluated, so that
 #    2+t+_ turns into {12+a} (but note wrinkle: _+2+t turns into {a+2+10}
@@ -16,9 +14,10 @@
 #  Limited backslash-escapes in strings
 #  Make M on strings produce string results?
 #  Built-in functions that are implemented in Python code (z, for example)
+#  Splat-calling of functions
 #  Simple regex operations
 #  Figure out how to get correct warning/error reporting in ptypes classes
-#  Reconstitute code from parse tree and print that for debugging info
+#  Reconstitute code from parse tree and print that for debugging info?
 #  -r option
 #  More operators! Esp. random, string, and math operators needed
 
@@ -28,7 +27,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.04.20"
+VERSION = "0.15.04.23"
 
 def pip(interactive=True):
     if interactive:

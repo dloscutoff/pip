@@ -54,6 +54,8 @@ U/B/T = Unary/Binary/Ternary
 
 <code><=>B</code> Numeric cmp (-1 if less, 0 if equal, 1 if greater)
 
+<code><> B</code> Group iterable into sections of given length
+
 <code>=&ensp; B</code> Numeric equal
 
 <code>== B</code> Exactly equal
@@ -102,11 +104,17 @@ U/B/T = Unary/Binary/Ternary
 
 <code>J&ensp; U</code> Join iterable on empty string
 
+<code>LC U</code> Convert to lowercase
+
 <code>LT B</code> String less than
 
 <code>LE B</code> String less than or equal
 
 <code>M&ensp; B</code> Map function to iterable, returning list
+
+<code>MN U</code> Min of iterable using numeric comparison
+
+<code>MX U</code> Max of iterable using numeric comparison
 
 <code>NE B</code> String not equal
 
@@ -115,6 +123,8 @@ U/B/T = Unary/Binary/Ternary
 <code>PE B</code> List with prepended element
 
 <code>R&ensp; T</code> Replace each occurrence in string of substring with replacement
+
+<code>RL B</code> Repeat list
 
 <code>RM B</code> From string remove characters; from list remove item
 
@@ -126,10 +136,16 @@ U/B/T = Unary/Binary/Ternary
 
 <code>RV B</code> Reverse iterable
 
+<code>SN U</code> Sort iterable using numeric comparison
+
 <code>ST B</code> Convert to string (for lists, the format of the result depends on command-line flags)
 
 <code>TB B</code> Convert decimal integer to given base
 
 <code>TB U</code> Convert decimal integer to binary
+
+<code>UC U</code> Convert to UPPERCASE
+
+<code>UQ U</code> Keep only unique values from iterable
 
 <code>X&ensp; B</code> Repeat string given number of times

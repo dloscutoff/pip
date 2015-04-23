@@ -24,7 +24,9 @@ For the most up-to-date list, see list near the top of `execution.py`. Eventuall
 
 `y` Empty string (could change in future)
 
-`z` Empty string (will chang in future)
+`z` Empty string (will change in future)
+
+`AZ` Uppercase alphabet
 
 `PA` All **P**rintable **A**SCII characters, 32 through 126
 

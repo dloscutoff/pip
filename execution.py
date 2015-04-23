@@ -1,5 +1,5 @@
 
-from functools import wraps
+#from functools import wraps
 import math, random
 import tokens
 import operators as ops
@@ -14,59 +14,59 @@ scalarOne = Scalar(1)
 # Deprecated in favor of operator flags
 # Reason: decorators, while cool, are slow and ruin the max recursion depth
 
-def vals(opFn):
-    """Decorator: forces evaluation of all args to an operator's function."""
-    @wraps(opFn)
-    def valsFn(self, *args):
-        return opFn(self,
-                    *[self.evaluate(arg) for arg in args])
-    return valsFn
-
-def rvals(opFn):
-    """Decorator: forces all args to an operator's function to their rvals."""
-    @wraps(opFn)
-    def rvalsFn(self, *args):
-        return opFn(self,
-                    *[self.getRval(arg) for arg in args])
-    return rvalsFn
-
-def rangeAsList(opFn):
-    """Decorator: if Range is passed, converts it to a List first."""
-    @wraps(opFn)
-    def rangeAsListFn(self, *args):
-        return opFn(self,
-                    *[List(arg) if type(arg) is Range else arg for arg in args])
-    return rangeAsListFn
-
-def memberwise(opFn):
-    """Decorator: if List is passed, does the operation on all its items."""
-    @wraps(opFn)
-    def memberwiseFn(self, *args):
-        if len(args) == 1 and type(args[0]) is List:
-            return List([memberwiseFn(self, item) for item in args[0]])
-        elif len(args) == 2:
-            if type(args[0]) is type(args[1]) is List:
-                result = [memberwiseFn(self, lhs, rhs)
-                          for lhs, rhs in zip(*args)]
-                # But zip() doesn't catch all of the items if one list is
-                # longer than the other, so add the remaining items unchanged
-                lengths = list(map(len, args))
-                if lengths[0] > lengths[1]:
-                    result.extend(args[0][lengths[1]:])
-                elif lengths[1] > lengths[0]:
-                    result.extend(args[1][lengths[0]:])
-                return List(result)
-            elif type(args[0]) is List:
-                return List([memberwiseFn(self, lhs, args[1])
-                             for lhs in args[0]])
-            elif type(args[1]) is List:
-                return List([memberwiseFn(self, args[0], rhs)
-                             for rhs in args[1]])
-            else:
-                return opFn(self, *args)
-        else:
-            return opFn(self, *args)
-    return memberwiseFn
+##def vals(opFn):
+##    """Decorator: forces evaluation of all args to an operator's function."""
+##    @wraps(opFn)
+##    def valsFn(self, *args):
+##        return opFn(self,
+##                    *[self.evaluate(arg) for arg in args])
+##    return valsFn
+##
+##def rvals(opFn):
+##    """Decorator: forces all args to an operator's function to their rvals."""
+##    @wraps(opFn)
+##    def rvalsFn(self, *args):
+##        return opFn(self,
+##                    *[self.getRval(arg) for arg in args])
+##    return rvalsFn
+##
+##def rangeAsList(opFn):
+##    """Decorator: if Range is passed, converts it to a List first."""
+##    @wraps(opFn)
+##    def rangeAsListFn(self, *args):
+##        return opFn(self,
+##                    *[List(arg) if type(arg) is Range else arg for arg in args])
+##    return rangeAsListFn
+##
+##def memberwise(opFn):
+##    """Decorator: if List is passed, does the operation on all its items."""
+##    @wraps(opFn)
+##    def memberwiseFn(self, *args):
+##        if len(args) == 1 and type(args[0]) is List:
+##            return List([memberwiseFn(self, item) for item in args[0]])
+##        elif len(args) == 2:
+##            if type(args[0]) is type(args[1]) is List:
+##                result = [memberwiseFn(self, lhs, rhs)
+##                          for lhs, rhs in zip(*args)]
+##                # But zip() doesn't catch all of the items if one list is
+##                # longer than the other, so add the remaining items unchanged
+##                lengths = list(map(len, args))
+##                if lengths[0] > lengths[1]:
+##                    result.extend(args[0][lengths[1]:])
+##                elif lengths[1] > lengths[0]:
+##                    result.extend(args[1][lengths[0]:])
+##                return List(result)
+##            elif type(args[0]) is List:
+##                return List([memberwiseFn(self, lhs, args[1])
+##                             for lhs in args[0]])
+##            elif type(args[1]) is List:
+##                return List([memberwiseFn(self, args[0], rhs)
+##                             for rhs in args[1]])
+##            else:
+##                return opFn(self, *args)
+##        else:
+##            return opFn(self, *args)
+##    return memberwiseFn
 
 class ProgramState:
     """Represents the internal state of a program during execution."""
@@ -84,7 +84,7 @@ class ProgramState:
         # the program crashed after 140 levels of recursion.
         # Pre-initialized global variables
         self.vars = {
-            "_": Block([], tokens.Name("a")),
+            #"_": Block([], tokens.Name("a")),
             "h": Scalar("100"),
             "i": Scalar("0"),
             "l": List([]),
@@ -98,9 +98,9 @@ class ProgramState:
             "x": Scalar(""),
             "y": Scalar(""),
             "z": Scalar(""),
+            "AZ": Scalar("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
             "PA": Scalar("".join(chr(i) for i in range(32, 127))),
             "PI": Scalar(math.pi),
-            "NIL": nil,
             }
         # Local variables--one set per function call level
         self.locals = []
@@ -414,6 +414,14 @@ class ProgramState:
             for statement in code:
                 self.executeStatement(statement)
     
+    def OUTPUT(self, expression):
+        """Output an expression with NO trailing newline."""
+        expression = self.getRval(expression)
+        # Because each Pip type implements __str__, we can just print() it
+        # However, printing nil has no effect, including on whitespace
+        if expression is not nil:
+            print(expression, end="")
+    
     def PRINT(self, expression):
         """Output an expression with a trailing newline."""
         expression = self.getRval(expression)
@@ -554,10 +562,9 @@ class ProgramState:
 
     #@rvals
     def APPENDELEM(self, lhs, rhs):
-        if type(lhs) is Range:
-            lhs = List(lhs)
-        
-        if type(lhs) is List:
+        if type(lhs) is Scalar:
+            lhs = List([lhs])
+        if type(lhs) in (List, Range):
             result = list(lhs) + [rhs]
             return List(result)
         else:
@@ -568,7 +575,11 @@ class ProgramState:
     #@rvals
     #@rangeAsList
     def APPENDLIST(self, lhs, rhs):
-        if type(lhs) is List and type(rhs) is List:
+        if type(lhs) is Scalar:
+            lhs = List([lhs])
+        if type(rhs) is Scalar:
+            rhs = List([rhs])
+        if type(lhs) in (List, Range) and type(rhs) in (List, Range):
             result = list(lhs) + list(rhs)
             return List(result)
         else:
@@ -738,10 +749,19 @@ class ProgramState:
                           type(number))
             return nil
 
-    #@vals
-    def GROUP(self, expr):
-        # Result of wrapping a single expression in parentheses
-        return expr
+    def GROUP(self, iterable, rhs):
+        if type(iterable) in (Scalar, List, Range) and type(rhs) is Scalar:
+            result = List()
+            index = 0
+            jump = int(rhs)
+            while index < len(iterable):
+                result.append(iterable[index:index+jump])
+                index += jump
+            return result
+        else:
+            self.err.warn("Unimplemented argtypes for GROUP:",
+                          type(iterable), "and", type(rhs))
+            return nil
 
     def IFTE(self, test, trueBranch, falseBranch):
         # Ternary if-then-else operator
@@ -843,6 +863,15 @@ class ProgramState:
     def LIST(self, *items):
         return List(items)
 
+    def LOWERCASE(self, rhs):
+        if type(rhs) is Scalar:
+            return Scalar(str(rhs).lower())
+        elif type(rhs) in (Range, Nil):
+            return rhs
+        else:
+            self.err.warn("Unimplemented argtype for LOWERCASE:", type(rhs))
+            return nil
+
     #@rvals
     def MAP(self, function, iterable):
         if type(function) is Block and type(iterable) in (Scalar, List, Range):
@@ -855,6 +884,38 @@ class ProgramState:
                           type(function), "and", type(iterable))
             return nil
 
+    def MAX(self, iterable):
+        if type(iterable) in (Scalar, List, Range):
+            try:
+                return max(iterable, key=lambda x:x.toNumber())
+            except AttributeError:
+                self.err.warn("Argument to MAX contains non-numeric value:",
+                              iterable)
+                return nil
+            except TypeError:
+                self.err.warn("Argument to MAX contains unorderable types:",
+                              iterable)
+                return nil
+        else:
+            self.err.warn("Unimplemented argtype for MAX:", type(iterable))
+            return nil
+
+    def MIN(self, iterable):
+        if type(iterable) in (Scalar, List, Range):
+            try:
+                return min(iterable, key=lambda x:x.toNumber())
+            except AttributeError:
+                self.err.warn("Argument to MIN contains non-numeric value:",
+                              iterable)
+                return nil
+            except TypeError:
+                self.err.warn("Argument to MIN contains unorderable types:",
+                              iterable)
+                return nil
+        else:
+            self.err.warn("Unimplemented argtype for MIN:", type(iterable))
+            return nil
+    
     #@rvals
     #@rangeAsList
     #@memberwise
@@ -1115,6 +1176,11 @@ class ProgramState:
             # The lhs was false, so we need to check the rhs
             result = self.getRval(rhs)
         return result
+    
+    #@vals
+    def PARENTHESIZE(self, expr):
+        # Result of wrapping a single expression in parentheses
+        return expr
 
     #@rvals
     #@memberwise
@@ -1153,13 +1219,12 @@ class ProgramState:
 
     #@rvals
     def PREPENDELEM(self, lhs, rhs):
-        # TBD: this should also be meaningful for Scalars... but does it turn
-        # them into a single-item list or a list of characters?
-        if type(rhs) is Range:
-            rhs = List(rhs)
-        
-        if type(rhs) is List:
-            result = [lhs] + list(rhs)
+        # Note that the order of operands has been changed: lhs is now the
+        # list, so that one could do lPE:x
+        if type(lhs) is Scalar:
+            lhs = List([lhs])
+        if type(lhs) in (List, Range):
+            result = [rhs] + list(lhs)
             return List(result)
         else:
             self.err.warn("Unimplemented argtypes for PREPENDELEM:",
@@ -1203,6 +1268,17 @@ class ProgramState:
             return Range(nil, rhs)
         else:
             self.err.warn("Unimplemented argtype for RANGETO:", type(rhs))
+            return nil
+
+    def REPEATLIST(self, lhs, rhs):
+        if type(lhs) is Scalar:
+            lhs = List([lhs])
+        if type(lhs) in (List, Range) and type(rhs) is Scalar:
+            result = list(lhs) * int(rhs)
+            return List(result)
+        else:
+            self.err.warn("Unimplemented argtypes for REPEATLIST:",
+                          type(lhs), "and", type(rhs))
             return nil
 
     #@rvals
@@ -1290,6 +1366,13 @@ class ProgramState:
             return value
         else:
             self.err.warn("Unimplemented argtype for SEND:", type(head))
+            return nil
+
+    def SORTNUM(self, iterable):
+        if type(iterable) in (Scalar, List, Range):
+            return List(sorted(iterable, key=lambda x:x.toNumber()))
+        else:
+            self.err.warn("Unimplemented argtype for SORTNUM:", type(iterable))
             return nil
 
     #@rvals
@@ -1498,6 +1581,32 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for TOBASE:",
                           type(number))
             return nil
+
+    def UNIQUE(self, iterable):
+        # Removes duplicate values from iterable
+        if type(iterable) is List:
+            return List(set(iterable))
+        elif type(iterable) is Range:
+            # All values are already unique
+            return iterable
+        elif type(iterable) is Scalar:
+            return Scalar("".join(set(str(iterable))))
+        elif type(iterable) is Nil:
+            # This is not a warning--removing duplicates from nil leaves nil
+            return nil
+        else:
+            self.err.warn("Unimplemented argtype for UNIQUE:",
+                          type(iterable))
+
+    def UPPERCASE(self, rhs):
+        if type(rhs) is Scalar:
+            return Scalar(str(rhs).upper())
+        elif type(rhs) in (Range, Nil):
+            return rhs
+        else:
+            self.err.warn("Unimplemented argtype for UPPERCASE:", type(rhs))
+            return nil
+
 
 
 class Lval:

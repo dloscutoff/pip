@@ -55,6 +55,7 @@ cmdTable = [
     ("F", "FOR", ["NAME", "RVAL", "CODE"]),
     ("I", "IF", ["RVAL", "CODE", "ELSE"]),
     ("L", "LOOP", ["RVAL", "CODE"]),
+    ("O", "OUTPUT", ["RVAL"]),
     ("P", "PRINT", ["RVAL"]),
     ("Q", "QUERY", ["LVAL"]),
     ("S", "SWAP", ["LVAL", "LVAL"]),
@@ -63,8 +64,6 @@ cmdTable = [
     ]
 
 commands = {cmdSpecs[0]:Command(*cmdSpecs) for cmdSpecs in cmdTable}
-# Also add things that aren't themselves commands but are used in commands
-commands.update({cmd:None for cmd in "E"})
 
 # The precedence table contains a list of precedence levels from lowest to
 # highest. The first entry in each level is the arity of all operators at that
@@ -119,6 +118,12 @@ precedenceTable = [
      ("RP", "REPR", "L", RVALS),
      ("ST", "STR", "L", RVALS),
      ],
+    [1,
+     ("MX", "MAX", "L", RVALS),
+     ("MN", "MIN", "L", RVALS),
+     ("SN", "SORTNUM", "L", RVALS),
+     ("UQ", "UNIQUE", "L", RVALS),
+     ],
     [2,
      ("AE", "APPENDELEM", "L", RVALS),
      ("AL", "APPENDLIST", "L", RVALS),
@@ -126,7 +131,9 @@ precedenceTable = [
      ],
     [2,
      ("^", "SPLIT", "L", RVALS | LIST_EACH),
+     ("<>", "GROUP", "L", RVALS),
      ("J", "JOIN", "L", RVALS),
+     ("RL", "REPEATLIST", "L", RVALS),
      ],
     [1,
      ("^", "SPLIT", "L", RVALS | LIST_EACH),
@@ -146,6 +153,8 @@ precedenceTable = [
      ],
     [1,
      ("RV", "REVERSE", "L", RVALS),
+     ("LC", "LOWERCASE", "L", RVALS | LIST_EACH),
+     ("UC", "UPPERCASE", "L", RVALS | LIST_EACH),
      ],
     [2,
      (",", "RANGE", "L", RVALS),
@@ -190,8 +199,8 @@ precedenceTable = [
      ("++", "INC", "L", VALS),
      ("--", "DEC", "L", VALS),
      ("#", "LEN", "L", RVALS),
-     ("A", "ASC", "L", RVALS | LIST_EACH),
-     ("C", "CHR", "L", RVALS | LIST_EACH),
+     ("A", "ASC", "L", RVALS | RANGE_EACH | LIST_EACH),
+     ("C", "CHR", "L", RVALS | RANGE_EACH | LIST_EACH),
      ("FB", "FROMBASE", "L", RVALS | RANGE_EACH | LIST_EACH), # Unary mnemonic:
                                                               # FromBinary
      ],
@@ -206,7 +215,7 @@ operators = set()
 # Some convenience operators for parsing that don't have straightforward
 # equivalents in the syntax:
 highestPrecedence = len(precedenceTable)
-group = Operator("GRP", "GROUP", 1, highestPrecedence, "L", VALS)
+paren = Operator("PAREN", "PARENTHESIZE", 1, highestPrecedence, "L", VALS)
 enlist = Operator("LIST", "LIST", 1, highestPrecedence, "L", RVALS)
 block = Operator("BLOCK", "BLOCK", 1, highestPrecedence, "L", 0)
 send = Operator("SEND", "SEND", 1, highestPrecedence, "L", VALS)

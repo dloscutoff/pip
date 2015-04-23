@@ -11,7 +11,7 @@ nameRgx = re.compile(r'[A-Z]+|[a-z_]')
 stringRgx = re.compile(r'"[^"]*"')
 charRgx = re.compile(r"'.")
 numberRgx = re.compile(r'[0-9]+(\.[0-9]+)?')
-symbolsRgx = re.compile(r'[][(){};$]')
+symbolsRgx = re.compile(r'[][(){};$E]')
 
 # Create a regex from a list of operators by re.escape-ing them and joining
 # on |
@@ -38,21 +38,22 @@ whitespaceRgx = re.compile(r'\s+')
 
 def newToken(text, *args, **kwargs):
     """Returns an instance of the correct Token subclass."""
-    # Maybe there's a better way to do this?
     if text in operators.operators:
         return tokens.Operator(text, *args, **kwargs)
     elif text in operators.commands:
         return tokens.Command(text, *args, **kwargs)
+    elif text[0] == "'":
+        return tokens.Char(text, *args, **kwargs)
+    elif text[0] == '"':
+        return tokens.String(text, *args, **kwargs)
+    elif symbolsRgx.match(text) and (text[0] != "E" or text == "E"):
+        # (The above special-casing is to prevent potential names starting with
+        # E from scanning as symbols and choking the parser)
+        return tokens.Symbol(text, *args, **kwargs)
     elif nameRgx.match(text):
         return tokens.Name(text, *args, **kwargs)
-    elif stringRgx.match(text):
-        return tokens.String(text, *args, **kwargs)
-    elif charRgx.match(text):
-        return tokens.Char(text, *args, **kwargs)
     elif numberRgx.match(text):
         return tokens.Number(text, *args, **kwargs)
-    elif symbolsRgx.match(text):
-        return tokens.Symbol(text, *args, **kwargs)
     # Others as needed
     else:
         return None
@@ -83,7 +84,6 @@ def tokenize(code):
                     # the E for now, and save the I for the next token
                     text = "E"
                     index -= 1
-                # TODO: Line and character numbers
                 tokenList.append(newToken(text))
                 code = code[index:]
             elif code[0] in '"':

@@ -178,7 +178,7 @@ def bubble(exprTree):
 
 
 def parseOperand(tokenList):
-    """Parse a Scalar, a unary expression, or a grouped expression."""
+    """Parse a Scalar, a unary expression, or a parenthesized expression."""
     if type(tokenList[0]) is tokens.Name:
         # For a Name token, just return it
         return tokenList.pop(0)
@@ -191,7 +191,7 @@ def parseOperand(tokenList):
     elif type(tokenList[0]) is tokens.Number:
         return ptypes.Scalar(tokenList.pop(0))
     elif tokenList[0] == "(":
-        # Parse a parenthesized expression: nil, group, or send-expression
+        # Parse a parenthesized expression: nil, grouped expr, or send-expr
         tokenList.pop(0)
         expressions = []
         while tokenList[0] != ")":
@@ -205,8 +205,8 @@ def parseOperand(tokenList):
             # () is equivalent to nil
             return ptypes.nil
         elif len(expressions) == 1:
-            # Exactly one expression in parentheses: a group
-            return [operators.group, expressions[0]]
+            # Exactly one expression in parentheses
+            return [operators.paren, expressions[0]]
         else:
             # Multiple expressions: a send-expression (function call or
             # iterable subscript) such as (f 1 2 3)
@@ -264,7 +264,7 @@ def parseOperand(tokenList):
           tokenList[0] in operators.opsByArity[3]):
         err.die(tokenList[0], "is not a unary operator")
     else:
-        err.die("Expected expression, got", tokenList[0])
+        err.die("Expected expression, got", repr(tokenList[0]))
 
 
 
