@@ -41,14 +41,31 @@ def parseStatement(tokenList):
                 else:
                     # There is no else branch--use an empty block
                     statement.append([])
+            elif argtype == "WITH":
+                # The with-clause of unify expressions, e.g. UabcWx
+                if tokenList[0] == "W":
+                    # Match the W and parse an expression
+                    tokenList.pop(0)
+                    statement.append(parseExpr(tokenList))
+                else:
+                    err.die("Expected W after U, got", tokenList[0])
             elif argtype == "CODE":
                 #!print("CODE", tokenList)
                 # Parse a code block
                 statement.append(parseBlock(tokenList))
             elif argtype == "NAME":
-                # Parse a single name (this is used in FOR loops)
+                # Parse a single name (used in FOR loops)
                 if type(tokenList[0]) is tokens.Name:
                     statement.append(tokenList.pop(0))
+                else:
+                    err.die("Expected name, got", tokenList[0])
+            elif argtype == "NAMES":
+                # Parse 1 or more names (used in UNIFY)
+                if type(tokenList[0]) is tokens.Name:
+                    nameList = []
+                    while type(tokenList[0]) is tokens.Name:
+                        nameList.append(tokenList.pop(0))
+                    statement.append(nameList)
                 else:
                     err.die("Expected name, got", tokenList[0])
             else:

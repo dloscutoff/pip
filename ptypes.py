@@ -245,7 +245,7 @@ class Range:
 
     def copy(self):
         return Range(self._lower,
-                     self._upper if self_upper is not None else nil)
+                     self._upper if self._upper is not None else nil)
 
     def getLower(self):
         return self._lower

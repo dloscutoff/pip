@@ -76,6 +76,8 @@ U/B/T = Unary/Binary/Ternary
 
 <code>^&ensp; U</code> Split string into list of characters
 
+<code>^@ B</code> Split iterable at index or list of indices
+
 <code>|&ensp; B</code> Logical or (short-circuiting)
 
 ### Alphabetic operators
@@ -85,6 +87,14 @@ U/B/T = Unary/Binary/Ternary
 <code>AE B</code> List with appended element
 
 <code>AL B</code> List with appended list
+
+<code>BA B</code> Bitwise and
+
+<code>BN U</code> Bitwise not
+
+<code>BO B</code> Bitwise or
+
+<code>BX B</code> Bitwise xor
 
 <code>C&ensp; U</code> Convert ASCII value/Unicode point to character
 

@@ -169,12 +169,7 @@ class ProgramState:
         #!print("evaluating", fnName)
         opFunction = getattr(self, fnName)
         
-        if operator.fold:
-            # A binary operator being used in a unary fold operation
-            # TBD: what do we do for empty sequences? Need default
-            # value for each operator?
-            result = self.FOLD(opFunction, *args)
-        elif operator.assign:
+        if operator.assign:
             # This is a compute-and-assign operator like +:
             # Compute the expression, and then assign it back to the lval
             lval = self.evaluate(args[0])
@@ -182,6 +177,11 @@ class ProgramState:
             normalOp.assign = False
             result = self.evaluate([normalOp] + args)
             result = self.ASSIGN(lval, result)
+        elif operator.fold:
+            # A binary operator being used in a unary fold operation
+            # TBD: what do we do for empty sequences? Need default
+            # value for each operator?
+            result = self.FOLD(operator, *args)
         else:
 ##            blockArg = False
 ##            if operator.modifiesBlocks:
@@ -465,6 +465,19 @@ class ProgramState:
                 self.executeStatement(statement)
             condVal = self.getRval(cond)
 
+    def UNIFY(self, lvals, rval):
+        """Unify lvals with items of rval, like Python's tuple unpacking."""
+        rval = self.getRval(rval)
+        if type(rval) in (List, Scalar, Range):
+            for i, lval in enumerate(lvals):
+                if i < len(rval):
+                    self.assign(self.evaluate(lval), rval[i])
+                else:
+                    self.assign(self.evaluate(lval), nil)
+        else:
+            self.err.warn("Unimplemented argtype for UNIFY:", type(rval))
+            # TBD: assign nil to all variables, or leave them unmodified?
+
     def WHILE(self, cond, code):
         """Loop, executing code, while cond evaluates to true."""
         condVal = self.getRval(cond)
@@ -477,27 +490,21 @@ class ProgramState:
     ### Pip meta-operators      ###
     ###############################
 
-    def FOLD(self, opFunction, iterable):
+    def FOLD(self, operator, iterable):
         iterable = self.getRval(iterable)
+        normalOp = operator.copy()
+        normalOp.fold = False
         if type(iterable) in (Scalar, List, Range):
             if len(iterable) == 0:
-                # TODO: set default values for each operator so $+[] returns 0
+                # TODO: default values for each operator so e.g. $+[] == 0
                 return nil
             else:
-                # TBD: does $-[5] return 5 or -5? Python's reduce() returns 5,
-                # like this code does currently. Haskell has two separate
-                # kinds of fold operation, one (which only works on nonempty
-                # lists) that would return 5, and the other (with a default
-                # value) that would return -5. Lisp's (- 5) returns -5, if I'm
-                # not mistaken.
-                foldValue = None
-                for val in iterable:
-                    if foldValue is None:
-                        # First time through
-                        foldValue = val
-                    else:
-                        foldValue = opFunction(foldValue, val)
+                foldValue = iterable[0]
+                for val in iterable[1:]:
+                    foldValue = self.evaluate([normalOp, foldValue, val])
                 return foldValue
+        elif iterable is nil:
+            return nil
         else:
             # TODO: allow fold in lambda expressions, e.g. $+_ ?
             self.err.warn("Can't fold", type(iterable))
@@ -510,27 +517,7 @@ class ProgramState:
     #@rvals
     #@memberwise
     def ADD(self, lhs, rhs):
-        blockOperand = False
-        if type(lhs) is Block:
-            blockOperand = True
-            if lhs.isExpr():
-                lhs = lhs.getReturnExpr()
-            else:
-                self.err.warn("Cannot modify non-expression function")
-                return nil
-        if type(rhs) is Block:
-            blockOperand = True
-            if rhs.isExpr():
-                rhs = rhs.getReturnExpr()
-            else:
-                self.err.warn("Cannot modify non-expression function")
-                return nil
-        if blockOperand:
-            # One or both of the operands is a modifiable expression-function;
-            # return a partial result, which will be repackaged as a new
-            # Block by execute()
-            return [lhs, rhs]
-        elif type(lhs) is type(rhs) is Scalar:
+        if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() + rhs.toNumber()
             return Scalar(result)
         elif type(lhs) is Scalar and type(rhs) is Range:
@@ -641,6 +628,41 @@ class ProgramState:
             self.err.warn("Cannot index into", type(lhs))
             return nil
     
+    def BITWISEAND(self, lhs, rhs):
+        if type(lhs) is type(rhs) is Scalar:
+            result = int(lhs) & int(rhs)
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtypes for BITWISEAND:",
+                          type(lhs), "and", type(rhs))
+            return nil
+
+    def BITWISENOT(self, rhs):
+        if type(rhs) is Scalar:
+            result = ~int(rhs)
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtype for BITWISENOT:", type(rhs))
+            return nil
+
+    def BITWISEOR(self, lhs, rhs):
+        if type(lhs) is type(rhs) is Scalar:
+            result = int(lhs) | int(rhs)
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtypes for BITWISEOR:",
+                          type(lhs), "and", type(rhs))
+            return nil
+
+    def BITWISEXOR(self, lhs, rhs):
+        if type(lhs) is type(rhs) is Scalar:
+            result = int(lhs) ^ int(rhs)
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtypes for BITWISEXOR:",
+                          type(lhs), "and", type(rhs))
+            return nil
+
     def BLOCK(self, statements):
         if len(statements) > 0 and isExpr(statements[-1]):
             # The last expression is the return value of the function
@@ -742,7 +764,7 @@ class ProgramState:
                 return Scalar(result)
             except ValueError:
                 # TBD: make more robust? Or just let it stay nil
-                self.err.warn("Failed converting", number, "to base", base)
+                self.err.warn("Failed converting", number, "from base", base)
                 return nil
         else:
             self.err.warn("Unimplemented argtype for FROMBASE:",
@@ -1299,7 +1321,7 @@ class ProgramState:
         if type(lhs) is Scalar and type(rhs) is Scalar:
             result = str(lhs).translate({ord(c):None for c in str(rhs)})
             return Scalar(result)
-        elif type(lhs) is List:
+        elif type(lhs) in (List, Range):
             result = list(lhs)
             try:
                 while True:
@@ -1322,6 +1344,8 @@ class ProgramState:
     #@rvals
     #@rangeAsList  # TODO: negative step value
     def REVERSE(self, rhs):
+        if type(rhs) is Range:
+            rhs = List(rhs)
         if type(rhs) in (Scalar, List):
             # Let those classes' __getitem__ do the work for us
             return rhs[::-1]
@@ -1385,7 +1409,7 @@ class ProgramState:
             # Some other type, not a valid separator
             return nil
         if type(string) is Scalar:
-            if sep is None:
+            if sep is None or sep == "":
                 result = (Scalar(char) for char in str(string))
             else:
                 result = (Scalar(substr) for substr in str(string).split(sep))
@@ -1398,6 +1422,27 @@ class ProgramState:
                 self.err.warn("Unimplemented argtypes for SPLIT:",
                               type(string), "and", type(sep))
             return nil
+
+    def SPLITAT(self, iterable, indices):
+        # Splits iterable at given indices
+        if type(indices) is Scalar:
+            indices = [int(indices)]
+        elif type(indices) in (List, Range):
+            indices = list(set(int(index) for index in indices))
+
+        if type(iterable) in (List, Scalar, Range) and type(indices) is list:
+            results = []
+            prevIndex = 0
+            length = len(iterable)
+            for i in range(length):
+                if i in indices or i - length in indices:
+                    results.append(iterable[prevIndex:i])
+                    prevIndex = i
+            results.append(iterable[prevIndex:])
+            return List(results)
+        else:
+            self.err.warn("Unimplemented argtypes for SPLITAT:",
+                          type(iterable), "and", type(indices))
 
     #@rvals
     def STR(self, rhs):

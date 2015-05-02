@@ -27,7 +27,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.04.23"
+VERSION = "0.15.04.26"
 
 def pip(interactive=True):
     if interactive:

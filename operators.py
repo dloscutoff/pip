@@ -60,6 +60,7 @@ cmdTable = [
     ("Q", "QUERY", ["LVAL"]),
     ("S", "SWAP", ["LVAL", "LVAL"]),
     ("T", "TILL", ["RVAL", "CODE"]),
+    ("U", "UNIFY", ["NAMES", "WITH"]),
     ("W", "WHILE", ["RVAL", "CODE"]),
     ]
 
@@ -131,6 +132,7 @@ precedenceTable = [
      ],
     [2,
      ("^", "SPLIT", "L", RVALS | LIST_EACH),
+     ("^@", "SPLITAT", "L", RVALS),
      ("<>", "GROUP", "L", RVALS),
      ("J", "JOIN", "L", RVALS),
      ("RL", "REPEATLIST", "L", RVALS),
@@ -138,6 +140,7 @@ precedenceTable = [
     [1,
      ("^", "SPLIT", "L", RVALS | LIST_EACH),
      ("J", "JOIN", "L", RVALS),
+     ("RV", "REVERSE", "L", RVALS),
      ],
     [3,
      ("R", "REPLACE", "L", RVALS),
@@ -152,7 +155,6 @@ precedenceTable = [
      ("X", "STRMUL", "L", RVALS | RANGE_EACH | LIST_EACH),
      ],
     [1,
-     ("RV", "REVERSE", "L", RVALS),
      ("LC", "LOWERCASE", "L", RVALS | LIST_EACH),
      ("UC", "UPPERCASE", "L", RVALS | LIST_EACH),
      ],
@@ -166,6 +168,14 @@ precedenceTable = [
      ("RR", "RANDRANGETO", "L", RVALS),
      ("TB", "TOBASE", "L", RVALS | RANGE_EACH | LIST_EACH), # Unary mnemonic:
                                                             # ToBinary
+     ],
+    [2,
+     ("BA", "BITWISEAND", "L", RVALS | RANGE_EACH | LIST_EACH),
+     ("BO", "BITWISEOR", "L", RVALS | RANGE_EACH | LIST_EACH),
+     ("BX", "BITWISEXOR", "L", RVALS | RANGE_EACH | LIST_EACH),
+     ],
+    [1,
+     ("BN", "BITWISENOT", "L", RVALS | RANGE_EACH | LIST_EACH),
      ],
     [2,
      ("<=>", "NUMCMP", "L", RVALS),
