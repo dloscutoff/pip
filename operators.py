@@ -133,6 +133,8 @@ precedenceTable = [
     [2,
      ("^", "SPLIT", "L", RVALS | LIST_EACH),
      ("^@", "SPLITAT", "L", RVALS),
+     ("@?", "FIND", "L", RVALS),
+     ("@*", "FINDALL", "L", RVALS),
      ("<>", "GROUP", "L", RVALS),
      ("J", "JOIN", "L", RVALS),
      ("RL", "REPEATLIST", "L", RVALS),

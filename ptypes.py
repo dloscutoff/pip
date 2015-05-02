@@ -107,6 +107,19 @@ class Scalar:
         else:
             return nil
 
+    def index(self, searchItem, startIndex=0):
+        if type(searchItem) is Scalar:
+            try:
+                return Scalar(self._value.index(searchItem._value,
+                                                startIndex))
+            except ValueError:
+                return nil
+        elif type(searchItem) in (List, Range):
+            return List(self.index(subitem, startIndex)
+                        for subitem in searchItem)
+        else:
+            return nil
+
 
 class List:
     """Represents a list of objects."""
@@ -215,6 +228,13 @@ class List:
         # This assumes that iterable is either a Python type or a List/Range
         self._value.extend(list(iterable))
 
+    def index(self, searchItem, startIndex=0):
+        try:
+            return Scalar(self._value.index(searchItem, startIndex))
+        except ValueError:
+            return nil
+
+
 
 class Range:
     """Represents a range of integer values."""
@@ -292,6 +312,8 @@ class Range:
             return []
 
     def __contains__(self, item):
+        # TBD: Should this return true only for ints, or for any number
+        # between lower and upper?
         if type(item) is Scalar:
             if self._upper is None:
                 return (self._lower or 0) <= item.toNumber()
@@ -389,6 +411,18 @@ class Range:
                 return (self._lower or 0) <= number.toNumber()
             else:
                 return (self._lower or 0) <= number.toNumber() < self._upper
+
+    def index(self, searchItem, startIndex=0):
+        if searchItem in self and int(searchItem) == searchItem.toNumber():
+            index = int(searchItem) - (self._lower or 0)
+            if index >= startIndex:
+                return Scalar(index)
+            else:
+                return nil
+        elif type(searchItem) in (List, Range):
+            return List(self.index(subitem) for subitem in searchItem)
+        else:
+            return nil
 
             
 class Block:

@@ -10,63 +10,6 @@ from errors import ErrorReporter
 # Generate a Scalar constant 1 now to make (in|de)crements more efficient
 scalarOne = Scalar(1)
 
-# Decorators for operator functions
-# Deprecated in favor of operator flags
-# Reason: decorators, while cool, are slow and ruin the max recursion depth
-
-##def vals(opFn):
-##    """Decorator: forces evaluation of all args to an operator's function."""
-##    @wraps(opFn)
-##    def valsFn(self, *args):
-##        return opFn(self,
-##                    *[self.evaluate(arg) for arg in args])
-##    return valsFn
-##
-##def rvals(opFn):
-##    """Decorator: forces all args to an operator's function to their rvals."""
-##    @wraps(opFn)
-##    def rvalsFn(self, *args):
-##        return opFn(self,
-##                    *[self.getRval(arg) for arg in args])
-##    return rvalsFn
-##
-##def rangeAsList(opFn):
-##    """Decorator: if Range is passed, converts it to a List first."""
-##    @wraps(opFn)
-##    def rangeAsListFn(self, *args):
-##        return opFn(self,
-##                    *[List(arg) if type(arg) is Range else arg for arg in args])
-##    return rangeAsListFn
-##
-##def memberwise(opFn):
-##    """Decorator: if List is passed, does the operation on all its items."""
-##    @wraps(opFn)
-##    def memberwiseFn(self, *args):
-##        if len(args) == 1 and type(args[0]) is List:
-##            return List([memberwiseFn(self, item) for item in args[0]])
-##        elif len(args) == 2:
-##            if type(args[0]) is type(args[1]) is List:
-##                result = [memberwiseFn(self, lhs, rhs)
-##                          for lhs, rhs in zip(*args)]
-##                # But zip() doesn't catch all of the items if one list is
-##                # longer than the other, so add the remaining items unchanged
-##                lengths = list(map(len, args))
-##                if lengths[0] > lengths[1]:
-##                    result.extend(args[0][lengths[1]:])
-##                elif lengths[1] > lengths[0]:
-##                    result.extend(args[1][lengths[0]:])
-##                return List(result)
-##            elif type(args[0]) is List:
-##                return List([memberwiseFn(self, lhs, args[1])
-##                             for lhs in args[0]])
-##            elif type(args[1]) is List:
-##                return List([memberwiseFn(self, args[0], rhs)
-##                             for rhs in args[1]])
-##            else:
-##                return opFn(self, *args)
-##        else:
-##            return opFn(self, *args)
-##    return memberwiseFn
 
 class ProgramState:
     """Represents the internal state of a program during execution."""
@@ -514,8 +457,6 @@ class ProgramState:
     ### Pip built-in operators  ###
     ###############################
 
-    #@rvals
-    #@memberwise
     def ADD(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() + rhs.toNumber()
@@ -547,7 +488,6 @@ class ProgramState:
             result = self.getRval(rhs)
         return result
 
-    #@rvals
     def APPENDELEM(self, lhs, rhs):
         if type(lhs) is Scalar:
             lhs = List([lhs])
@@ -559,8 +499,6 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    #@rvals
-    #@rangeAsList
     def APPENDLIST(self, lhs, rhs):
         if type(lhs) is Scalar:
             lhs = List([lhs])
@@ -574,9 +512,6 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    #@rvals
-    #@rangeAsList
-    #@memberwise
     def ASC(self, rhs):
         if type(rhs) is Scalar:
             result = ord(str(rhs)[0])
@@ -585,7 +520,6 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for ASC:", type(rhs))
             return nil
 
-    #@vals
     def ASSIGN(self, lhs, rhs):
         if type(lhs) is not Lval:
             self.err.warn("Attempting to assign to non-lvalue", lhs)
@@ -595,7 +529,6 @@ class ProgramState:
             self.assign(lhs, rhs)
         return lhs
 
-    #@vals
     def AT(self, lhs, rhs):
         if type(rhs) is Lval:
             rhs = self.getRval(rhs)
@@ -672,9 +605,6 @@ class ProgramState:
             returnExpr = None
         return Block(statements, returnExpr)
 
-    #@rvals
-    #@rangeAsList
-    #@memberwise
     def CAT(self, lhs, rhs):
         if type(lhs) is Scalar and type(rhs) is Scalar:
             result = str(lhs) + str(rhs)
@@ -705,9 +635,6 @@ class ProgramState:
             i += 2
         return result
 
-    #@rvals
-    #@rangeAsList
-    #@memberwise
     def CHR(self, rhs):
         if type(rhs) is Scalar:
             result = chr(int(rhs))
@@ -716,7 +643,6 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for CHR:", type(rhs))
             return nil
 
-    #@vals
     def DEC(self, rhs):
         if type(rhs) is Lval:
             # Subtract one and assign back to rhs
@@ -727,9 +653,6 @@ class ProgramState:
             # The expression still evaluates to the value minus one, though
             return self.SUB(rhs, scalarOne)
     
-    #@rvals
-    #@rangeAsList
-    #@memberwise
     def DIV(self, lhs, rhs):
         if type(lhs) is Scalar and type(rhs) is Scalar:
             try:
@@ -743,9 +666,29 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    #@rvals
-    #@rangeAsList
-    #@memberwise
+    def FIND(self, iterable, item):
+        if type(iterable) in (Scalar, List, Range):
+            return iterable.index(item)
+        else:
+            self.err.warn("Unimplemented argtypes for FIND:",
+                          type(iterable), "and", type(item))
+            return nil
+
+    def FINDALL(self, iterable, item):
+        if type(item) is List and type(iterable) in (Scalar, Range):
+            return List(self.FINDALL(iterable, subitem) for subitem in item)
+        elif type(item) in (Scalar, Range):
+            result = []
+            lastIndex = iterable.index(item)
+            while lastIndex is not nil:
+                result.append(lastIndex)
+                lastIndex = iterable.index(item, int(lastIndex) + 1)
+            return List(result)
+        else:
+            self.err.warn("Unimplemented argtypes for FINDALL:",
+                          type(iterable), "and", type(item))
+            return nil
+
     def FROMBASE(self, number, base=None):
         if base is None:
             base = 2
@@ -793,7 +736,6 @@ class ProgramState:
         else:
             return self.evaluate(falseBranch)
 
-    #@rvals
     def IN(self, lhs, rhs):
         if type(rhs) in (Scalar, List, Range):
             return Scalar(rhs.count(lhs))
@@ -801,7 +743,6 @@ class ProgramState:
             # If it's not one of those types, it's automatically false
             return Scalar("0")
 
-    #@vals
     def INC(self, rhs):
         if type(rhs) is Lval:
             # Add one and assign back to rhs
@@ -812,9 +753,6 @@ class ProgramState:
             # The expression still evaluates to the value plus one, though
             return self.ADD(rhs, scalarOne)
 
-    #@rvals
-    #@rangeAsList
-    #@memberwise
     def INTDIV(self, lhs, rhs):
         if type(lhs) is Scalar and type(rhs) is Scalar:
             try:
@@ -828,7 +766,6 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
     
-    #@rvals
     def JOIN(self, iterable, sep = None):
         if sep is not None and type(sep) is not Scalar:
             # TBD: does a list as separator give a list of results?
@@ -856,7 +793,6 @@ class ProgramState:
                               type(iterable), "and", type(sep))
             return nil
 
-    #@vals
     def LEFTOF(self, lhs, rhs):
         # TBD: allow Range or List (of Scalars) as rhs? What would the
         # semantics be?
@@ -872,7 +808,6 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    #@rvals
     def LEN(self, rhs):
         if type(rhs) in (Scalar, List, Range):
             result = len(rhs)
@@ -881,7 +816,6 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for LEN:", type(rhs))
             return nil
 
-    #@rvals
     def LIST(self, *items):
         return List(items)
 
@@ -894,7 +828,6 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for LOWERCASE:", type(rhs))
             return nil
 
-    #@rvals
     def MAP(self, function, iterable):
         if type(function) is Block and type(iterable) in (Scalar, List, Range):
             result = (self.functionCall(function, [item])
@@ -938,9 +871,6 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for MIN:", type(iterable))
             return nil
     
-    #@rvals
-    #@rangeAsList
-    #@memberwise
     def MOD(self, lhs, rhs):
         if type(lhs) is Scalar and type(rhs) is Scalar:
             try:
@@ -954,9 +884,6 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    #@rvals
-    #@rangeAsList  # TODO: multiply step parameter instead
-    #@memberwise
     def MUL(self, lhs, rhs):
         if type(lhs) is Scalar and type(rhs) is Scalar:
             result = lhs.toNumber() * rhs.toNumber()
@@ -966,10 +893,8 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    #@rvals
-    #@rangeAsList  # TODO: negative step
-    #@memberwise
     def NEG(self, rhs):
+        # TODO: Range with negative step value
         if type(rhs) is Scalar:
             result = -rhs.toNumber()
             return Scalar(result)
@@ -977,12 +902,10 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for NEG:", type(rhs))
             return nil
 
-    #@rvals
     def NOT(self, rhs):
         result = not rhs
         return Scalar(result)
 
-    #@rvals
     def NOTIN(self, lhs, rhs):
         return Scalar(lhs not in rhs)
 
@@ -997,7 +920,6 @@ class ProgramState:
         else:
             return Scalar("0")
 
-    #@rvals
     def NUMEQUAL(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() == rhs.toNumber()
@@ -1011,7 +933,6 @@ class ProgramState:
             result = False
         return Scalar(result)
 
-    #@rvals
     def NUMGREATER(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() > rhs.toNumber()
@@ -1051,7 +972,6 @@ class ProgramState:
             result = False
         return Scalar(result)
 
-    #@rvals
     def NUMGREATEREQ(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() >= rhs.toNumber()
@@ -1092,7 +1012,6 @@ class ProgramState:
         else:
             return Scalar(False)
 
-    #@rvals
     def NUMLESS(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() < rhs.toNumber()
@@ -1132,7 +1051,6 @@ class ProgramState:
             result = False
         return Scalar(result)
 
-    #@rvals
     def NUMLESSEQ(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() <= rhs.toNumber()
@@ -1172,7 +1090,6 @@ class ProgramState:
             result = False
         return Scalar(result)
 
-    #@rvals
     def NUMNOTEQUAL(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() != rhs.toNumber()
@@ -1186,7 +1103,6 @@ class ProgramState:
             result = True
         return Scalar(result)
 
-    #@rvals
     def OBJEQUAL(self, lhs, rhs):
         result = lhs == rhs
         return Scalar(result)
@@ -1199,13 +1115,10 @@ class ProgramState:
             result = self.getRval(rhs)
         return result
     
-    #@vals
     def PARENTHESIZE(self, expr):
         # Result of wrapping a single expression in parentheses
         return expr
 
-    #@rvals
-    #@memberwise
     def POS(self, rhs):
         if type(rhs) is Scalar:
             result = rhs.toNumber()
@@ -1216,9 +1129,6 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for POS:", type(rhs))
             return nil
 
-    #@rvals
-    #@rangeAsList
-    #@memberwise
     def POW(self, lhs, rhs):
         if type(lhs) is Scalar and type(rhs) is Scalar:
             lhs = lhs.toNumber()
@@ -1239,7 +1149,6 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    #@rvals
     def PREPENDELEM(self, lhs, rhs):
         # Note that the order of operands has been changed: lhs is now the
         # list, so that one could do lPE:x
@@ -1274,7 +1183,6 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for RANDRANGETO:", type(rhs))
             return nil
 
-    #@rvals
     def RANGE(self, lhs, rhs):
         if type(lhs) in (Scalar, Nil) and type(rhs) in (Scalar, Nil):
             return Range(lhs, rhs)
@@ -1283,7 +1191,6 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    #@rvals
     def RANGETO(self, rhs):
         # Unary version of RANGE
         if type(rhs) in (Scalar, Nil):
@@ -1303,7 +1210,6 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    #@rvals
     def REPLACE(self, lhs, old, new):
         # TBD: What to do for various arguments that are Lists, Ranges, or Nil?
         if type(lhs) is type(old) is type(new) is Scalar:
@@ -1314,8 +1220,6 @@ class ProgramState:
                           type(lhs), type(old), "and", type(new))
             return nil
 
-    #@rvals
-    #@rangeAsList
     def REMOVE(self, lhs, rhs):
         # TODO: remove List of Scalars from Scalar
         if type(lhs) is Scalar and type(rhs) is Scalar:
@@ -1336,13 +1240,10 @@ class ProgramState:
             # Nothing to remove, so return the original value
             return lhs
 
-    #@rvals
     def REPR(self, rhs):
         # Let each class's __repr__ do the work for us
         return Scalar(repr(rhs))
 
-    #@rvals
-    #@rangeAsList  # TODO: negative step value
     def REVERSE(self, rhs):
         if type(rhs) is Range:
             rhs = List(rhs)
@@ -1353,7 +1254,6 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for REVERSE:", type(rhs))
             return nil
 
-    #@vals
     def RIGHTOF(self, lhs, rhs):
         # TBD: allow Range or List (of Scalars) as rhs? What would the
         # semantics be?
@@ -1369,7 +1269,6 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    #@vals
     def SEND(self, head, *tail):
         # A send-expression's semantics depend on the type of the head:
         # - Block: function call
@@ -1399,8 +1298,6 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for SORTNUM:", type(iterable))
             return nil
 
-    #@rvals
-    #@memberwise
     def SPLIT(self, string, sep=None):
         if type(sep) is Scalar:
             sep = str(sep)
@@ -1444,11 +1341,9 @@ class ProgramState:
             self.err.warn("Unimplemented argtypes for SPLITAT:",
                           type(iterable), "and", type(indices))
 
-    #@rvals
     def STR(self, rhs):
         return Scalar(str(rhs))
 
-    #@rvals
     def STREQUAL(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = str(lhs) == str(rhs)
@@ -1462,7 +1357,6 @@ class ProgramState:
             result = False
         return Scalar(result)
 
-    #@rvals
     def STRGREATER(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = str(lhs) > str(rhs)
@@ -1483,7 +1377,6 @@ class ProgramState:
             result = False
         return Scalar(result)
 
-    #@rvals
     def STRGREATEREQ(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = str(lhs) >= str(rhs)
@@ -1504,7 +1397,6 @@ class ProgramState:
             result = False
         return Scalar(result)
 
-    #@rvals
     def STRLESS(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = str(lhs) < str(rhs)
@@ -1525,7 +1417,6 @@ class ProgramState:
             result = False
         return Scalar(result)
 
-    #@rvals
     def STRLESSEQ(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = str(lhs) <= str(rhs)
@@ -1546,9 +1437,6 @@ class ProgramState:
             result = False
         return Scalar(result)
 
-    #@rvals
-    #@rangeAsList
-    #@memberwise
     def STRMUL(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             string = str(lhs)
@@ -1559,7 +1447,6 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    #@rvals
     def STRNOTEQUAL(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = str(lhs) != str(rhs)
@@ -1573,8 +1460,6 @@ class ProgramState:
             result = True
         return Scalar(result)
 
-    #@rvals
-    #@memberwise
     def SUB(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() - rhs.toNumber()
@@ -1591,9 +1476,6 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    #@rvals
-    #@rangeAsList
-    #@memberwise
     def TOBASE(self, number, base=None):
         # Converts a decimal integer to a string in the specified base
         if base is None:

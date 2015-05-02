@@ -68,9 +68,13 @@ U/B/T = Unary/Binary/Ternary
 
 <code>@&ensp; B</code> Get item/slice at index
 
+<code>@* B</code> Find all
+
 <code>@< B</code> Slice of string left of index
 
 <code>@> B</code> Slice of string right of index
+
+<code>@? B</code> Find
 
 <code>^&ensp; B</code> Split string on separator
 
