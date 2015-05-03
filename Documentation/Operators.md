@@ -108,6 +108,8 @@ U/B/T = Unary/Binary/Ternary
 
 <code>FB U</code> Convert number from binary to decimal integer
 
+<code>FL B</code> Filter (1st arg is function, 2nd is list)
+
 <code>GT B</code> String greater than
 
 <code>GE B</code> String greater than or equal
@@ -161,5 +163,9 @@ U/B/T = Unary/Binary/Ternary
 <code>UC U</code> Convert to UPPERCASE
 
 <code>UQ U</code> Keep only unique values from iterable
+
+<code>V&ensp; B</code> Evaluate function with arglist (fVl is equivalent to f(*l) in Python)
+
+<code>V&ensp; U</code> Evaluate code block in current context, returning value of final expression or nil if there isn't one
 
 <code>X&ensp; B</code> Repeat string given number of times

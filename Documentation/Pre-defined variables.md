@@ -1,5 +1,7 @@
 For the most up-to-date list, see list near the top of `execution.py`. Eventually, every letter h-z should have a pre-defined value.
 
+`_` Identity function (== `{a}`)
+
 `h` 100
 
 `i` 0

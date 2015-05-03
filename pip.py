@@ -2,11 +2,6 @@
 
 # Priorities TODO:
 #  TZ (for transpo'z'e) operator
-#  Figure out how _ expressions are going to work: currently leaning toward
-#    generating them at runtime when expressions are evaluated, so that
-#    2+t+_ turns into {12+a} (but note wrinkle: _+2+t turns into {a+2+10}
-#    because it's (_+2)+t -> {a+2}+t and stuff isn't evaluated again once
-#    it's inside the braces)
 #  Special variables q and r
 #  Fold meta-operator respects the associativity of the operator (R or L)
 #  \ map meta-operator
@@ -14,7 +9,6 @@
 #  Limited backslash-escapes in strings
 #  Make M on strings produce string results?
 #  Built-in functions that are implemented in Python code (z, for example)
-#  Splat-calling of functions
 #  Simple regex operations
 #  Figure out how to get correct warning/error reporting in ptypes classes
 #  Reconstitute code from parse tree and print that for debugging info?
@@ -27,7 +21,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.05.01"
+VERSION = "0.15.05.02"
 
 def pip(interactive=True):
     if interactive:

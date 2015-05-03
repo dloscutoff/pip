@@ -27,7 +27,7 @@ class ProgramState:
         # the program crashed after 140 levels of recursion.
         # Pre-initialized global variables
         self.vars = {
-            #"_": Block([], tokens.Name("a")),
+            "_": Block([], tokens.Name("a")),
             "h": Scalar("100"),
             "i": Scalar("0"),
             "l": List([]),
@@ -126,24 +126,8 @@ class ProgramState:
             # value for each operator?
             result = self.FOLD(operator, *args)
         else:
-##            blockArg = False
-##            if operator.modifiesBlocks:
-##                # We have to check if any of the arguments are Blocks
-##                for i, arg in enumerate(args):
-##                    if arg == "_":
-##                        # This is the special _ variable
-##                        blockArg = True
-##                        args[i] = tokens.Name("a")
-##                    elif type(arg) is Block:
-##                        blockArg = True
-##                        args[i] = arg.getReturnExpr()
-##            if blockArg:
-##                # Don't perform the calculation; instead, create a new
-##                # Block with this operator as the new root of its
-##                # expression tree
-##                result = Block([], [operator] + args)
-##            else:
             argsToExpand = []
+            blockArgs = []
             if operator.flags:
                 # The operator has some flags that require preprocessing of
                 # args before calling the operator function
@@ -158,9 +142,26 @@ class ProgramState:
                         argsToExpand.append(i)
                     elif operator.flags & ops.LIST_EACH and type(arg) is List:
                         argsToExpand.append(i)
-                    # TODO: implement the IN_LAMBDA flag using a similar list
-                    
+                    elif (operator.flags & ops.IN_LAMBDA
+                          and type(self.getRval(arg)) is Block):
+                        blockArgs.append(i)
                     args[i] = arg
+            # Modifying lambda functions trumps LIST_EACH and RANGE_EACH
+            if blockArgs:
+                if not operator.flags & ops.RVALS:
+                    args = [self.getRval(arg) for arg in args]
+                if len(blockArgs) == 1:
+                    blockArg = blockArgs[0]
+                    statements = args[blockArg].getStatements()
+                    args[blockArg] = args[blockArg].getReturnExpr()
+                    newReturnExpr = [operator] + args
+                    return Block(statements, newReturnExpr)
+                else:
+                    # More than one--they can't have any statements
+                    args = [arg.getReturnExpr() if type(arg) is Block else arg
+                            for arg in args]
+                    newReturnExpr = [operator] + args
+                    return Block([], newReturnExpr)
             try:
                 if argsToExpand and len(args) == 1:
                     # Single argument to unary op needs expansion
@@ -214,6 +215,10 @@ class ProgramState:
         #!print("In getRval", expr)
         if type(expr) in (Scalar, List, Range, Block, Nil):
             # Already an rval
+            result = expr
+        elif type(expr) is ops.Operator:
+            # This may happen if we're rval-ing everything in a chained
+            # comparison expression
             result = expr
         elif type(expr) is Lval:
             name = expr.name
@@ -664,6 +669,30 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtypes for DIV:",
                           type(lhs), "and", type(rhs))
+            return nil
+
+    def EVAL(self, function, argList=None):
+        # TODO: Scalars evaluated as code
+        if type(function) is Block and argList is not None:
+            return self.functionCall(function, argList)
+        elif type(function) is Block and argList is None:
+            # Not a function call--just run the block at current scope
+            for statement in function.getStatements():
+                self.executeStatement(statement)
+            return self.evaluate(function.getReturnExpr())
+        else:
+            self.err.warn("Unimplemented argtypes for EVAL:",
+                          type(function), "and", type(argList))
+            return nil
+
+    def FILTER(self, function, iterable):
+        if type(function) is Block and type(iterable) in (Scalar, List, Range):
+            result = (item for item in iterable
+                      if self.functionCall(function, [item]))
+            return List(result)
+        else:
+            self.err.warn("Unimplemented argtypes for FILTER:",
+                          type(function), "and", type(iterable))
             return nil
 
     def FIND(self, iterable, item):
