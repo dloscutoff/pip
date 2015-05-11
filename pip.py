@@ -1,14 +1,18 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  TZ (for transpo'z'e) operator
+#  Operators: Zip, Cartesian Product, Random Choice, Replace @, Map *
+#  Rework scanner to group runs of uppercase characters into twos
+#  Change precedence of M and other function-operators to less than logical
+#    operators?
 #  Special variables q and r
+#  Experiment with using decimal module for better-precision arithmetic
+#  Default values for fold
 #  Fold meta-operator respects the associativity of the operator (R or L)
 #  \ map meta-operator
 #  Make all meta-operators orthogonal, i.e. combinable
 #  Limited backslash-escapes in strings
-#  Make M on strings produce string results?
-#  Built-in functions that are implemented in Python code (z, for example)
+#  Built-in functions that are implemented in Python code?
 #  Simple regex operations
 #  Figure out how to get correct warning/error reporting in ptypes classes
 #  Reconstitute code from parse tree and print that for debugging info?
@@ -21,7 +25,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.05.02"
+VERSION = "0.15.05.11"
 
 def pip(interactive=True):
     if interactive:
@@ -39,6 +43,8 @@ def pip(interactive=True):
                     quote = char
                 elif quote == char:
                     quote = None
+                else:
+                    buffer += char
             elif char == " " and quote is None:
                 if buffer != "":
                     sys.argv.append(buffer)

@@ -79,8 +79,11 @@ class Scalar:
         if type(index) is List:
             return List(self[i] for i in index)
         elif type(index) in (Scalar, int):
-            index = int(index) % len(self._value)
-            # TODO: warn if index < -len or len >= index
+            if self._value == "":
+                raise IndexError("Cannot index into empty string.")
+            else:
+                index = int(index) % len(self._value)
+                # TODO: warn if index < -len or len >= index
         
         if type(index) in (int, slice):
             return Scalar(self._value.__getitem__(index))
@@ -136,17 +139,15 @@ class List:
     def __init__(self, value=None):
         if type(value) in (tuple, generator, set, Range):
             self._value = list(value)
-        elif type(value) is List:
-            self._value = deepcopy(value._value)
-        elif type(value) is list:
-            self._value = deepcopy(value)
+        elif type(value) in (List, list):
+            self._value = [item.copy() for item in value]
         elif value is None:
             self._value = []
         else:
             print("In List constructor:", value, type(value))
 
     def copy(self):
-        return List(self._value)
+        return List(item.copy() for item in self._value)
 
     def __str__(self):
         # How a List is formatted depends on the command-line flags
@@ -196,10 +197,14 @@ class List:
         if type(index) is List:
             return List(self[i] for i in index)
         elif type(index) in (Scalar, int):
-            index = int(index) % len(self._value)
-            # TODO: warn if index < -len or len >= index
+            if self._value == []:
+                raise IndexError("Cannot index into empty list.")
+            else:
+                index = int(index) % len(self._value)
+                # TODO: warn if index < -len or len >= index
         
         if type(index) is int:
+            print(repr(self), "__getitem__", index)
             return self._value.__getitem__(index)
         elif type(index) is slice:
             return List(self._value.__getitem__(index))
@@ -356,8 +361,12 @@ class Range:
     def __getitem__(self, index):
         if type(index) in (Scalar, int):
             if self._upper:
-                index = int(index) % (self._upper - (self._lower or 0))
-                # TODO: warn if index < -size or size >= index
+                size = len(self)
+                if size == 0:
+                    raise IndexError("Cannot index into empty range.")
+                else:
+                    index = int(index) % size
+                    # TODO: warn if index < -size or size >= index
             else:
                 index = int(index)
         elif type(index) is Range:

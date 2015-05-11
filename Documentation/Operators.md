@@ -88,6 +88,8 @@ U/B/T = Unary/Binary/Ternary
 
 <code>A&ensp; U</code> Convert (first) char to ASCII value (or Unicode point)
 
+<code>AB U</code> Absolute value of number
+
 <code>AE B</code> List with appended element
 
 <code>AL B</code> List with appended list
@@ -128,6 +130,8 @@ U/B/T = Unary/Binary/Ternary
 
 <code>M&ensp; B</code> Map function to iterable, returning list
 
+<code>MJ B</code> Map function to iterable and join results into string
+
 <code>MN U</code> Min of iterable using numeric comparison
 
 <code>MX U</code> Max of iterable using numeric comparison
@@ -150,9 +154,17 @@ U/B/T = Unary/Binary/Ternary
 
 <code>RR U</code> Randrange from 0
 
+<code>RT B</code> Nth root
+
+<code>RT U</code> Square root
+
 <code>RV B</code> Reverse iterable
 
+<code>SG U</code> Sign of number (-1, 0, or 1)
+
 <code>SN U</code> Sort iterable using numeric comparison
+
+<code>SN U</code> Sort iterable using string comparison
 
 <code>ST B</code> Convert to string (for lists, the format of the result depends on command-line flags)
 

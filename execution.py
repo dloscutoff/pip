@@ -1,5 +1,4 @@
 
-#from functools import wraps
 import math, random
 import tokens
 import operators as ops
@@ -462,6 +461,14 @@ class ProgramState:
     ### Pip built-in operators  ###
     ###############################
 
+    def ABS(self, rhs):
+        if type(rhs) is Scalar:
+            result = abs(rhs.toNumber())
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtype for ABS:", type(rhs))
+            return nil
+
     def ADD(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() + rhs.toNumber()
@@ -557,6 +564,9 @@ class ProgramState:
                 lhs = self.getRval(lhs)
         
         if type(lhs) in (Scalar, List, Range):
+            if len(lhs) == 0:
+                self.err.warn("Indexing into empty string/list/range")
+                return nil
             try:
                 return lhs[index]
             except IndexError:
@@ -861,12 +871,16 @@ class ProgramState:
         if type(function) is Block and type(iterable) in (Scalar, List, Range):
             result = (self.functionCall(function, [item])
                       for item in iterable)
-            # TBD: does MAPping a Scalar result in a List or a Scalar?
             return List(result)
         else:
             self.err.warn("Unimplemented argtypes for MAP:",
                           type(function), "and", type(iterable))
             return nil
+
+    def MAPJOIN(self, function, iterable):
+        # Same as MAP, but join the result into a string afterwards
+        # aMJb == J(aMb)
+        return self.JOIN(self.MAP(function, iterable))
 
     def MAX(self, iterable):
         if type(iterable) in (Scalar, List, Range):
@@ -1165,12 +1179,12 @@ class ProgramState:
             try:
                 result = lhs ** rhs
             except ZeroDivisionError:
-                self.err.warn("Raising zero to negative power")
+                self.err.warn("Can't raise zero to negative power")
                 return nil
             if lhs < 0 and int(rhs) != rhs:
                 # Negative number to fractional power would be a complex
                 # number; for now, return nil
-                self.err.warn("Raising negative number to fractional power")
+                self.err.warn("Can't raise negative number to fractional power")
                 return nil
             return Scalar(result)
         else:
@@ -1232,7 +1246,7 @@ class ProgramState:
         if type(lhs) is Scalar:
             lhs = List([lhs])
         if type(lhs) in (List, Range) and type(rhs) is Scalar:
-            result = list(lhs) * int(rhs)
+            result = list(lhs.copy()) * int(rhs)
             return List(result)
         else:
             self.err.warn("Unimplemented argtypes for REPEATLIST:",
@@ -1298,6 +1312,29 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
+    def ROOT(self, lhs, rhs):
+        if type(lhs) is Scalar and type(rhs) is Scalar:
+            lhs = lhs.toNumber()
+            rhs = rhs.toNumber()
+            if lhs == 0:
+                self.err.warn("Zeroth root is not defined")
+                return nil
+            elif rhs < 0 and int(1/lhs) != 1/lhs:
+                # Root of negative number would be a complex number; for now,
+                # return nil
+                self.err.warn("Cannot take root of negative number", rhs)
+                return nil
+            try:
+                result = rhs ** (1 / lhs)
+            except ZeroDivisionError:
+                self.err.warn("Cannot take negative root of zero", lhs)
+                return nil
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtypes for ROOT:",
+                          type(lhs), "and", type(rhs))
+            return nil
+
     def SEND(self, head, *tail):
         # A send-expression's semantics depend on the type of the head:
         # - Block: function call
@@ -1320,11 +1357,38 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for SEND:", type(head))
             return nil
 
+    def SIGN(self, rhs):
+        if type(rhs) is Scalar:
+            rhs = rhs.toNumber()
+            if rhs < 0:
+                return Scalar(-1)
+            elif rhs > 0:
+                return scalarOne
+            else:
+                return Scalar(0)
+        else:
+            self.err.warn("Unimplemented argtype for SIGN:", type(rhs))
+            return nil
+
     def SORTNUM(self, iterable):
         if type(iterable) in (Scalar, List, Range):
-            return List(sorted(iterable, key=lambda x:x.toNumber()))
+            try:
+                return List(sorted(iterable, key=lambda x:x.toNumber()))
+            except TypeError:
+                self.err.warn("Cannot sort mixed types in list")
+                return nil
         else:
             self.err.warn("Unimplemented argtype for SORTNUM:", type(iterable))
+            return nil
+
+    def SORTSTRING(self, iterable):
+        if type(iterable) in (Scalar, List, Range):
+            # This is going to get a bit wonky when sorting lists of lists,
+            # but not sure it's worth the effort to fix
+            return List(sorted(iterable, key=str))
+        else:
+            self.err.warn("Unimplemented argtype for SORTSTRING:",
+                          type(iterable))
             return nil
 
     def SPLIT(self, string, sep=None):
@@ -1369,6 +1433,21 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtypes for SPLITAT:",
                           type(iterable), "and", type(indices))
+            return nil
+
+    def SQRT(self, rhs):
+        if type(rhs) is Scalar:
+            rhs = rhs.toNumber()
+            if rhs < 0:
+                # Square root of negative number would be a complex number;
+                # for now, return nil
+                self.err.warn("Can't take square root of negative number", rhs)
+                return nil
+            result = rhs ** 0.5
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtype for SQRT:", type(rhs))
+            return nil
 
     def STR(self, rhs):
         return Scalar(str(rhs))
@@ -1553,6 +1632,7 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtype for UNIQUE:",
                           type(iterable))
+            return nil
 
     def UPPERCASE(self, rhs):
         if type(rhs) is Scalar:

@@ -9,7 +9,7 @@ err = ErrorReporter(warnings=True)  # TODO: get this setting from the args?
 
 nameRgx = re.compile(r'[A-Z]+|[a-z_]')
 stringRgx = re.compile(r'"[^"]*"')
-charRgx = re.compile(r"'.")
+charRgx = re.compile(r"'(.|\n)")
 numberRgx = re.compile(r'[0-9]+(\.[0-9]+)?')
 symbolsRgx = re.compile(r'[][(){};$E]')
 
