@@ -32,7 +32,7 @@ tokenRgx = re.compile("|".join(rgx.pattern for rgx in [nameRgx,
 
 # Comments come in two types: lines that start with a (possibly indented)
 # semicolon, and anything after code plus two or more spaces
-commentRgx = re.compile(r'\s*\n\s*;.*?$| {2,}.*?$', re.MULTILINE)
+commentRgx = re.compile(r'(\s*\n\s*(;|#!)| {2,}).*?$', re.MULTILINE)
 whitespaceRgx = re.compile(r'\s+')
 
 

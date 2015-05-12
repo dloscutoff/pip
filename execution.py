@@ -1253,11 +1253,40 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
-    def REPLACE(self, lhs, old, new):
-        # TBD: What to do for various arguments that are Lists, Ranges, or Nil?
-        if type(lhs) is type(old) is type(new) is Scalar:
-            result = str(lhs).replace(str(old), str(new))
-            return Scalar(result)
+    def REPLACE(self, *args):
+        args = (List(arg) if type(arg) is Range else arg for arg in args)
+        lhs, old, new = args
+        if (type(lhs) in (List, Scalar)
+            and type(old) in (List, Scalar)
+            and type(new) in (List, Scalar, Nil)):
+            if type(lhs) is List:
+                # Return a List of results
+                return List(self.REPLACE(eachLhs, old, new) for eachLhs in lhs)
+            elif type(old) is type(new) is List:
+                # Both are lists--zip and replace parallel items
+                result = lhs
+                for eachOld, eachNew in zip(old, new):
+                    result = self.REPLACE(result, eachOld, eachNew)
+                # Items in the old list that don't correspond to items
+                # in the new list should just be deleted
+                for eachOld in old[len(new):]:
+                    result = self.REPLACE(result, eachOld, nil)
+                return result
+            elif type(old) is List:
+                # Replace each element of old with new
+                result = lhs
+                for eachOld in old:
+                    result = self.REPLACE(result, eachOld, new)
+                return result
+            else:
+                if new is nil:
+                    replacement = ""
+                else:
+                    # NB: this branch also covers the case type(new) is List
+                    # TBD: does that approach make the most sense?
+                    replacement = str(new)
+                result = str(lhs).replace(str(old), replacement)
+                return Scalar(result)
         else:
             self.err.warn("Unimplemented argtypes for REPLACE:",
                           type(lhs), type(old), "and", type(new))
@@ -1270,12 +1299,10 @@ class ProgramState:
             return Scalar(result)
         elif type(lhs) in (List, Range):
             result = list(lhs)
-            try:
-                while True:
-                    result.remove(rhs)
-            except ValueError:
-                # This means we've removed them all
-                pass
+            while rhs in result:
+                # Loop is necessary because list.remove only removes the
+                # first instance
+                result.remove(rhs)
             return List(result)
         else:
             self.err.warn("Unimplemented argtypes for REMOVE:",
