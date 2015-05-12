@@ -137,7 +137,7 @@ class List:
     outFormat = None
 
     def __init__(self, value=None):
-        if type(value) in (tuple, generator, set, Range):
+        if type(value) in (tuple, generator, zip, set, Range):
             self._value = list(value)
         elif type(value) in (List, list):
             self._value = [item.copy() for item in value]
@@ -463,7 +463,7 @@ class Block:
         return "{" + str(self._statements + [self._returnExpr])[1:-1] + "}"
 
     def __bool__(self):
-        return self._statements or self._returnExpr
+        return self._statements != [] or self._returnExpr != []
 
     def __eq__(self, rhs):
         return (self._statements == rhs._statements

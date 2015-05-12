@@ -1,5 +1,5 @@
 
-import math, random
+import math, random, itertools
 import tokens
 import operators as ops
 from parsing import isExpr
@@ -88,7 +88,7 @@ class ProgramState:
             return self.evaluate(statement)
     
     def evaluate(self, expression):
-        #!print("evaluate", expression)
+        #!print("In evaluate", expression)
         exprType = type(expression)
         if exprType is tokens.Name:
             # Evaluate a name as an lvalue (which may become an rvalue later)
@@ -121,8 +121,6 @@ class ProgramState:
             result = self.ASSIGN(lval, result)
         elif operator.fold:
             # A binary operator being used in a unary fold operation
-            # TBD: what do we do for empty sequences? Need default
-            # value for each operator?
             result = self.FOLD(operator, *args)
         else:
             argsToExpand = []
@@ -143,6 +141,10 @@ class ProgramState:
                         argsToExpand.append(i)
                     elif (operator.flags & ops.IN_LAMBDA
                           and type(self.getRval(arg)) is Block):
+                        # NB! All operators that set IN_LAMBDA *must* set
+                        # either VALS or RVALS; otherwise, their args will
+                        # be evaluated twice, with possible duplicate side
+                        # effects
                         blockArgs.append(i)
                     args[i] = arg
             # Modifying lambda functions trumps LIST_EACH and RANGE_EACH
@@ -630,8 +632,7 @@ class ProgramState:
             return nil
 
     def CHAIN(self, *chain):
-        # The args here alternate between parse trees of expressions and
-        # comparison operators
+        # The args here alternate between rvals and comparison operators
         if len(chain) % 2 == 0:
             # An even chain length signals a malformed chain
             self.err.die("Implementation error: badly formed comparison chain",
@@ -644,7 +645,7 @@ class ProgramState:
             # side
             compTree = [chain[i], chain[i-1], chain[i+1]]
             # The result so far was true if we're still in the loop, so the
-            # following is sufficient for short-circuit evaluation:
+            # following is sufficient for correct evaluation:
             result = self.evaluate(compTree)
             # Skip to the next operator
             i += 2
@@ -894,6 +895,9 @@ class ProgramState:
                 self.err.warn("Argument to MAX contains unorderable types:",
                               iterable)
                 return nil
+            except ValueError:
+                self.err.warn("Taking MAX of an empty sequence")
+                return nil
         else:
             self.err.warn("Unimplemented argtype for MAX:", type(iterable))
             return nil
@@ -909,6 +913,9 @@ class ProgramState:
             except TypeError:
                 self.err.warn("Argument to MIN contains unorderable types:",
                               iterable)
+                return nil
+            except ValueError:
+                self.err.warn("Taking MIN of an empty sequence")
                 return nil
         else:
             self.err.warn("Unimplemented argtype for MIN:", type(iterable))
@@ -1668,6 +1675,44 @@ class ProgramState:
             return rhs
         else:
             self.err.warn("Unimplemented argtype for UPPERCASE:", type(rhs))
+            return nil
+    
+    def ZIP(self, list1, list2=None):
+        if list2 is None:
+            if type(list1) in (Scalar, List, Range):
+                lists = list1
+            else:
+                self.err.warn("Trying to zip non-iterable:", type(list1))
+                return nil
+        else:
+            lists = [list1, list2]
+        noniterables = [item for item in lists if type(item) in (Nil, Block)]
+        if noniterables:
+            # There are some of the "lists" that are not iterable
+            # TBD: maybe this can find a non-error meaning?
+            self.err.warn("Trying to zip non-iterable value(s):",
+                          noniterables)
+            return nil
+        else:
+            return List(List(tuple) for tuple in zip(*lists))
+    
+    def ZIPDEFAULT(self, lists, default=None):
+        if default is None:
+            default = nil
+        if type(lists) in (Scalar, List, Range):
+            noniterables = [item for item in lists
+                            if type(item) in (Nil, Block)]
+            if noniterables:
+                # There are some of the "lists" that are not iterable
+                # TBD: maybe this can find a non-error meaning?
+                self.err.warn("Trying to zip non-iterable value(s):",
+                              noniterables)
+                return nil
+            else:
+                return List(List(tuple) for tuple in
+                            itertools.zip_longest(*lists, fillvalue=default))
+        else:
+            self.err.warn("Trying to zip non-iterable:", type(list1))
             return nil
 
 

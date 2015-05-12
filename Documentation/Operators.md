@@ -181,3 +181,11 @@ U/B/T = Unary/Binary/Ternary
 <code>V&ensp; U</code> Evaluate code block in current context, returning value of final expression or nil if there isn't one
 
 <code>X&ensp; B</code> Repeat string given number of times
+
+<code>Z&ensp; B</code> Zip two lists together (clipping to the shorter length)
+
+<code>Z&ensp; U</code> Zip a list of lists together (clipping to the shortest length)
+
+<code>ZD B</code> Zip a list of lists together, filling missing values with given default
+
+<code>ZD U</code> Zip a list of lists together, filling missing values with nil

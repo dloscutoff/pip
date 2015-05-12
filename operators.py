@@ -17,14 +17,13 @@ class Command(tokens.Token):
 
 class Operator(tokens.Token):
     def __init__(self, token, function, arity, precedence, associativity,
-                 flags):
+                 flags=0):
         super().__init__(token)
         self.function = function
         self.arity = arity
         self.precedence = precedence
         self.associativity = associativity
         self.flags = flags
-        self.modifiesBlocks = flags & IN_LAMBDA
         self.assign = False  # Turns + into +: for instance
         self.fold = False  # Turns + into $+ for instance
 
@@ -103,6 +102,9 @@ precedenceTable = [
      ("!", "NOT", "L", RVALS),
      ],
     [2,
+     ("==", "OBJEQUAL", "C", RVALS),  # NB: *not* a chaining operator!
+     ],
+    [2,
      ("<", "NUMLESS", "C", RVALS),
      (">", "NUMGREATER", "C", RVALS),
      ("=", "NUMEQUAL", "C", RVALS),
@@ -115,7 +117,6 @@ precedenceTable = [
      ("LE", "STRLESSEQ", "C", RVALS),
      ("GE", "STRGREATEREQ", "C", RVALS),
      ("NE", "STRNOTEQUAL", "C", RVALS),
-     ("==", "OBJEQUAL", "C", RVALS),
      ],
      # Note: comparison operators CAN also be used in lambdas, due to the
      # CHAIN pseudo-operator having the IN_LAMBDA flag (see below).
@@ -147,11 +148,15 @@ precedenceTable = [
      ("<>", "GROUP", "L", RVALS | IN_LAMBDA),
      ("J", "JOIN", "L", RVALS | IN_LAMBDA),
      ("RL", "REPEATLIST", "L", RVALS | IN_LAMBDA),
+     ("Z", "ZIP", "L", RVALS | IN_LAMBDA),
+     ("ZD", "ZIPDEFAULT", "L", RVALS | IN_LAMBDA),
      ],
     [1,
      ("^", "SPLIT", "L", RVALS | IN_LAMBDA | LIST_EACH),
      ("J", "JOIN", "L", RVALS | IN_LAMBDA),
      ("RV", "REVERSE", "L", RVALS | IN_LAMBDA),
+     ("Z", "ZIP", "L", RVALS | IN_LAMBDA),
+     ("ZD", "ZIPDEFAULT", "L", RVALS | IN_LAMBDA),
      ],
     [3,
      ("R", "REPLACE", "L", RVALS | IN_LAMBDA),
@@ -244,7 +249,7 @@ operators = set()
 highestPrecedence = len(precedenceTable)
 paren = Operator("PAREN", "PARENTHESIZE", 1, highestPrecedence, "L", VALS)
 enlist = Operator("LIST", "LIST", 1, highestPrecedence, "L", RVALS)
-block = Operator("BLOCK", "BLOCK", 1, highestPrecedence, "L", 0)
+block = Operator("BLOCK", "BLOCK", 1, highestPrecedence, "L")
 send = Operator("SEND", "SEND", 1, highestPrecedence, "L", VALS)
 chain = None  # We define this "operator" later to make sure it gets the same
               # precedence as the comparison operators it comprises
@@ -252,12 +257,14 @@ chain = None  # We define this "operator" later to make sure it gets the same
 for precedence, (arity, *entries) in enumerate(precedenceTable):
     for entry in entries:
         text, function = entry[:2]
-        associativity = "L"
-        flags = 0
         if len(entry) > 2:
             associativity = entry[2]
+        else:
+            associativity = "L"
         if len(entry) > 3:
             flags = entry[3]
+        else:
+            flags = 0
         if arity > 2 and flags & (LIST_EACH | RANGE_EACH):
             # TODO: proper implementation error message
             msg = "Current implementation cannot handle LIST_EACH or RANGE_EACH"
@@ -273,7 +280,7 @@ for precedence, (arity, *entries) in enumerate(precedenceTable):
         if associativity == "C" and not chain:
             # Define the CHAIN pseudo-operator, which allows parsing of
             # chained comparisons like 1<x<5
-            chain = Operator("CHAIN", "CHAIN", 2, precedence, "C", IN_LAMBDA)
+            chain = Operator("CHAIN", "CHAIN", 2, precedence, "C", RVALS | IN_LAMBDA)
         opsByArity[arity][text] = op
         operators.add(text)
 
