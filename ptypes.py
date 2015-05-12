@@ -204,7 +204,6 @@ class List:
                 # TODO: warn if index < -len or len >= index
         
         if type(index) is int:
-            print(repr(self), "__getitem__", index)
             return self._value.__getitem__(index)
         elif type(index) is slice:
             return List(self._value.__getitem__(index))
