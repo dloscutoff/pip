@@ -1,7 +1,7 @@
 
 """Classes for Pip data types."""
 
-import re
+import re, itertools
 from copy import deepcopy
 
 zeroRgx = re.compile(r"^(0+(\.0*)?|0*\.0+)$")
@@ -137,7 +137,12 @@ class List:
     outFormat = None
 
     def __init__(self, value=None):
-        if type(value) in (tuple, generator, zip, set, Range):
+        if type(value) in (Range,
+                           tuple,
+                           set,
+                           generator,
+                           zip,
+                           itertools.starmap,):
             self._value = list(value)
         elif type(value) in (List, list):
             self._value = [item.copy() for item in value]

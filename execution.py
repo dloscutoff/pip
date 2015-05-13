@@ -290,7 +290,7 @@ class ProgramState:
             try:
                 currentVal[index] = rval
             except IndexError:
-                self.err.warn("Invalid index into %r: %s" % (result, index))
+                self.err.warn("Invalid index into %r: %s" % (currentVal, index))
                 return
             #!print("After assign, variable %r is" % name,
             #!      self.varTable(name)[name])
@@ -621,6 +621,26 @@ class ProgramState:
         else:
             returnExpr = None
         return Block(statements, returnExpr)
+    
+    def CARTESIANPRODUCT(self, list1, list2):
+        if list2 is None:
+            if type(list1) in (Scalar, List, Range):
+                lists = list1
+            else:
+                self.err.warn("Unimplemented argtype for CARTESIANPRODUCT:",
+                              type(list1))
+                return nil
+        else:
+            lists = [list1, list2]
+        noniterables = [item for item in lists if type(item) in (Nil, Block)]
+        if noniterables:
+            # There are some of the "lists" that are not iterable
+            # TBD: maybe this can find a non-error meaning?
+            self.err.warn("Trying to take CP of non-iterable value(s):",
+                          noniterables)
+            return nil
+        else:
+            return List(List(tuple) for tuple in itertools.product(*lists))
 
     def CAT(self, lhs, rhs):
         if type(lhs) is Scalar and type(rhs) is Scalar:
@@ -659,6 +679,18 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for CHR:", type(rhs))
             return nil
 
+    def COORDINATEGRID(self, rows, cols):
+        if type(rows) is type(cols) is Scalar:
+            rows = range(int(rows))
+            cols = range(int(cols))
+            return List(List(List([Scalar(row), Scalar(col)])
+                             for col in cols)
+                        for row in rows)
+        else:
+            self.err.warn("Unimplemented argtypes for COORDINATEGRID:",
+                          type(rows), "and", type(cols))
+            return nil
+        
     def DEC(self, rhs):
         if type(rhs) is Lval:
             # Subtract one and assign back to rhs
@@ -1675,6 +1707,17 @@ class ProgramState:
             return rhs
         else:
             self.err.warn("Unimplemented argtype for UPPERCASE:", type(rhs))
+            return nil
+
+    def ZEROGRID(self, rows, cols):
+        if type(rows) is type(cols) is Scalar:
+            rows = range(int(rows))
+            cols = range(int(cols))
+            return List(List(Scalar("0") for col in cols)
+                        for row in rows)
+        else:
+            self.err.warn("Unimplemented argtypes for ZEROGRID:",
+                          type(rows), "and", type(cols))
             return nil
     
     def ZIP(self, list1, list2=None):

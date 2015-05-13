@@ -104,6 +104,12 @@ U/B/T = Unary/Binary/Ternary
 
 <code>C&ensp; U</code> Convert ASCII value/Unicode point to character
 
+<code>CG B</code> Coordinate grid of i rows by j columns
+
+<code>CP B</code> Cartesian product of two iterables
+
+<code>CP U</code> Cartesian product of a list of iterables
+
 <code>EQ B</code> String equal
 
 <code>FB B</code> Convert number from given base to decimal integer
@@ -189,3 +195,5 @@ U/B/T = Unary/Binary/Ternary
 <code>ZD B</code> Zip a list of lists together, filling missing values with given default
 
 <code>ZD U</code> Zip a list of lists together, filling missing values with nil
+
+<code>ZG B</code> Grid of zeros (i rows by j columns)

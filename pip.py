@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Operators: Zip, Cartesian Product, Random Choice, Replace @, Map *
+#  Operators: Random Choice, Replace @, Map *, PerMutations, ComBinations
 #  Rework scanner to group runs of uppercase characters into twos
 #  Change precedence of M and other function-operators to less than logical
 #    operators?
