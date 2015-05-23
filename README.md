@@ -1,14 +1,14 @@
 # Pip
 
-Pip is an interpreted, imperative code-golf language.
+Pip is an interpreted, imperative code-golf language. For more on the syntax and some example programs, see the [Documentation](https://github.com/dloscutoff/pip/tree/master/Documentation) folder.
 
 ### Usage
 
-Pip is implemented in Python3. The main interpreter is the pip.py file. It should run on most systems with Py3 installed simply by invoking `pip.py` in the shell (you'll need to make the file executable first on *nix systems). Typical invocation patterns:
+Pip is implemented in Python3. The main interpreter is the pip.py file. It should run on most systems with Py3 installed simply by invoking `pip.py` in the directory where you put it (for *nix systems, use `./pip.py`). You may also wish to modify the `PATH` environment variable to include the path to Pip, so that you can invoke it from anywhere. Typical invocation patterns:
 
 `pip.py [flags] path/to/codefile.pip [args]`
 
-`pip.py -e 'code' [flags] [args]`
+`pip.py [flags] -e 'code' [args]`
 
 `pip.py` (interactive mode)
 
