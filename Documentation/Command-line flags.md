@@ -29,3 +29,7 @@ The default is to join lists on empty string, as in CJam.
 `-w` Print warning messages for things like div by 0 (instead of silently using nil and moving on)
 
 `-d` Debug mode: equivalent to `-vwp`
+
+### Other
+
+`-r` Instead of getting `g` from command-line args, initialize it from lines of stdin

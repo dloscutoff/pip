@@ -474,6 +474,9 @@ class Block:
         return (self._statements == rhs._statements
                 and self._returnExpr == rhs._returnExpr)
 
+    def __hash__(self):
+        return hash(self._statements + [self._returnExpr])
+
 
 class Nil:
     """Represents the nil object."""

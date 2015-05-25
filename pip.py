@@ -1,22 +1,20 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Operators: Random Choice, Replace @, Map *, PerMutations, ComBinations
-#  Rework scanner to group runs of uppercase characters into twos
-#  Change precedence of M and other function-operators to less than logical
-#    operators?
-#  Special variables q and r
-#  Experiment with using decimal module for better-precision arithmetic
+#  Operators: Random Choice, Replace At, Map Star, PerMutations, ComBinations,
+#    TriM, StRip, Right Strip, Left Strip, PUsh, POp, Push to Back,
+#    DeQueue
+#  Basic regex operations
 #  Default values for fold
-#  Fold meta-operator respects the associativity of the operator (R or L)
 #  \ map meta-operator
+#  Fold meta-operator respects the associativity of the operator (R or L)
 #  Make all meta-operators orthogonal, i.e. combinable
-#  Limited backslash-escapes in strings
+#  Do loop
+#  Limited backslash-escapes in strings?
+#  Experiment with using decimal module for better-precision arithmetic
 #  Built-in functions that are implemented in Python code?
-#  Simple regex operations
 #  Figure out how to get correct warning/error reporting in ptypes classes
 #  Reconstitute code from parse tree and print that for debugging info?
-#  -r option
 #  More operators! Esp. random, string, and math operators needed
 
 from scanning import scan, addSpaces
@@ -25,7 +23,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.05.12"
+VERSION = "0.15.05.24"
 
 def pip(interactive=True):
     if interactive:
@@ -81,6 +79,10 @@ def pip(interactive=True):
                              "--repr",
                              help="print lists in repr form",
                              action="store_true")
+    argparser.add_argument("-r",
+                           "--readlines",
+                           help="read args from lines of stdin",
+                           action="store_true")
     listFormats.add_argument("-s",
                              "--space",
                              help="concatenate lists on space",
@@ -151,10 +153,19 @@ def pip(interactive=True):
     if options.verbose:
         print(tree)
     state = ProgramState(listFormat, options.warnings)
+    if options.readlines:
+        args = []
+        try:
+            while True:
+                args.append(input())
+        except EOFError:
+            pass
+    else:
+        args = options.args
     if interactive:
         print("Executing...")
     try:
-        state.executeProgram(tree, options.args)
+        state.executeProgram(tree, args)
     except FatalError:
         print("Fatal error during execution, program terminated.",
               file=sys.stderr)

@@ -1,4 +1,4 @@
-For the most up-to-date list, see list near the top of `execution.py`. Eventually, every letter h-z should have a pre-defined value.
+For the most up-to-date catalogue, see list near the top of `execution.py`. The list here also includes the "special variables," which have different behavior when accessed and/or assigned. Eventually, every letter h-z should appear below.
 
 `_` Identity function (== `{a}`)
 
@@ -14,6 +14,10 @@ For the most up-to-date list, see list near the top of `execution.py`. Eventuall
 
 `o` 1
 
+`q` Special variable: reads and returns a line of input each time it is accessed
+
+`r` Special variable: returns a random number 0 <= `r` < 1 when it is accessed; assigning to `r` seeds the random-number generator
+
 `s` Space character
 
 `t` 10
@@ -26,7 +30,7 @@ For the most up-to-date list, see list near the top of `execution.py`. Eventuall
 
 `y` Empty string (could change in future)
 
-`z` Empty string (will change in future)
+`z` Empty string (could change in future)
 
 `AZ` Uppercase alphabet
 

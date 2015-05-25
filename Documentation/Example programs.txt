@@ -18,7 +18,7 @@ $+       Sum the result (fold/plus)
 ; Three different ways to do factorial:
 Fi1+,ao*:io   Iterative...
 a?a*(fa-1)1   Recursive...
-$*(1+,a)      But fold is the best!
+a?$*++,a1     But fold is the best!
 
 ; FizzBuzz:
 LhP(++i%3?x"Fizz").(i%5?x"Buzz")|i

@@ -70,6 +70,14 @@ Gets a line of input from stdin, and stores it (sans newline) into the specified
 
 Loop as long as the condition is false; stop when it becomes true.
 
+### Unify
+
+`UxyzWg`
+
+`x,y,z = g`
+
+Read as "unify x, y, z with g." Like Python's tuple unpacking, but works even if the size of the list doesn't match the number of variables: if the list is too long, the remainder is ignored; if the list is too short, the latter variables get values of nil.
+
 ### While loop
 
 `Wx<10{...}`

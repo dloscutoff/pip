@@ -78,7 +78,16 @@ def tokenize(code):
             if m:
                 #!print(m.group())
                 text = m.group()
-                index = m.end()
+                if text.isalpha() and text.isupper():
+                    # Break a run of uppercase letters up into two-character
+                    # chunks, possibly beginning with a single character
+                    if len(text) % 2 == 1:
+                        index = 1
+                    else:
+                        index = 2
+                    text = text[:index]
+                else:
+                    index = m.end()
                 if text == "EI":
                     # Special-case elseif to make parsing easier: just scan
                     # the E for now, and save the I for the next token

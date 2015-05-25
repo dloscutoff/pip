@@ -44,6 +44,12 @@ class ProgramState:
             "PA": Scalar("".join(chr(i) for i in range(32, 127))),
             "PI": Scalar(math.pi),
             }
+        # Special "variables" which do something different when you get or
+        # set them
+        self.specialVars = {
+            "q": {"get": self.getq},
+            "r": {"get": self.getr, "set": self.setr},
+            }
         # Local variables--one set per function call level
         self.locals = []
 
@@ -223,24 +229,33 @@ class ProgramState:
             result = expr
         elif type(expr) is Lval:
             name = expr.name
-            # Get the variable from the appropriate variable table, nil if
-            # it doesn't exist
-            try:
-                result = self.varTable(name)[name]
-            except KeyError:
-                self.err.warn("Referencing uninitialized variable", name)
-                result = nil
-            try:
-                for index in expr.sliceList:
-                    if type(result) in (List, Scalar):
-                        result = result[index]
-                    else:
-                        self.err.warn("Cannot index into", type(result))
-                        return nil
-            except IndexError:
-                self.err.warn("Invalid index into %r: %s" % (result, index))
-                return nil
-            result = result.copy()
+            if name in self.specialVars:
+                # This is a special variable--execute its "get" method
+                if "get" in self.specialVars[name]:
+                    return self.specialVars[name]["get"]()
+                else:
+                    self.err.warn("Special var %s does not implement 'get'"
+                                  % name)
+                    return nil
+            else:
+                # Get the variable from the appropriate variable table, nil if
+                # it doesn't exist
+                try:
+                    result = self.varTable(name)[name]
+                except KeyError:
+                    self.err.warn("Referencing uninitialized variable", name)
+                    result = nil
+                try:
+                    for index in expr.sliceList:
+                        if type(result) in (List, Scalar):
+                            result = result[index]
+                        else:
+                            self.err.warn("Cannot index into", type(result))
+                            return nil
+                except IndexError:
+                    self.err.warn("Invalid index into %r:" % result, index)
+                    return nil
+                result = result.copy()
         else:
             self.err.die("Implementation error: unexpected type",
                          type(expr), "in getRval()")
@@ -251,21 +266,34 @@ class ProgramState:
         """Sets the value of lval to rval."""
         #!print("In assign,", lval, rval)
         name = lval.name
+        if name in self.specialVars:
+            # This is a special variable--execute its "get" method
+            if lval.sliceList:
+                self.err.warn("Cannot assign to slice of special var", name)
+                return
+            elif "set" not in self.specialVars[name]:
+                self.err.warn("Special var %s does not implement 'set'" % name)
+                return
+            else:
+                self.specialVars[name]["set"](rval)
+                return
+
+        varTable = self.varTable(name)
         if not lval.sliceList:
             # This is a simple name; just make the assignment
-            self.varTable(name)[name] = rval
+            varTable[name] = rval
             return
-        elif name not in self.varTable(name):
+        elif name not in varTable:
             # If there is a slicelist, the variable must exist
             self.err.warn("Cannot assign to index of nonexistent variable",
                           name)
             return
 
-        currentVal = self.varTable(name)[name]
+        currentVal = varTable[name]
         if type(currentVal) is Range:
             # Can't modify a Range in place... cast it to a List first
-            # This way we can do things like r:,9r@4:42
-            currentVal = self.varTable(name)[name] = List(currentVal)
+            # This way we can do things like r:,9 r@4:42
+            currentVal = varTable[name] = List(currentVal)
         
         if type(currentVal) in (List, Scalar):
             # Assignment to a subindex
@@ -292,11 +320,10 @@ class ProgramState:
             except IndexError:
                 self.err.warn("Invalid index into %r: %s" % (currentVal, index))
                 return
-            #!print("After assign, variable %r is" % name,
-            #!      self.varTable(name)[name])
+            #!print("After assign, variable %r is" % name, varTable[name])
         else:
             # Not a subscriptable type
-            self.err.warn("Cannot index into", type(self.varTable(name)[name]))
+            self.err.warn("Cannot index into", type(varTable[name]))
             return
 
     def functionCall(self, function, argList):
@@ -322,6 +349,23 @@ class ProgramState:
         self.callDepth -= 1
         return returnVal
 
+
+    ################################
+    ### Fns for special vars     ###
+    ################################
+
+    def getq(self):
+        try:
+            line = Scalar(input())
+        except EOFError:
+            line = nil
+        return line
+
+    def getr(self):
+        return Scalar(random.random())
+
+    def setr(self, rhs):
+        random.seed(rhs)
 
     ################################
     ### Pip built-in commands    ###

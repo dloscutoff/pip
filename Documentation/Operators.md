@@ -10,190 +10,190 @@ U/B/T = Unary/Binary/Ternary
 
 ### Symbolic operators
 
-<code>!&ensp; U</code> Logical not
+<pre>!  U</pre> Logical not
 
-<code>!= B</code> Numeric not equal
+<pre>!= B</pre> Numeric not equal
 
-<code>#&ensp; U</code> Length
+<pre>#  U</pre> Length
 
-<code>%&ensp; B</code> Modulo
+<pre>%  B</pre> Modulo
 
-<code>&&ensp; B</code> Logical and (short-circuiting)
+<pre>&  B</pre> Logical and (short-circuiting)
 
-<code>*&ensp; B</code> Multiplication
+<pre>*  B</pre> Multiplication
 
-<code>** B</code> Exponentiation
+<pre>** B</pre> Exponentiation
 
-<code>+&ensp; B</code> Addition
+<pre>+  B</pre> Addition
 
-<code>+&ensp; U</code> Cast value as number
+<pre>+  U</pre> Cast value as number
 
-<code>++ U</code> Pre-increment (always comes before operand)
+<pre>++ U</pre> Pre-increment (always comes before operand)
 
-<code>,&ensp; B</code> Range
+<pre>,  B</pre> Range
 
-<code>,&ensp; U</code> Range from 0 up to
+<pre>,  U</pre> Range from 0 up to
 
-<code>-&ensp; B</code> Subtraction
+<pre>-  B</pre> Subtraction
 
-<code>-&ensp; U</code> Numeric negation
+<pre>-  U</pre> Numeric negation
 
-<code>-- U</code> Pre-decrement (always comes before operand)
+<pre>-- U</pre> Pre-decrement (always comes before operand)
 
-<code>.&ensp; B</code> Concatenation
+<pre>.  B</pre> Concatenation
 
-<code>/&ensp; B</code> Division
+<pre>/  B</pre> Division
 
-<code>// B</code> Integer division
+<pre>// B</pre> Integer division
 
-<code>:&ensp; B</code> Assignment
+<pre>:  B</pre> Assignment
 
-<code><&ensp; B</code> Numeric less than
+<pre><  B</pre> Numeric less than
 
-<code><= B</code> Numeric less than or equal
+<pre><= B</pre> Numeric less than or equal
 
-<code><=>B</code> Numeric cmp (-1 if less, 0 if equal, 1 if greater)
+<pre><=>B</pre> Numeric cmp (-1 if less, 0 if equal, 1 if greater)
 
-<code><> B</code> Group iterable into sections of given length
+<pre><> B</pre> Group iterable into sections of given length
 
-<code>=&ensp; B</code> Numeric equal
+<pre>=  B</pre> Numeric equal
 
-<code>== B</code> Exactly equal
+<pre>== B</pre> Exactly equal
 
-<code>>&ensp; B</code> Numeric greater than
+<pre>>  B</pre> Numeric greater than
 
-<code>>= B</code> Numeric greater than or equal
+<pre>>= B</pre> Numeric greater than or equal
 
-<code>?&ensp; T</code> If-then-else operator (short-circuiting)
+<pre>?  T</pre> If-then-else operator (short-circuiting)
 
-<code>@&ensp; B</code> Get item/slice at index
+<pre>@  B</pre> Get item/slice at index
 
-<code>@* B</code> Find all
+<pre>@* B</pre> Find all
 
-<code>@< B</code> Slice of string left of index
+<pre>@< B</pre> Slice of string left of index
 
-<code>@> B</code> Slice of string right of index
+<pre>@> B</pre> Slice of string right of index
 
-<code>@? B</code> Find
+<pre>@? B</pre> Find
 
-<code>^&ensp; B</code> Split string on separator
+<pre>^  B</pre> Split string on separator
 
-<code>^&ensp; U</code> Split string into list of characters
+<pre>^  U</pre> Split string into list of characters
 
-<code>^@ B</code> Split iterable at index or list of indices
+<pre>^@ B</pre> Split iterable at index or list of indices
 
-<code>|&ensp; B</code> Logical or (short-circuiting)
+<pre>|  B</pre> Logical or (short-circuiting)
 
 ### Alphabetic operators
 
-<code>A&ensp; U</code> Convert (first) char to ASCII value (or Unicode point)
+<pre>A  U</pre> Convert (first) char to ASCII value (or Unicode point)
 
-<code>AB U</code> Absolute value of number
+<pre>AB U</pre> Absolute value of number
 
-<code>AE B</code> List with appended element
+<pre>AE B</pre> List with appended element
 
-<code>AL B</code> List with appended list
+<pre>AL B</pre> List with appended list
 
-<code>BA B</code> Bitwise and
+<pre>BA B</pre> Bitwise and
 
-<code>BN U</code> Bitwise not
+<pre>BN U</pre> Bitwise not
 
-<code>BO B</code> Bitwise or
+<pre>BO B</pre> Bitwise or
 
-<code>BX B</code> Bitwise xor
+<pre>BX B</pre> Bitwise xor
 
-<code>C&ensp; U</code> Convert ASCII value/Unicode point to character
+<pre>C  U</pre> Convert ASCII value/Unicode point to character
 
-<code>CG B</code> Coordinate grid of i rows by j columns
+<pre>CG B</pre> Coordinate grid of i rows by j columns
 
-<code>CP B</code> Cartesian product of two iterables
+<pre>CP B</pre> Cartesian product of two iterables
 
-<code>CP U</code> Cartesian product of a list of iterables
+<pre>CP U</pre> Cartesian product of a list of iterables
 
-<code>EQ B</code> String equal
+<pre>EQ B</pre> String equal
 
-<code>FB B</code> Convert number from given base to decimal integer
+<pre>FB B</pre> Convert number from given base to decimal integer
 
-<code>FB U</code> Convert number from binary to decimal integer
+<pre>FB U</pre> Convert number from binary to decimal integer
 
-<code>FL B</code> Filter (1st arg is function, 2nd is list)
+<pre>FI B</pre> Filter (1st arg is function, 2nd is list)
 
-<code>GT B</code> String greater than
+<pre>GT B</pre> String greater than
 
-<code>GE B</code> String greater than or equal
+<pre>GE B</pre> String greater than or equal
 
-<code>IN B</code> In (returns count of occurrences or 0 if none)
+<pre>IN B</pre> In (returns count of occurrences or 0 if none)
 
-<code>J&ensp; B</code> Join iterable on separator
+<pre>J  B</pre> Join iterable on separator
 
-<code>J&ensp; U</code> Join iterable on empty string
+<pre>J  U</pre> Join iterable on empty string
 
-<code>LC U</code> Convert to lowercase
+<pre>LC U</pre> Convert to lowercase
 
-<code>LT B</code> String less than
+<pre>LT B</pre> String less than
 
-<code>LE B</code> String less than or equal
+<pre>LE B</pre> String less than or equal
 
-<code>M&ensp; B</code> Map function to iterable, returning list
+<pre>M  B</pre> Map function to iterable, returning list
 
-<code>MJ B</code> Map function to iterable and join results into string
+<pre>MJ B</pre> Map function to iterable and join results into string
 
-<code>MN U</code> Min of iterable using numeric comparison
+<pre>MN U</pre> Min of iterable using numeric comparison
 
-<code>MX U</code> Max of iterable using numeric comparison
+<pre>MX U</pre> Max of iterable using numeric comparison
 
-<code>NE B</code> String not equal
+<pre>NE B</pre> String not equal
 
-<code>NI B</code> Not in (returns truth value 0 or 1)
+<pre>NI B</pre> Not in (returns truth value 0 or 1)
 
-<code>PE B</code> List with prepended element
+<pre>PE B</pre> List with prepended element
 
-<code>R&ensp; T</code> Replace each occurrence in string of substring with replacement
+<pre>R  T</pre> Replace each occurrence in string of substring with replacement
 
-<code>RL B</code> Repeat list
+<pre>RL B</pre> Repeat list
 
-<code>RM B</code> From string remove characters; from list remove item
+<pre>RM B</pre> From string remove characters; from list remove item
 
-<code>RP B</code> Convert to Pip representation
+<pre>RP B</pre> Convert to Pip representation
 
-<code>RR B</code> Randrange
+<pre>RR B</pre> Randrange
 
-<code>RR U</code> Randrange from 0
+<pre>RR U</pre> Randrange from 0
 
-<code>RT B</code> Nth root
+<pre>RT B</pre> Nth root
 
-<code>RT U</code> Square root
+<pre>RT U</pre> Square root
 
-<code>RV B</code> Reverse iterable
+<pre>RV B</pre> Reverse iterable
 
-<code>SG U</code> Sign of number (-1, 0, or 1)
+<pre>SG U</pre> Sign of number (-1, 0, or 1)
 
-<code>SN U</code> Sort iterable using numeric comparison
+<pre>SN U</pre> Sort iterable using numeric comparison
 
-<code>SN U</code> Sort iterable using string comparison
+<pre>SN U</pre> Sort iterable using string comparison
 
-<code>ST B</code> Convert to string (for lists, the format of the result depends on command-line flags)
+<pre>ST B</pre> Convert to string (for lists, the format of the result depends on command-line flags)
 
-<code>TB B</code> Convert decimal integer to given base
+<pre>TB B</pre> Convert decimal integer to given base
 
-<code>TB U</code> Convert decimal integer to binary
+<pre>TB U</pre> Convert decimal integer to binary
 
-<code>UC U</code> Convert to UPPERCASE
+<pre>UC U</pre> Convert to UPPERCASE
 
-<code>UQ U</code> Keep only unique values from iterable
+<pre>UQ U</pre> Keep only unique values from iterable
 
-<code>V&ensp; B</code> Evaluate function with arglist (fVl is equivalent to f(*l) in Python)
+<pre>V  B</pre> Evaluate function with arglist (fVl is equivalent to f(*l) in Python)
 
-<code>V&ensp; U</code> Evaluate code block in current context, returning value of final expression or nil if there isn't one
+<pre>V  U</pre> Evaluate code block in current context, returning value of final expression or nil if there isn't one
 
-<code>X&ensp; B</code> Repeat string given number of times
+<pre>X  B</pre> Repeat string given number of times
 
-<code>Z&ensp; B</code> Zip two lists together (clipping to the shorter length)
+<pre>Z  B</pre> Zip two lists together (clipping to the shorter length)
 
-<code>Z&ensp; U</code> Zip a list of lists together (clipping to the shortest length)
+<pre>Z  U</pre> Zip a list of lists together (clipping to the shortest length)
 
-<code>ZD B</code> Zip a list of lists together, filling missing values with given default
+<pre>ZD B</pre> Zip a list of lists together, filling missing values with given default
 
-<code>ZD U</code> Zip a list of lists together, filling missing values with nil
+<pre>ZD U</pre> Zip a list of lists together, filling missing values with nil
 
-<code>ZG B</code> Grid of zeros (i rows by j columns)
+<pre>ZG B</pre> Grid of zeros (i rows by j columns)
