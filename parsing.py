@@ -1,4 +1,5 @@
 
+import re
 import operators
 import tokens
 import ptypes  # TBD: add another class or two to tokens and refactor this
@@ -102,7 +103,7 @@ def isExpr(tree):
     """Tests whether the given parse tree is an expression or not."""
     if type(tree) is list and type(tree[0]) is operators.Operator:
         return True
-    elif type(tree) in (tokens.Name, ptypes.Scalar):
+    elif type(tree) in (tokens.Name, ptypes.Scalar, ptypes.Pattern):
         return True
     else:
         return False
@@ -202,6 +203,11 @@ def parseOperand(tokenList):
     elif type(tokenList[0]) is tokens.String:
         # Strip the double-quotes off a literal string (TODO: backslash escapes)
         return ptypes.Scalar(tokenList.pop(0)[1:-1])
+    elif type(tokenList[0]) is tokens.Pattern:
+        # Strip off backticks and simplify \` inside
+        # `\1\\\`2\\` -> \1\\`2\\
+        rawPattern = tokenList.pop(0)[1:-1].replace("\\`", "`")
+        return ptypes.Pattern(rawPattern)
     elif type(tokenList[0]) is tokens.Char:
         # Single-quoted character
         return ptypes.Scalar(tokenList.pop(0)[1])

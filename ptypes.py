@@ -124,6 +124,111 @@ class Scalar:
             return nil
 
 
+class Pattern:
+    """Represents a regular expression or substitution pattern."""
+
+    def __init__(self, value=""):
+        self._raw = value
+        self._compiled = None
+
+    def getCompiled(self):
+        if not self._compiled:
+            self._compiled = re.compile(self._raw)
+        return self._compiled
+
+    def copy(self):
+        copy = Pattern(self._raw)
+        copy._compiled = re.compile(copy._raw)
+        return copy
+
+    def __str__(self):
+        return self._raw
+
+    def __repr__(self):
+        return '`{}`'.format(self._raw.replace("`", "\\`"))
+
+##    def __int__(self):
+##        m = intRgx.match(self._value)
+##        if m:
+##            return int(m.group())
+##        else:
+##            return 0
+
+    def __bool__(self):
+        """A Pattern is false iff it is empty."""
+        return self._raw != ""
+
+    def __eq__(self, rhs):
+        return type(rhs) == type(self) and self._raw == rhs._raw
+    
+    def __len__(self):
+        return len(self._raw)
+
+##    def toNumber(self):
+##        """Convert to a Python float or int for math purposes."""
+##        # TODO: replace floats with Decimal or somesuch?
+##        m = floatRgx.match(self._value)
+##        if m:
+##            return float(m.group())
+##        m = intRgx.match(self._value)
+##        if m:
+##            return int(m.group())
+##        # If it doesn't match a float or an int, its numeric value is 0
+##        return 0
+
+##    def __contains__(self, item):
+##        if type(item) in (str, Scalar):
+##            return str(item) in self._value
+##        else:
+##            return False
+
+##    def __getitem__(self, index):
+##        if type(index) is List:
+##            return List(self[i] for i in index)
+##        elif type(index) in (Scalar, int):
+##            index = int(index) % len(self._value)
+##            # TODO: warn if index < -len or len >= index
+##        
+##        if type(index) in (int, slice):
+##            return Scalar(self._value.__getitem__(index))
+##        else:
+##            print("Cannot use", type(index), "to index Scalar")
+##            return nil
+
+##    def __setitem__(self, index, item):
+##        value = list(self._value)
+##        value.__setitem__(index, str(item))
+##        self._value = ''.join(value)
+
+    def __iter__(self):
+        for char in self._raw:
+            yield Scalar(char)
+
+    def __hash__(self):
+        # This hashes to the same thing as the equivalent Scalar, but hopefully
+        # that won't be much of a problem.
+        return hash(self._raw)
+
+##    def count(self, substring):
+##        if type(substring) is Scalar:
+##            return self._value.count(substring._value)
+##        else:
+##            return nil
+
+##    def index(self, searchItem, startIndex=0):
+##        if type(searchItem) is Scalar:
+##            try:
+##                return Scalar(self._value.index(searchItem._value,
+##                                                startIndex))
+##            except ValueError:
+##                return nil
+##        elif type(searchItem) in (List, Range):
+##            return List(self.index(subitem, startIndex)
+##                        for subitem in searchItem)
+##        else:
+##            return nil
+
+
 class List:
     """Represents a list of objects."""
 

@@ -50,6 +50,9 @@ class Number(Token):
 class String(Token):
     pass
 
+class Pattern(Token):
+    pass
+
 class Char(Token):
     pass
 

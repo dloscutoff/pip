@@ -9,6 +9,7 @@ err = ErrorReporter(warnings=True)  # TODO: get this setting from the args?
 
 nameRgx = re.compile(r'[A-Z]+|[a-z_]')
 stringRgx = re.compile(r'"[^"]*"')
+patternRgx = re.compile(r'`(\\`|\\\\|[^`])*`')
 charRgx = re.compile(r"'(.|\n)")
 numberRgx = re.compile(r'[0-9]+(\.[0-9]+)?')
 symbolsRgx = re.compile(r'[][(){};$E]')
@@ -23,6 +24,7 @@ operRgx = re.compile("|".join(
 # Combine all regexes together for the grand finale
 tokenRgx = re.compile("|".join(rgx.pattern for rgx in [nameRgx,
                                                        stringRgx,
+                                                       patternRgx,
                                                        charRgx,
                                                        numberRgx,
                                                        symbolsRgx,
@@ -46,6 +48,8 @@ def newToken(text, *args, **kwargs):
         return tokens.Char(text, *args, **kwargs)
     elif text[0] == '"':
         return tokens.String(text, *args, **kwargs)
+    elif text[0] == '`':
+        return tokens.Pattern(text, *args, **kwargs)
     elif symbolsRgx.match(text) and (text[0] != "E" or text == "E"):
         # (The above special-casing is to prevent potential names starting with
         # E from scanning as symbols and choking the parser)
@@ -95,8 +99,9 @@ def tokenize(code):
                     index -= 1
                 tokenList.append(newToken(text))
                 code = code[index:]
-            elif code[0] in '"':
-                err.die("Unterminated string literal: %s" % code.strip())
+            elif code[0] in '"`\'':
+                err.die("Unterminated string or pattern literal:",
+                        code.strip())
             else:
                 err.warn("While scanning, ignored unrecognized character: %r"
                          % code[0])

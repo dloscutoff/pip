@@ -9,6 +9,7 @@ Any of the following is a token in Pip:
  - Number (consecutive digits, optionally followed by a period and more consecutive digits)
  - String literal (between "double quotes"--no escapes yet, though they are planned)
  - Single-character string literal (a ' single quote followed by any character--no escapes)
+ - Pattern literal (between \`backticks\`--backslash escapes for backtick & backslash)
  - Operator (one or more symbols or uppercase letters)
  - Lowercase identifier (a single lowercase letter; runs of lowercase letters become multiple identifiers)
  - Uppercase identifier (one or two uppercase letters which are not an operator)
@@ -27,15 +28,14 @@ Whitespace is not significant except for indicating comments and separating toke
 
 ### Types
 
-There are currently 5 data types in Pip:
+There are 6 data types in Pip:
 
  - **Scalar** represents strings and numbers, similar to scalar variables in Perl. A string in numeric context is converted to a number by taking the leading run of digits, possibly with a minus sign or decimal point.
  - **List** is similar to lists in Python: dynamically resizeable, can hold items of any type including other lists, etc.
  - **Range** has a lower and upper bound, and usually represents all integers >= to the lower bound and < the upper bound. `5,10` is functionally equivalent to `[5 6 7 8 9]` in most contexts, but potentially more efficient since the numbers need not all be generated. Infinite ranges can be created by passing an upper bound of nil. Ranges are also used for string/array slicing, in which context negative indices may be used: `"Hello"@(1,-1)` == `"ell"`.
+ - **Pattern** represents regular expressions and replacement patterns.
  - **Block** represents a code block or function.
  - **Nil** is a singleton type, similar to `null` or `None` from other languages. Note that many situations that would cause a runtime error in other languages (such as dividing by zero) simply return nil in Pip (unless warnings are turned on using the -w or -d flags). Most operators, when given nil as an operand, return nil.
-
-A sixth type, Pattern, is planned (for regular expressions).
 
 Boolean expressions return `0` and `1`. The values `0` (and variants like `0.0`), `""`, `[]`, and nil are falsy; all others are truthy.
 

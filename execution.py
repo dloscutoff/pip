@@ -3,7 +3,7 @@ import math, random, itertools
 import tokens
 import operators as ops
 from parsing import isExpr
-from ptypes import Scalar, List, Range, Block, Nil, nil
+from ptypes import Scalar, Pattern, List, Range, Block, Nil, nil
 from errors import ErrorReporter
 
 # Generate a Scalar constant 1 now to make (in|de)crements more efficient
@@ -99,7 +99,7 @@ class ProgramState:
         if exprType is tokens.Name:
             # Evaluate a name as an lvalue (which may become an rvalue later)
             return Lval(expression)
-        elif exprType in (Lval, Scalar, List, Range, Block, Nil):
+        elif exprType in (Lval, Scalar, Pattern, List, Range, Block, Nil):
             # This is a value (lvalue or rvalue) already--just return it
             return expression
         elif exprType is not list:
@@ -222,7 +222,7 @@ class ProgramState:
         #!print("In getRval", repr(expr))
         if type(expr) in (list, tokens.Name):
             expr = self.evaluate(expr)
-        if type(expr) in (Scalar, List, Range, Block, Nil):
+        if type(expr) in (Scalar, Pattern, List, Range, Block, Nil):
             # Already an rval
             result = expr
         elif type(expr) is ops.Operator:
@@ -598,7 +598,7 @@ class ProgramState:
             index = int(rhs)
         elif type(rhs) is Range:
             index = rhs.toSlice()
-        elif type(rhs) is List:
+        elif type(rhs) in (List, Pattern):
             index = rhs
         else:
             self.err.warn("Cannot use", type(rhs), "as index")
@@ -608,11 +608,16 @@ class ProgramState:
             if type(index) in (int, slice):
                 # Indexing using a Scalar or a Range returns an Lval
                 return Lval(lhs, index)
-            elif type(index) is List:
-                # Using a List to index can only give you an rval
+            elif type(index) in (List, Pattern):
+                # Using a List to index or doing a regex search can only
+                # give you an rval
                 lhs = self.getRval(lhs)
         
-        if type(lhs) in (Scalar, List, Range):
+        if type(rhs) is Pattern and type(lhs) is Scalar:
+            return List(rhs.getCompiled().findall(str(lhs)))
+        elif type(rhs) is Pattern and type(lhs) in (List, Range):
+            return List(self.AT(sub, rhs) for sub in lhs)
+        elif type(lhs) in (Scalar, List, Range):
             if len(lhs) == 0:
                 self.err.warn("Indexing into empty string/list/range")
                 return nil
@@ -693,6 +698,9 @@ class ProgramState:
         if type(lhs) is Scalar and type(rhs) is Scalar:
             result = str(lhs) + str(rhs)
             return Scalar(result)
+        elif type(lhs) in (Scalar, Pattern) and type(rhs) in (Scalar, Pattern):
+            result = str(lhs) + str(rhs)
+            return Pattern(result)
         else:
             self.err.warn("Unimplemented argtypes for CAT:",
                           type(lhs), "and", type(rhs))
@@ -786,7 +794,9 @@ class ProgramState:
             return nil
 
     def FIND(self, iterable, item):
-        if type(iterable) in (Scalar, List, Range):
+        if type(item) is Pattern and type(iterable) is Scalar:
+            return Scalar(item.getCompiled().search(str(iterable)).start())
+        elif type(iterable) in (Scalar, List, Range):
             return iterable.index(item)
         else:
             self.err.warn("Unimplemented argtypes for FIND:",
@@ -796,7 +806,13 @@ class ProgramState:
     def FINDALL(self, iterable, item):
         if type(item) is List and type(iterable) in (Scalar, Range):
             return List(self.FINDALL(iterable, subitem) for subitem in item)
-        elif type(item) in (Scalar, Range):
+        elif type(item) is Pattern and type(iterable) is Scalar:
+            # Return indices of all regex matches in Scalar
+            matches = item.getCompiled().finditer(str(iterable))
+            return List(match.start() for match in matches)
+        elif ((type(item) in (Scalar, Range, Pattern)
+               and type(iterable) in (Scalar, Range, Pattern, List))
+              or type(item) is List and type(iterable) is List):
             result = []
             lastIndex = iterable.index(item)
             while lastIndex is not nil:
@@ -886,7 +902,7 @@ class ProgramState:
             return nil
     
     def JOIN(self, iterable, sep = None):
-        if sep is not None and type(sep) is not Scalar:
+        if sep is not None and type(sep) is not in (Scalar, Pattern):
             # TBD: does a list as separator give a list of results?
             self.err.warn("Can't join on", type(sep))
             return nil
@@ -1234,8 +1250,7 @@ class ProgramState:
         return Scalar(result)
 
     def OBJEQUAL(self, lhs, rhs):
-        result = lhs == rhs
-        return Scalar(result)
+        return Scalar(lhs == rhs)
 
     def OR(self, lhs, rhs):
         # Short-circuiting OR operator
@@ -1330,7 +1345,7 @@ class ProgramState:
             return nil
 
     def REPEATLIST(self, lhs, rhs):
-        if type(lhs) is Scalar:
+        if type(lhs) in (Scalar, Pattern, Nil):
             lhs = List([lhs])
         if type(lhs) in (List, Range) and type(rhs) is Scalar:
             result = list(lhs.copy()) * int(rhs)
@@ -1568,7 +1583,7 @@ class ProgramState:
         return Scalar(str(rhs))
 
     def STREQUAL(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if type(lhs) in (Scalar, Pattern) and type(rhs) in (Scalar, Pattern):
             result = str(lhs) == str(rhs)
         elif type(lhs) is type(rhs) is List:
             result = (len(lhs) == len(rhs)
@@ -1661,10 +1676,10 @@ class ProgramState:
         return Scalar(result)
 
     def STRMUL(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if type(lhs) in (Scalar, Pattern) and type(rhs) is Scalar:
             string = str(lhs)
             num = rhs.toNumber()
-            return Scalar(string*num)
+            return type(lhs)(string*num)
         else:
             self.err.warn("Unimplemented argtypes for STRMUL:",
                           type(lhs), "and", type(rhs))
