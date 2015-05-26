@@ -614,7 +614,8 @@ class ProgramState:
                 lhs = self.getRval(lhs)
         
         if type(rhs) is Pattern and type(lhs) is Scalar:
-            return List(rhs.getCompiled().findall(str(lhs)))
+            return List(Scalar(substr)
+                        for substr in rhs.getCompiled().findall(str(lhs)))
         elif type(rhs) is Pattern and type(lhs) in (List, Range):
             return List(self.AT(sub, rhs) for sub in lhs)
         elif type(lhs) in (Scalar, List, Range):
@@ -809,10 +810,10 @@ class ProgramState:
         elif type(item) is Pattern and type(iterable) is Scalar:
             # Return indices of all regex matches in Scalar
             matches = item.getCompiled().finditer(str(iterable))
-            return List(match.start() for match in matches)
-        elif ((type(item) in (Scalar, Range, Pattern)
-               and type(iterable) in (Scalar, Range, Pattern, List))
-              or type(item) is List and type(iterable) is List):
+            return List(Scalar(match.start()) for match in matches)
+        elif (type(item) in (Scalar, Range)
+              and type(iterable) in (Scalar, Range, List)
+              or type(item) in (List, Pattern) and type(iterable) is List):
             result = []
             lastIndex = iterable.index(item)
             while lastIndex is not nil:
@@ -872,7 +873,10 @@ class ProgramState:
             return self.evaluate(falseBranch)
 
     def IN(self, lhs, rhs):
-        if type(rhs) in (Scalar, List, Range):
+        if type(lhs) is Pattern and type(rhs) is Scalar:
+            matches = lhs.findall(str(rhs))
+            return Scalar(len(matches))
+        elif type(rhs) in (Scalar, List, Range):
             return Scalar(rhs.count(lhs))
         else:
             # If it's not one of those types, it's automatically false
@@ -902,7 +906,7 @@ class ProgramState:
             return nil
     
     def JOIN(self, iterable, sep = None):
-        if sep is not None and type(sep) is not in (Scalar, Pattern):
+        if sep is not None and type(sep) not in (Scalar, Pattern):
             # TBD: does a list as separator give a list of results?
             self.err.warn("Can't join on", type(sep))
             return nil
@@ -1053,7 +1057,11 @@ class ProgramState:
         return Scalar(result)
 
     def NOTIN(self, lhs, rhs):
-        return Scalar(lhs not in rhs)
+        if type(lhs) is Pattern and type(rhs) is Scalar:
+            matchExists = lhs.search(str(rhs))
+            return Scalar(not matchExists)
+        else:
+            return Scalar(lhs not in rhs)
 
     def NUMCMP(self, lhs, rhs):
         # Equivalent to Python2's cmp() function: return -1 if lhs < rhs,
@@ -1358,9 +1366,11 @@ class ProgramState:
     def REPLACE(self, *args):
         args = (List(arg) if type(arg) is Range else arg for arg in args)
         lhs, old, new = args
+        if type(old) is Scalar and type(new) is Pattern:
+            old = Pattern(old)
         if (type(lhs) in (List, Scalar)
-            and type(old) in (List, Scalar)
-            and type(new) in (List, Scalar, Nil)):
+            and type(old) in (List, Scalar, Pattern)
+            and type(new) in (List, Scalar, Pattern, Nil)):
             if type(lhs) is List:
                 # Return a List of results
                 return List(self.REPLACE(eachLhs, old, new) for eachLhs in lhs)
@@ -1380,6 +1390,17 @@ class ProgramState:
                 for eachOld in old:
                     result = self.REPLACE(result, eachOld, new)
                 return result
+            elif type(old) is Pattern:
+                if type(new) is Pattern:
+                    replacement = str(new)
+                elif type(new) is Scalar:
+                    # If replacing with a literal string, escape all
+                    # backslashes first
+                    replacement = str(new).replace("\\", "\\\\")
+                elif new is nil:
+                    replacement = ""
+                result = old.getCompiled().sub(replacement, str(lhs))
+                return Scalar(result)
             else:
                 if new is nil:
                     replacement = ""

@@ -4,10 +4,11 @@
 #  Operators: Random Choice, Replace At, Map Star, PerMutations, ComBinations,
 #    TriM, StRip, Right Strip, Left Strip, PUsh, POp, Push to Back,
 #    DeQueue
-#  Basic regex operations
+#  & in Pattern replacements substitutes whole string (with \& for literal &)
 #  \ map meta-operator
 #  Fold meta-operator respects the associativity of the operator (R or L)
 #  Make all meta-operators orthogonal, i.e. combinable
+#  More regex operations and looping constructs
 #  Do loop
 #  Limited backslash-escapes in strings?
 #  Experiment with using decimal module for better-precision arithmetic
@@ -15,7 +16,7 @@
 #  Figure out how to get correct warning/error reporting in ptypes classes
 #  Reconstitute code from parse tree and print that for functions' str and
 #    repr
-#  More operators! Esp. random, string, and math operators needed
+#  More operators! Esp. random, string, regex, and math operators needed
 
 from scanning import scan, addSpaces
 from parsing import parse
@@ -23,7 +24,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.05.25"
+VERSION = "0.15.05.26"
 
 def pip(interactive=True):
     if interactive:

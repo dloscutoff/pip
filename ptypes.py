@@ -128,7 +128,7 @@ class Pattern:
     """Represents a regular expression or substitution pattern."""
 
     def __init__(self, value=""):
-        self._raw = value
+        self._raw = str(value)
         self._compiled = None
 
     def getCompiled(self):
