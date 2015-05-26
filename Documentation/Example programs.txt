@@ -18,13 +18,13 @@ $+       Sum the result (fold/plus)
 ; Three different ways to do factorial:
 Fi1+,ao*:io   Iterative...
 a?a*(fa-1)1   Recursive...
-a?$*++,a1     But fold is the best!
+$*++,a        But fold is the best!
 
 ; FizzBuzz:
 LhP(++i%3?x"Fizz").(i%5?x"Buzz")|i
 
 ; Translate alphanumeric phone numbers (http://codegolf.stackexchange.com/q/21327/16766):
-{a='z?9Aa>96?5*Aa//16-28a}Ma
+{aEQ'z?9aGE'a?5*Aa//16-28a}Ma
 
 ; Is a number divisible by all of its digits? http://codegolf.stackexchange.com/q/41902/16766
 0=$+a%^a

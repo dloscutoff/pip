@@ -94,7 +94,7 @@ class ProgramState:
             return self.evaluate(statement)
     
     def evaluate(self, expression):
-        #!print("In evaluate", expression)
+        #!print("In evaluate", repr(expression))
         exprType = type(expression)
         if exprType is tokens.Name:
             # Evaluate a name as an lvalue (which may become an rvalue later)
@@ -146,17 +146,19 @@ class ProgramState:
                     elif operator.flags & ops.LIST_EACH and type(arg) is List:
                         argsToExpand.append(i)
                     elif (operator.flags & ops.IN_LAMBDA
-                          and type(self.getRval(arg)) is Block):
-                        # NB! All operators that set IN_LAMBDA *must* set
-                        # either VALS or RVALS; otherwise, their args will
-                        # be evaluated twice, with possible duplicate side
-                        # effects
+                          and (type(arg) is Block
+                               or type(arg) is Lval
+                               and type(self.getRval(arg)) is Block)):
+                        # Note: All operators that set IN_LAMBDA must set
+                        # either VALS or RVALS, so we can assume arg is at
+                        # least an Lval here
                         blockArgs.append(i)
                     args[i] = arg
             # Modifying lambda functions trumps LIST_EACH and RANGE_EACH
             if blockArgs:
                 if not operator.flags & ops.RVALS:
-                    args = [self.getRval(arg) for arg in args]
+                    args = [self.getRval(arg) if type(arg) is Lval else arg
+                            for arg in args]
                 if len(blockArgs) == 1:
                     blockArg = blockArgs[0]
                     statements = args[blockArg].getStatements()
@@ -217,9 +219,9 @@ class ProgramState:
             return self.vars
 
     def getRval(self, expr):
+        #!print("In getRval", repr(expr))
         if type(expr) in (list, tokens.Name):
             expr = self.evaluate(expr)
-        #!print("In getRval", expr)
         if type(expr) in (Scalar, List, Range, Block, Nil):
             # Already an rval
             result = expr
@@ -328,7 +330,8 @@ class ProgramState:
 
     def functionCall(self, function, argList):
         """Calls the given function in a new scope with the given arguments."""
-        argList = [self.getRval(arg) for arg in argList]
+        argList = [self.getRval(arg) if type(arg) is Lval else arg
+                   for arg in argList]
         # Open a new scope for the function's local variables
         self.callDepth += 1
         self.locals.append({})
@@ -489,8 +492,7 @@ class ProgramState:
         normalOp.fold = False
         if type(iterable) in (Scalar, List, Range):
             if len(iterable) == 0:
-                # TODO: default values for each operator so e.g. $+[] == 0
-                return nil
+                return operator.default
             else:
                 foldValue = iterable[0]
                 for val in iterable[1:]:
@@ -583,7 +585,8 @@ class ProgramState:
             self.err.warn("Attempting to assign to non-lvalue", lhs)
         else:
             # If the rhs is an lval, get its rval
-            rhs = self.getRval(rhs)
+            if type(rhs) is Lval:
+                rhs = self.getRval(rhs)
             self.assign(lhs, rhs)
         return lhs
 
@@ -912,7 +915,8 @@ class ProgramState:
     def LEFTOF(self, lhs, rhs):
         # TBD: allow Range or List (of Scalars) as rhs? What would the
         # semantics be?
-        rhs = self.getRval(rhs)
+        if type(rhs) is Lval:
+            rhs = self.getRval(rhs)
         if type(lhs) is Lval and type(rhs) is Scalar:
             index = slice(None, int(rhs))
             return Lval(lhs, index)
@@ -1410,7 +1414,8 @@ class ProgramState:
     def RIGHTOF(self, lhs, rhs):
         # TBD: allow Range or List (of Scalars) as rhs? What would the
         # semantics be?
-        rhs = self.getRval(rhs)
+        if type(rhs) is Lval:
+            rhs = self.getRval(rhs)
         if type(lhs) is Lval and type(rhs) is Scalar:
             index = slice(int(rhs), None)
             return Lval(lhs, index)

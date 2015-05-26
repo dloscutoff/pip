@@ -5,7 +5,6 @@
 #    TriM, StRip, Right Strip, Left Strip, PUsh, POp, Push to Back,
 #    DeQueue
 #  Basic regex operations
-#  Default values for fold
 #  \ map meta-operator
 #  Fold meta-operator respects the associativity of the operator (R or L)
 #  Make all meta-operators orthogonal, i.e. combinable
@@ -14,7 +13,8 @@
 #  Experiment with using decimal module for better-precision arithmetic
 #  Built-in functions that are implemented in Python code?
 #  Figure out how to get correct warning/error reporting in ptypes classes
-#  Reconstitute code from parse tree and print that for debugging info?
+#  Reconstitute code from parse tree and print that for functions' str and
+#    repr
 #  More operators! Esp. random, string, and math operators needed
 
 from scanning import scan, addSpaces
@@ -23,7 +23,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.05.24"
+VERSION = "0.15.05.25"
 
 def pip(interactive=True):
     if interactive:

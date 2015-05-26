@@ -1,5 +1,5 @@
 
-import tokens
+import tokens, ptypes
 
 class Command(tokens.Token):
     def __init__(self, token, function, argtypes):
@@ -17,7 +17,7 @@ class Command(tokens.Token):
 
 class Operator(tokens.Token):
     def __init__(self, token, function, arity, precedence, associativity,
-                 flags=0):
+                 default=None, flags=0):
         super().__init__(token)
         self.function = function
         self.arity = arity
@@ -26,6 +26,21 @@ class Operator(tokens.Token):
         self.flags = flags
         self.assign = False  # Turns + into +: for instance
         self.fold = False  # Turns + into $+ for instance
+
+        # The default argument represents the value when folding an empty list
+        # with this operator. For economy of space, defaults are specified as
+        # Python objects in the operator table; convert them to Pip types here.
+        if type(default) in (ptypes.Nil, ptypes.Scalar, ptypes.List):
+            self.default = default
+        elif default is None:
+            self.default = ptypes.nil
+        elif type(default) in (int, float, str):
+            self.default = ptypes.Scalar(default)
+        elif type(default) is list:
+            self.default = ptypes.List(default)
+        else:
+            print("Unsupported operator default value type:", type(default))
+            self.default = ptypes.nil
 
     def __str__(self):
         return (("$" if self.fold else "")
@@ -45,6 +60,7 @@ class Operator(tokens.Token):
                        self.arity,
                        self.precedence,
                        self.associativity,
+                       self.default,
                        self.flags)
         cpy.assign = self.assign
         cpy.fold = self.fold
@@ -80,166 +96,166 @@ IN_LAMBDA = 0x10     # Can be used to build lambda expressions from _
 
 precedenceTable = [
     [2,
-     (":", "ASSIGN", "R", VALS),
+     (":", "ASSIGN", "R", None, VALS),
      ],
     [3,
      ("?", "IFTE", "R"),
      ],
     [2,
-     ("|", "OR", "L"),
+     ("|", "OR", "L", 0),
      ],
     [2,
-     ("&", "AND", "L"),
+     ("&", "AND", "L", 1),
      ],
     [1,
-     ("!", "NOT", "L", RVALS),
+     ("!", "NOT", "L", None, RVALS),
      ],
     [2,
-     ("==", "OBJEQUAL", "C", RVALS),  # NB: *not* a chaining operator!
+     ("==", "OBJEQUAL", "L", 1, RVALS),  # NB: *not* a chaining operator!
      ],
     [2,
-     ("M", "MAP", "R", RVALS),
-     ("MJ", "MAPJOIN", "R", RVALS),
-     ("FI", "FILTER", "R", RVALS),
-     ("V", "EVAL", "R", RVALS),
+     ("M", "MAP", "R", [], RVALS),
+     ("MJ", "MAPJOIN", "R", "", RVALS),
+     ("FI", "FILTER", "R", [], RVALS),
+     ("V", "EVAL", "R", None, RVALS),
      ],
     [1,
-     ("V", "EVAL", "L", RVALS),
+     ("V", "EVAL", "L", None, RVALS),
      ],
     [2,
-     ("<", "NUMLESS", "C", RVALS),
-     (">", "NUMGREATER", "C", RVALS),
-     ("=", "NUMEQUAL", "C", RVALS),
-     ("<=", "NUMLESSEQ", "C", RVALS),
-     (">=", "NUMGREATEREQ", "C", RVALS),
-     ("!=", "NUMNOTEQUAL", "C", RVALS),
-     ("LT", "STRLESS", "C", RVALS),
-     ("GT", "STRGREATER", "C", RVALS),
-     ("EQ", "STREQUAL", "C", RVALS),
-     ("LE", "STRLESSEQ", "C", RVALS),
-     ("GE", "STRGREATEREQ", "C", RVALS),
-     ("NE", "STRNOTEQUAL", "C", RVALS),
+     ("<", "NUMLESS", "C", 1, RVALS),
+     (">", "NUMGREATER", "C", 1, RVALS),
+     ("=", "NUMEQUAL", "C", 1, RVALS),
+     ("<=", "NUMLESSEQ", "C", 1, RVALS),
+     (">=", "NUMGREATEREQ", "C", 1, RVALS),
+     ("!=", "NUMNOTEQUAL", "C", 1, RVALS),
+     ("LT", "STRLESS", "C", 1, RVALS),
+     ("GT", "STRGREATER", "C", 1, RVALS),
+     ("EQ", "STREQUAL", "C", 1, RVALS),
+     ("LE", "STRLESSEQ", "C", 1, RVALS),
+     ("GE", "STRGREATEREQ", "C", 1, RVALS),
+     ("NE", "STRNOTEQUAL", "C", 1, RVALS),
      ],
      # Note: comparison operators CAN also be used in lambdas, due to the
      # CHAIN pseudo-operator having the IN_LAMBDA flag (see below).
     [2,
-     ("IN", "IN", "L", RVALS | IN_LAMBDA),
-     ("NI", "NOTIN", "L", RVALS | IN_LAMBDA),
+     ("IN", "IN", "L", None, RVALS | IN_LAMBDA),
+     ("NI", "NOTIN", "L", None, RVALS | IN_LAMBDA),
      ],
     [1,
-     ("RP", "REPR", "L", RVALS),
-     ("ST", "STR", "L", RVALS),
+     ("RP", "REPR", "L", None, RVALS),
+     ("ST", "STR", "L", None, RVALS),
      ],
     [1,
-     ("MX", "MAX", "L", RVALS | IN_LAMBDA),
-     ("MN", "MIN", "L", RVALS | IN_LAMBDA),
-     ("SN", "SORTNUM", "L", RVALS | IN_LAMBDA),
-     ("SS", "SORTSTRING", "L", RVALS | IN_LAMBDA),
-     ("UQ", "UNIQUE", "L", RVALS | IN_LAMBDA),
+     ("MX", "MAX", "L", None, RVALS | IN_LAMBDA),
+     ("MN", "MIN", "L", None, RVALS | IN_LAMBDA),
+     ("SN", "SORTNUM", "L", None, RVALS | IN_LAMBDA),
+     ("SS", "SORTSTRING", "L", None, RVALS | IN_LAMBDA),
+     ("UQ", "UNIQUE", "L", None, RVALS | IN_LAMBDA),
      ],
     [2,
-     ("AE", "APPENDELEM", "L", RVALS | IN_LAMBDA),
-     ("AL", "APPENDLIST", "L", RVALS | IN_LAMBDA),
-     ("PE", "PREPENDELEM", "L", RVALS | IN_LAMBDA),
+     ("AE", "APPENDELEM", "L", [], RVALS | IN_LAMBDA),
+     ("AL", "APPENDLIST", "L", [], RVALS | IN_LAMBDA),
+     ("PE", "PREPENDELEM", "L", [], RVALS | IN_LAMBDA),
      ],
     [2,
-     ("^", "SPLIT", "L", RVALS | IN_LAMBDA | LIST_EACH),
-     ("^@", "SPLITAT", "L", RVALS | IN_LAMBDA),
-     ("@?", "FIND", "L", RVALS | IN_LAMBDA),
-     ("@*", "FINDALL", "L", RVALS | IN_LAMBDA),
-     ("<>", "GROUP", "L", RVALS | IN_LAMBDA),
-     ("J", "JOIN", "L", RVALS | IN_LAMBDA),
-     ("RL", "REPEATLIST", "L", RVALS | IN_LAMBDA),
-     ("Z", "ZIP", "L", RVALS | IN_LAMBDA),
-     ("ZD", "ZIPDEFAULT", "L", RVALS | IN_LAMBDA),
-     ("CP", "CARTESIANPRODUCT", "L", RVALS | IN_LAMBDA),
-     ("CG", "COORDINATEGRID", "L", RVALS | IN_LAMBDA),
-     ("ZG", "ZEROGRID", "L", RVALS | IN_LAMBDA),
+     ("^", "SPLIT", "L", [], RVALS | IN_LAMBDA | LIST_EACH),
+     ("^@", "SPLITAT", "L", [], RVALS | IN_LAMBDA),
+     ("@?", "FIND", "L", None, RVALS | IN_LAMBDA),
+     ("@*", "FINDALL", "L", [], RVALS | IN_LAMBDA),
+     ("<>", "GROUP", "L", [], RVALS | IN_LAMBDA),
+     ("J", "JOIN", "L", "", RVALS | IN_LAMBDA),
+     ("RL", "REPEATLIST", "L", [], RVALS | IN_LAMBDA),
+     ("Z", "ZIP", "L", [], RVALS | IN_LAMBDA),
+     ("ZD", "ZIPDEFAULT", "L", [], RVALS | IN_LAMBDA),
+     ("CP", "CARTESIANPRODUCT", "L", [], RVALS | IN_LAMBDA),
+     ("CG", "COORDINATEGRID", "L", None, RVALS | IN_LAMBDA),
+     ("ZG", "ZEROGRID", "L", None, RVALS | IN_LAMBDA),
      ],
     [1,
-     ("^", "SPLIT", "L", RVALS | IN_LAMBDA | LIST_EACH),
-     ("J", "JOIN", "L", RVALS | IN_LAMBDA),
-     ("RV", "REVERSE", "L", RVALS | IN_LAMBDA),
-     ("Z", "ZIP", "L", RVALS | IN_LAMBDA),
-     ("ZD", "ZIPDEFAULT", "L", RVALS | IN_LAMBDA),
-     ("CP", "CARTESIANPRODUCT", "L", RVALS | IN_LAMBDA),
+     ("^", "SPLIT", "L", None, RVALS | IN_LAMBDA | LIST_EACH),
+     ("J", "JOIN", "L", None, RVALS | IN_LAMBDA),
+     ("RV", "REVERSE", "L", None, RVALS | IN_LAMBDA),
+     ("Z", "ZIP", "L", None, RVALS | IN_LAMBDA),
+     ("ZD", "ZIPDEFAULT", "L", None, RVALS | IN_LAMBDA),
+     ("CP", "CARTESIANPRODUCT", "L", None, RVALS | IN_LAMBDA),
      ],
     [3,
-     ("R", "REPLACE", "L", RVALS | IN_LAMBDA),
+     ("R", "REPLACE", "L", None, RVALS | IN_LAMBDA),
      ],
     [2,
-     (".", "CAT", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     (".", "CAT", "L", "", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [2,
-     ("RM", "REMOVE", "L", RVALS | IN_LAMBDA),
+     ("RM", "REMOVE", "L", "", RVALS | IN_LAMBDA),
      ],
     [2,
-     ("X", "STRMUL", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("X", "STRMUL", "L", "", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [1,
-     ("LC", "LOWERCASE", "L", RVALS | IN_LAMBDA | LIST_EACH),
-     ("UC", "UPPERCASE", "L", RVALS | IN_LAMBDA | LIST_EACH),
+     ("LC", "LOWERCASE", "L", None, RVALS | IN_LAMBDA | LIST_EACH),
+     ("UC", "UPPERCASE", "L", None, RVALS | IN_LAMBDA | LIST_EACH),
      ],
     [2,
-     (",", "RANGE", "L", RVALS | IN_LAMBDA),
-     ("RR", "RANDRANGE", "L", RVALS | IN_LAMBDA),
-     ("TB", "TOBASE", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     (",", "RANGE", "L", None, RVALS | IN_LAMBDA),
+     ("RR", "RANDRANGE", "L", 0, RVALS | IN_LAMBDA),
+     ("TB", "TOBASE", "L", 0, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [1,
-     (",", "RANGETO", "L", RVALS | IN_LAMBDA),
-     ("RR", "RANDRANGETO", "L", RVALS | IN_LAMBDA),
-     ("TB", "TOBASE", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     (",", "RANGETO", "L", None, RVALS | IN_LAMBDA),
+     ("RR", "RANDRANGETO", "L", None, RVALS | IN_LAMBDA),
+     ("TB", "TOBASE", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      # Unary mnemonic: ToBinary
      ],
     [2,
-     ("BA", "BITWISEAND", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
-     ("BO", "BITWISEOR", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
-     ("BX", "BITWISEXOR", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("BA", "BITWISEAND", "L", -1, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("BO", "BITWISEOR", "L", 0, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("BX", "BITWISEXOR", "L", 0, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [1,
-     ("BN", "BITWISENOT", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("BN", "BITWISENOT", "L",None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [2,
-     ("<=>", "NUMCMP", "L", RVALS | IN_LAMBDA),
+     ("<=>", "NUMCMP", "L", 0, RVALS | IN_LAMBDA),
      ],
     [2,
-     ("+", "ADD", "L", RVALS | IN_LAMBDA | LIST_EACH),
-     ("-", "SUB", "L", RVALS | IN_LAMBDA | LIST_EACH),
+     ("+", "ADD", "L", 0, RVALS | IN_LAMBDA | LIST_EACH),
+     ("-", "SUB", "L", 0, RVALS | IN_LAMBDA | LIST_EACH),
      ],
     [2,
-     ("*", "MUL", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
-     ("/", "DIV", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
-     ("%", "MOD", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
-     ("//", "INTDIV", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("*", "MUL", "L", 1, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("/", "DIV", "L", 1, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("%", "MOD", "L", 0, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("//", "INTDIV", "L", 1, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [1,
-     ("+", "POS", "L", RVALS | IN_LAMBDA | LIST_EACH),
-     ("-", "NEG", "L", RVALS | IN_LAMBDA | LIST_EACH),
+     ("+", "POS", "L", None, RVALS | IN_LAMBDA | LIST_EACH),
+     ("-", "NEG", "L", None, RVALS | IN_LAMBDA | LIST_EACH),
      ],
     [2,
-     ("**", "POW", "R", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
-     ("RT", "ROOT", "R", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("**", "POW", "R", 1, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("RT", "ROOT", "R", 1, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [1,
-     ("RT", "SQRT", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("RT", "SQRT", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [2,
-     ("FB", "FROMBASE", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("FB", "FROMBASE", "L", 0, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [2,
-     ("@", "AT", "L", VALS | IN_LAMBDA),
-     ("@<", "LEFTOF", "L", VALS | IN_LAMBDA),
-     ("@>", "RIGHTOF", "L", VALS | IN_LAMBDA),
+     ("@", "AT", "L", None, VALS | IN_LAMBDA),
+     ("@<", "LEFTOF", "L", None, VALS | IN_LAMBDA),
+     ("@>", "RIGHTOF", "L", None, VALS | IN_LAMBDA),
      ],
     [1,
-     ("++", "INC", "L", VALS | IN_LAMBDA),
-     ("--", "DEC", "L", VALS | IN_LAMBDA),
-     ("#", "LEN", "L", RVALS | IN_LAMBDA),
-     ("A", "ASC", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
-     ("C", "CHR", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
-     ("AB", "ABS", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
-     ("SG", "SIGN", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
-     ("FB", "FROMBASE", "L", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("++", "INC", "L", None, VALS | IN_LAMBDA),
+     ("--", "DEC", "L", None, VALS | IN_LAMBDA),
+     ("#", "LEN", "L", None, RVALS | IN_LAMBDA),
+     ("A", "ASC", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("C", "CHR", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("AB", "ABS", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("SG", "SIGN", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("FB", "FROMBASE", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      # Unary mnemonic: FromBinary
      ],
     ]
@@ -253,22 +269,22 @@ operators = set()
 # Some convenience operators for parsing that don't have straightforward
 # equivalents in the syntax:
 highestPrecedence = len(precedenceTable)
-paren = Operator("PAREN", "PARENTHESIZE", 1, highestPrecedence, "L", VALS)
-enlist = Operator("LIST", "LIST", 1, highestPrecedence, "L", RVALS)
-block = Operator("BLOCK", "BLOCK", 1, highestPrecedence, "L")
-send = Operator("SEND", "SEND", 1, highestPrecedence, "L", VALS)
+paren = Operator("PAREN", "PARENTHESIZE", 1, highestPrecedence, "L", None, VALS)
+enlist = Operator("LIST", "LIST", 1, highestPrecedence, "L", None, RVALS)
+block = Operator("BLOCK", "BLOCK", 1, highestPrecedence, "L", None)
+send = Operator("SEND", "SEND", 1, highestPrecedence, "L", None, VALS)
 chain = None  # We define this "operator" later to make sure it gets the same
               # precedence as the comparison operators it comprises
 
 for precedence, (arity, *entries) in enumerate(precedenceTable):
     for entry in entries:
-        text, function = entry[:2]
-        if len(entry) > 2:
-            associativity = entry[2]
-        else:
-            associativity = "L"
+        text, function, associativity = entry[:3]
         if len(entry) > 3:
-            flags = entry[3]
+            default = entry[3]
+        else:
+            default = None
+        if len(entry) > 4:
+            flags = entry[4]
         else:
             flags = 0
         if arity > 2 and flags & (LIST_EACH | RANGE_EACH):
@@ -277,16 +293,28 @@ for precedence, (arity, *entries) in enumerate(precedenceTable):
             msg += "\nfor operators of arity greater than 2 (like %s)" % text
             print(msg)
             flags = flags & ~LIST_EACH & ~RANGE_EACH
+        if flags & IN_LAMBDA and not flags & (VALS | RVALS):
+            # TODO: proper implementation error message
+            msg = "IN_LAMBDA may not be set for operators that do not also"
+            msg += "\nset VALS or RVALS (%s)" % test
+            print(msg)
+            flags = flags & ~IN_LAMBDA
         op = Operator(text,
                       function,
                       arity,
                       precedence,
                       associativity,
+                      default,
                       flags)
         if associativity == "C" and not chain:
             # Define the CHAIN pseudo-operator, which allows parsing of
             # chained comparisons like 1<x<5
-            chain = Operator("CHAIN", "CHAIN", 2, precedence, "C", RVALS | IN_LAMBDA)
+            chain = Operator("CHAIN",
+                             "CHAIN",
+                             2,
+                             precedence,
+                             "C",
+                             None,
+                             RVALS | IN_LAMBDA)
         opsByArity[arity][text] = op
         operators.add(text)
-
