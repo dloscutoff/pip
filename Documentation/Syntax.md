@@ -33,7 +33,7 @@ There are 6 data types in Pip:
  - **Scalar** represents strings and numbers, similar to scalar variables in Perl. A string in numeric context is converted to a number by taking the leading run of digits, possibly with a minus sign or decimal point.
  - **List** is similar to lists in Python: dynamically resizeable, can hold items of any type including other lists, etc.
  - **Range** has a lower and upper bound, and usually represents all integers >= to the lower bound and < the upper bound. `5,10` is functionally equivalent to `[5 6 7 8 9]` in most contexts, but potentially more efficient since the numbers need not all be generated. Infinite ranges can be created by passing an upper bound of nil. Ranges are also used for string/array slicing, in which context negative indices may be used: `"Hello"@(1,-1)` == `"ell"`.
- - **Pattern** represents regular expressions and replacement patterns.
+ - **Pattern** represents regular expressions and replacement patterns. See [Regex operations](https://github.com/dloscutoff/pip/blob/master/Documentation/Regex%20operations.md).
  - **Block** represents a code block or function.
  - **Nil** is a singleton type, similar to `null` or `None` from other languages. Note that many situations that would cause a runtime error in other languages (such as dividing by zero) simply return nil in Pip (unless warnings are turned on using the -w or -d flags). Most operators, when given nil as an operand, return nil.
 

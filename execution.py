@@ -614,8 +614,8 @@ class ProgramState:
                 lhs = self.getRval(lhs)
         
         if type(rhs) is Pattern and type(lhs) is Scalar:
-            return List(Scalar(substr)
-                        for substr in rhs.getCompiled().findall(str(lhs)))
+            matchIter = rhs.asRegex().finditer(str(lhs))
+            return List(Scalar(match.group(0)) for match in matchIter)
         elif type(rhs) is Pattern and type(lhs) in (List, Range):
             return List(self.AT(sub, rhs) for sub in lhs)
         elif type(lhs) in (Scalar, List, Range):
@@ -796,7 +796,11 @@ class ProgramState:
 
     def FIND(self, iterable, item):
         if type(item) is Pattern and type(iterable) is Scalar:
-            return Scalar(item.getCompiled().search(str(iterable)).start())
+            firstMatch = item.asRegex().search(str(iterable))
+            if firstMatch:
+                return Scalar(firstMatch.start())
+            else:
+                return nil
         elif type(iterable) in (Scalar, List, Range):
             return iterable.index(item)
         else:
@@ -809,7 +813,7 @@ class ProgramState:
             return List(self.FINDALL(iterable, subitem) for subitem in item)
         elif type(item) is Pattern and type(iterable) is Scalar:
             # Return indices of all regex matches in Scalar
-            matches = item.getCompiled().finditer(str(iterable))
+            matches = item.asRegex().finditer(str(iterable))
             return List(Scalar(match.start()) for match in matches)
         elif (type(item) in (Scalar, Range)
               and type(iterable) in (Scalar, Range, List)
@@ -1392,14 +1396,14 @@ class ProgramState:
                 return result
             elif type(old) is Pattern:
                 if type(new) is Pattern:
-                    replacement = str(new)
-                elif type(new) is Scalar:
+                    replacement = new.asReplacement()
+                elif type(new) is (Scalar, List):
                     # If replacing with a literal string, escape all
                     # backslashes first
                     replacement = str(new).replace("\\", "\\\\")
                 elif new is nil:
                     replacement = ""
-                result = old.getCompiled().sub(replacement, str(lhs))
+                result = old.asRegex().sub(replacement, str(lhs))
                 return Scalar(result)
             else:
                 if new is nil:
@@ -1846,7 +1850,7 @@ class ProgramState:
 
 
 class Lval:
-    def __init__(self, base, sliceValue = None):
+    def __init__(self, base, sliceValue=None):
         if type(base) is Lval:
             self.name = base.name
             # Make sure to copy the slicelist so changes here don't modify the

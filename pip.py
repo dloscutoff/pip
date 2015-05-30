@@ -4,7 +4,8 @@
 #  Operators: Random Choice, Replace At, Map Star, PerMutations, ComBinations,
 #    TriM, StRip, Right Strip, Left Strip, PUsh, POp, Push to Back,
 #    DeQueue
-#  & in Pattern replacements substitutes whole string (with \& for literal &)
+#  Fix bug with special variables and @ (probably having getRval called
+#    twice); for testing purposes, try q@0 or "string"@<q
 #  \ map meta-operator
 #  Fold meta-operator respects the associativity of the operator (R or L)
 #  Make all meta-operators orthogonal, i.e. combinable
@@ -24,7 +25,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.05.26"
+VERSION = "0.15.05.29"
 
 def pip(interactive=True):
     if interactive:

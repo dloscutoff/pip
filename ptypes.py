@@ -131,10 +131,32 @@ class Pattern:
         self._raw = str(value)
         self._compiled = None
 
-    def getCompiled(self):
+    def asRegex(self):
         if not self._compiled:
-            self._compiled = re.compile(self._raw)
+            pyRegex = "(?P<all>%s)" % self._raw
+            pyRegex = re.sub(r"(?<!\\)((?:\\{2})*)\\([1-9]\d?)",
+                             lambda m: (m.group(1)
+                                        + "\\"
+                                        + str(int(m.group(2))+1)),
+                             pyRegex)
+            #!print(pyRegex)
+            self._compiled = re.compile(pyRegex)
         return self._compiled
+
+    def asReplacement(self):
+        # Increment all back-references:
+        pyReplace = re.sub(r"(?<!\\)((?:\\{2})*)\\([1-9]\d?)",
+                           lambda m: (m.group(1)
+                                      + "\\"
+                                      + str(int(m.group(2))+1)),
+                           self._raw)
+        # Turn unescaped ampersands into back-references to the whole match
+        pyReplace = re.sub(r"(?<!\\)((?:\\{2})*)&",
+                           lambda m: m.group(1) + r"\g<all>",
+                           pyReplace)
+        # Turn escaped ampersands into literal ampersands
+        pyReplace = re.sub(r"\\&", "&", pyReplace)
+        return pyReplace
 
     def copy(self):
         copy = Pattern(self._raw)
