@@ -130,6 +130,7 @@ class Pattern:
     def __init__(self, value=""):
         self._raw = str(value)
         self._compiled = None
+        self._separator = None
 
     def asRegex(self):
         if not self._compiled:
@@ -142,6 +143,11 @@ class Pattern:
             #!print(pyRegex)
             self._compiled = re.compile(pyRegex)
         return self._compiled
+
+    def asSeparator(self):
+        if not self._separator:
+            self._separator = re.compile(self._raw)
+        return self._separator
 
     def asReplacement(self):
         # Increment all back-references:

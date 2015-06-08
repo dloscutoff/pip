@@ -1,5 +1,5 @@
 
-import math, random, itertools
+import itertools, math, random, re
 import tokens
 import operators as ops
 from parsing import isExpr
@@ -37,6 +37,7 @@ class ProgramState:
             "t": Scalar("10"),
             "u": nil,
             "v": Scalar("-1"),
+            "w": Pattern("\\s+"),
             "x": Scalar(""),
             "y": Scalar(""),
             "z": Scalar(""),
@@ -219,22 +220,28 @@ class ProgramState:
             return self.vars
 
     def getRval(self, expr):
-        #!print("In getRval", repr(expr))
+        #!print("In getRval", expr)
         if type(expr) in (list, tokens.Name):
             expr = self.evaluate(expr)
         if type(expr) in (Scalar, Pattern, List, Range, Block, Nil):
             # Already an rval
-            result = expr
+            return expr
         elif type(expr) is ops.Operator:
             # This may happen if we're rval-ing everything in a chained
             # comparison expression
-            result = expr
+            return expr
         elif type(expr) is Lval:
             name = expr.name
             if name in self.specialVars:
-                # This is a special variable--execute its "get" method
-                if "get" in self.specialVars[name]:
-                    return self.specialVars[name]["get"]()
+                # This is a special variable
+                if expr.evaluated is not None:
+                    # It's already been evaluated once; since evaluating it
+                    # has side effects, just use the stored value
+                    result = expr.evaluated
+                elif "get" in self.specialVars[name]:
+                    # Execute the variable's get method, and store the result
+                    # in the Lval in case it gets evaluated again
+                    result = expr.evaluated = self.specialVars[name]["get"]()
                 else:
                     self.err.warn("Special var %s does not implement 'get'"
                                   % name)
@@ -246,30 +253,29 @@ class ProgramState:
                     result = self.varTable(name)[name]
                 except KeyError:
                     self.err.warn("Referencing uninitialized variable", name)
-                    result = nil
-                try:
-                    for index in expr.sliceList:
-                        if type(result) in (List, Scalar):
-                            result = result[index]
-                        else:
-                            self.err.warn("Cannot index into", type(result))
-                            return nil
-                except IndexError:
-                    self.err.warn("Invalid index into %r:" % result, index)
                     return nil
-                result = result.copy()
+            try:
+                for index in expr.sliceList:
+                    if type(result) in (List, Scalar):
+                        result = result[index]
+                    else:
+                        self.err.warn("Cannot index into", type(result))
+                        return nil
+            except IndexError:
+                self.err.warn("Invalid index into %r:" % result, index)
+                return nil
+            #!print("Return %r from getRval()" % result)
+            return result.copy()
         else:
             self.err.die("Implementation error: unexpected type",
                          type(expr), "in getRval()")
-        #!print(result)
-        return result
 
     def assign(self, lval, rval):
         """Sets the value of lval to rval."""
         #!print("In assign,", lval, rval)
         name = lval.name
         if name in self.specialVars:
-            # This is a special variable--execute its "get" method
+            # This is a special variable--execute its "set" method
             if lval.sliceList:
                 self.err.warn("Cannot assign to slice of special var", name)
                 return
@@ -675,7 +681,7 @@ class ProgramState:
             returnExpr = None
         return Block(statements, returnExpr)
     
-    def CARTESIANPRODUCT(self, list1, list2):
+    def CARTESIANPRODUCT(self, list1, list2=None):
         if list2 is None:
             if type(list1) in (Scalar, List, Range):
                 lists = list1
@@ -685,7 +691,9 @@ class ProgramState:
                 return nil
         else:
             lists = [list1, list2]
-        noniterables = [item for item in lists if type(item) in (Nil, Block)]
+        noniterables = [item for item in lists if type(item) in (Nil,
+                                                                 Block,
+                                                                 Pattern)]
         if noniterables:
             # There are some of the "lists" that are not iterable
             # TBD: maybe this can find a non-error meaning?
@@ -878,7 +886,7 @@ class ProgramState:
 
     def IN(self, lhs, rhs):
         if type(lhs) is Pattern and type(rhs) is Scalar:
-            matches = lhs.findall(str(rhs))
+            matches = lhs.asRegex().findall(str(rhs))
             return Scalar(len(matches))
         elif type(rhs) in (Scalar, List, Range):
             return Scalar(rhs.count(lhs))
@@ -972,6 +980,45 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for LOWERCASE:", type(rhs))
             return nil
 
+    def LSTRIP(self, string, extra=None):
+        if extra is nil:
+            return string
+        elif type(extra) is Scalar:
+            extra = str(extra)
+        elif type(extra) in (Pattern, List, Range) or extra is None:
+            pass
+        else:
+            self.err.warn("Unimplemented argtype for rhs of LSTRIP:",
+                          type(extra))
+            return nil
+            
+        if type(string) in (List, Range):
+            return List(self.LSTRIP(item, extra) for item in string)
+        elif type(string) is Scalar:
+            if type(extra) in (List, Range):
+                for item in extra:
+                    string = self.LSTRIP(string, item)
+                return string
+            elif type(extra) is str:
+                return Scalar(str(string).lstrip(extra))
+            elif type(extra) is Pattern:
+                # Python doesn't have a regex strip operation--we have to
+                # roll our own
+                patternStr = str(extra)
+                if patternStr == "":
+                    return string
+                string = str(string)
+                beginning = re.compile("^" + patternStr)
+                while beginning.search(string):
+                    string = beginning.sub("", string)
+                return Scalar(string)
+            elif extra is None:
+                return Scalar(str(string).lstrip())
+        else:
+            self.err.warn("Unimplemented argtype for lhs of LSTRIP:",
+                          type(string))
+            return nil
+
     def MAP(self, function, iterable):
         if type(function) is Block and type(iterable) in (Scalar, List, Range):
             result = (self.functionCall(function, [item])
@@ -1062,7 +1109,7 @@ class ProgramState:
 
     def NOTIN(self, lhs, rhs):
         if type(lhs) is Pattern and type(rhs) is Scalar:
-            matchExists = lhs.search(str(rhs))
+            matchExists = lhs.asRegex().search(str(rhs))
             return Scalar(not matchExists)
         else:
             return Scalar(lhs not in rhs)
@@ -1490,6 +1537,45 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
+    def RSTRIP(self, string, extra=None):
+        if extra is nil:
+            return string
+        elif type(extra) is Scalar:
+            extra = str(extra)
+        elif type(extra) in (Pattern, List, Range) or extra is None:
+            pass
+        else:
+            self.err.warn("Unimplemented argtype for rhs of RSTRIP:",
+                          type(extra))
+            return nil
+            
+        if type(string) in (List, Range):
+            return List(self.RSTRIP(item, extra) for item in string)
+        elif type(string) is Scalar:
+            if type(extra) in (List, Range):
+                for item in extra:
+                    string = self.RSTRIP(string, item)
+                return string
+            elif type(extra) is str:
+                return Scalar(str(string).rstrip(extra))
+            elif type(extra) is Pattern:
+                # Python doesn't have a regex strip operation--we have to
+                # roll our own
+                patternStr = str(extra)
+                if patternStr == "":
+                    return string
+                string = str(string)
+                end = re.compile(patternStr + "$")
+                while end.search(string):
+                    string = end.sub("", string)
+                return Scalar(string)
+            elif extra is None:
+                return Scalar(str(string).rstrip())
+        else:
+            self.err.warn("Unimplemented argtype for lhs of RSTRIP:",
+                          type(string))
+            return nil
+
     def SEND(self, head, *tail):
         # A send-expression's semantics depend on the type of the head:
         # - Block: function call
@@ -1549,13 +1635,21 @@ class ProgramState:
     def SPLIT(self, string, sep=None):
         if type(sep) is Scalar:
             sep = str(sep)
-        elif sep is not None:
-            # TODO: warning message
+        elif type(sep) is not Pattern and sep is not None:
             # Some other type, not a valid separator
+            self.err.warn("Unimplemented separator type for SPLIT:",
+                          type(sep))
             return nil
         if type(string) is Scalar:
             if sep is None or sep == "":
                 result = (Scalar(char) for char in str(string))
+            elif type(sep) is Pattern:
+                if str(sep) == "":
+                    result = (Scalar(char) for char in str(string))
+                else:
+                    sep = sep.asSeparator()
+                    result = (Scalar(substr)
+                              for substr in sep.split(str(string)))
             else:
                 result = (Scalar(substr) for substr in str(string).split(sep))
             return List(result)
@@ -1619,6 +1713,48 @@ class ProgramState:
         else:
             result = False
         return Scalar(result)
+
+    def STRIP(self, string, extra=None):
+        if extra is nil:
+            return string
+        elif type(extra) is Scalar:
+            extra = str(extra)
+        elif type(extra) in (Pattern, List, Range) or extra is None:
+            pass
+        else:
+            self.err.warn("Unimplemented argtype for rhs of STRIP:",
+                          type(extra))
+            return nil
+            
+        if type(string) in (List, Range):
+            return List(self.STRIP(item, extra) for item in string)
+        elif type(string) is Scalar:
+            if type(extra) in (List, Range):
+                for item in extra:
+                    string = self.STRIP(string, item)
+                return string
+            elif type(extra) is str:
+                return Scalar(str(string).strip(extra))
+            elif type(extra) is Pattern:
+                # Python doesn't have a regex strip operation--we have to
+                # roll our own
+                patternStr = str(extra)
+                if patternStr == "":
+                    return string
+                string = str(string)
+                beginning = re.compile("^" + patternStr)
+                while beginning.search(string):
+                    string = beginning.sub("", string)
+                end = re.compile(patternStr + "$")
+                while end.search(string):
+                    string = end.sub("", string)
+                return Scalar(string)
+            elif extra is None:
+                return Scalar(str(string).strip())
+        else:
+            self.err.warn("Unimplemented argtype for lhs of STRIP:",
+                          type(string))
+            return nil
 
     def STRGREATER(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
@@ -1858,15 +1994,22 @@ class Lval:
             self.sliceList = base.sliceList[:]
             if sliceValue is not None:
                 self.sliceList.append(sliceValue)
+            self.evaluated = base.evaluated
         else:
             self.name = str(base)
             self.sliceList = []
+            self.evaluated = None
 
     def __str__(self):
         slices = ",".join(map(str, self.sliceList))
         if slices:
             slices = "|" + slices
-        return "Lval({})".format(self.name + slices)
+        if self.evaluated is not None:
+            evaluated = "=" + str(self.evaluated)
+        else:
+            evaluated = ""
+        string = "Lval({})".format(self.name + evaluated + slices)
+        return string
 
     def __eq__(self, rhs):
         if type(rhs) is Lval:

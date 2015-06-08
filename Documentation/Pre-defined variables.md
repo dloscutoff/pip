@@ -26,6 +26,8 @@ For the most up-to-date catalogue, see list near the top of `execution.py`. The 
 
 `v` -1
 
+`w` Pattern matching 1 or more whitespace characters (i.e. `\s+`)
+
 `x` Empty string
 
 `y` Empty string (could change in future)

@@ -2,8 +2,9 @@
 ; GCD of two numbers:
 Wb%:aSaba
 
-; Quine--duplicate the string and replace each space with double quote followed by space:
-" X2RsC34.s" X2RsC34.s
+; Two quine strategies:
+" X2RsC34.s" X2RsC34.s   Duplicate the string and replace each space with double quote followed by space
+x:"x: xRsRPx"xRsRPx      Repr substitution, as in the standard Python quine
 
 ; First (a) Fibonacci numbers, starting w/ 1:
 La{Po+:xSox}

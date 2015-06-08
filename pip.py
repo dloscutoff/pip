@@ -2,10 +2,7 @@
 
 # Priorities TODO:
 #  Operators: Random Choice, Replace At, Map Star, PerMutations, ComBinations,
-#    TriM, StRip, Right Strip, Left Strip, PUsh, POp, Push to Back,
-#    DeQueue
-#  Fix bug with special variables and @ (probably having getRval called
-#    twice); for testing purposes, try q@0 or "string"@<q
+#    TriM, PUsh, POp, Push to Back, DeQueue
 #  \ map meta-operator
 #  Fold meta-operator respects the associativity of the operator (R or L)
 #  Make all meta-operators orthogonal, i.e. combinable

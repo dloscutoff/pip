@@ -56,6 +56,10 @@ U/B/T = Unary/Binary/Ternary
 
 <pre><> B</pre> Group iterable into sections of given length
 
+<pre><| B</pre> Strip from right
+
+<pre><| U</pre> Strip whitespace from right
+
 <pre>=  B</pre> Numeric equal
 
 <pre>== B</pre> Exactly equal
@@ -83,6 +87,14 @@ U/B/T = Unary/Binary/Ternary
 <pre>^@ B</pre> Split iterable at index or list of indices
 
 <pre>|  B</pre> Logical or (short-circuiting)
+
+<pre>|> B</pre> Strip from left
+
+<pre>|> U</pre> Strip whitespace from left
+
+<pre>|| B</pre> Strip
+
+<pre>|| U</pre> Strip whitespace
 
 ### Alphabetic operators
 
@@ -170,7 +182,7 @@ U/B/T = Unary/Binary/Ternary
 
 <pre>SN U</pre> Sort iterable using numeric comparison
 
-<pre>SN U</pre> Sort iterable using string comparison
+<pre>SS U</pre> Sort iterable using string comparison
 
 <pre>ST B</pre> Convert to string (for lists, the format of the result depends on command-line flags)
 
