@@ -266,7 +266,9 @@ class List:
     # n: Join on newline
     # p: Pretty-print: use the repr instead (useful for debugging)
     # s: Join on space
-    # l: Print as multiple lines, with each line joined on space
+    # l: Print as multiple lines, with each line joined on empty string
+    # P: Print as multiple lines, with each line repr'd
+    # S: Print as multiple lines, with each line joined on space
     outFormat = None
 
     def __init__(self, value=None):
@@ -300,13 +302,21 @@ class List:
             return " ".join(str(i) for i in self._value)
         elif self.outFormat == "l":
             # Each item in the list is a line, which in turn is joined on
+            # empty string
+            return "\n".join(i.joined("") if type(i) is List else str(i)
+                             for i in self._value)
+        elif self.outFormat == "P":
+            # Each item in the list is a line, which in turn is repr'd
+            return "\n".join(repr(i) for i in self._value)
+        elif self.outFormat == "S":
+            # Each item in the list is a line, which in turn is joined on
             # space
-            return "\n".join(i.joinOnSpace() if type(i) is List else str(i)
+            return "\n".join(i.joined(" ") if type(i) is List else str(i)
                              for i in self._value)
 
-    def joinOnSpace(self):
-        return " ".join(i.joinOnSpace() if type(i) is List else str(i)
-                        for i in self._value)
+    def joined(self, separator):
+        return separator.join(i.joined(separator) if type(i) is List else str(i)
+                              for i in self._value)
 
     def __repr__(self):
         return "[" + ";".join(repr(i) for i in self._value) + "]"

@@ -39,3 +39,9 @@ Usage: `xINs`
 Usage: `sRxp`
 
 Replace each match of Pattern `x` in Scalar `s` with replacement (Pattern or Scalar) `p`.
+
+### Split: ^
+
+Usage: `s^x`
+
+Split Scalar `s` on occurrences of Pattern `x`. If `x` contains matching groups, they are included in the resulting List.

@@ -22,7 +22,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.06.08"
+VERSION = "0.15.06.11"
 
 def pip(interactive=True):
     if interactive:
@@ -67,8 +67,8 @@ def pip(interactive=True):
                              action="store_true")
     listFormats.add_argument("-l",
                              "--lines",
-                             help="output list items space-concatenated on"
-                                  + " separate lines",
+                             help="output list items on separate lines, " +
+                                  "concatenated",
                              action="store_true")
     listFormats.add_argument("-n",
                              "--newline",
@@ -78,6 +78,11 @@ def pip(interactive=True):
                              "--repr",
                              help="print lists in repr form",
                              action="store_true")
+    listFormats.add_argument("-P",
+                             "--reprlines",
+                             help="output list items on separate lines, " +
+                                  "repr'd",
+                             action="store_true")
     argparser.add_argument("-r",
                            "--readlines",
                            help="read args from lines of stdin",
@@ -85,6 +90,11 @@ def pip(interactive=True):
     listFormats.add_argument("-s",
                              "--space",
                              help="concatenate lists on space",
+                             action="store_true")
+    listFormats.add_argument("-S",
+                             "--spacelines",
+                             help="output list items on separate lines, " +
+                                  "space-concatenated",
                              action="store_true")
     argparser.add_argument("-v",
                            "--verbose",
@@ -102,7 +112,9 @@ def pip(interactive=True):
     if options.debug:
         options.warnings = options.verbose = options.repr = True
     listFormat = ("p" if options.repr else
+                  "P" if options.reprlines else
                   "s" if options.space else
+                  "S" if options.spacelines else
                   "n" if options.newline else
                   "l" if options.lines else
                   None)

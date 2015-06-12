@@ -29,6 +29,7 @@ class ProgramState:
             "_": Block([], tokens.Name("a")),
             "h": Scalar("100"),
             "i": Scalar("0"),
+            "k": Scalar(", "),
             "l": List([]),
             "m": Scalar("1000"),
             "n": Scalar("\n"),
@@ -1007,11 +1008,13 @@ class ProgramState:
                 patternStr = str(extra)
                 if patternStr == "":
                     return string
-                string = str(string)
+                oldString = str(string)
                 beginning = re.compile("^" + patternStr)
-                while beginning.search(string):
-                    string = beginning.sub("", string)
-                return Scalar(string)
+                newString = beginning.sub("", oldString)
+                while oldString != newString:
+                    oldString = newString
+                    newString = beginning.sub("", oldString)
+                return Scalar(newString)
             elif extra is None:
                 return Scalar(str(string).lstrip())
         else:
@@ -1564,11 +1567,13 @@ class ProgramState:
                 patternStr = str(extra)
                 if patternStr == "":
                     return string
-                string = str(string)
+                oldString = str(string)
                 end = re.compile(patternStr + "$")
-                while end.search(string):
-                    string = end.sub("", string)
-                return Scalar(string)
+                newString = end.sub("", oldString)
+                while oldString != newString:
+                    oldString = newString
+                    newString = end.sub("", oldString)
+                return Scalar(newString)
             elif extra is None:
                 return Scalar(str(string).rstrip())
         else:
@@ -1714,48 +1719,6 @@ class ProgramState:
             result = False
         return Scalar(result)
 
-    def STRIP(self, string, extra=None):
-        if extra is nil:
-            return string
-        elif type(extra) is Scalar:
-            extra = str(extra)
-        elif type(extra) in (Pattern, List, Range) or extra is None:
-            pass
-        else:
-            self.err.warn("Unimplemented argtype for rhs of STRIP:",
-                          type(extra))
-            return nil
-            
-        if type(string) in (List, Range):
-            return List(self.STRIP(item, extra) for item in string)
-        elif type(string) is Scalar:
-            if type(extra) in (List, Range):
-                for item in extra:
-                    string = self.STRIP(string, item)
-                return string
-            elif type(extra) is str:
-                return Scalar(str(string).strip(extra))
-            elif type(extra) is Pattern:
-                # Python doesn't have a regex strip operation--we have to
-                # roll our own
-                patternStr = str(extra)
-                if patternStr == "":
-                    return string
-                string = str(string)
-                beginning = re.compile("^" + patternStr)
-                while beginning.search(string):
-                    string = beginning.sub("", string)
-                end = re.compile(patternStr + "$")
-                while end.search(string):
-                    string = end.sub("", string)
-                return Scalar(string)
-            elif extra is None:
-                return Scalar(str(string).strip())
-        else:
-            self.err.warn("Unimplemented argtype for lhs of STRIP:",
-                          type(string))
-            return nil
-
     def STRGREATER(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = str(lhs) > str(rhs)
@@ -1795,6 +1758,52 @@ class ProgramState:
         else:
             result = False
         return Scalar(result)
+
+    def STRIP(self, string, extra=None):
+        if extra is nil:
+            return string
+        elif type(extra) is Scalar:
+            extra = str(extra)
+        elif type(extra) in (Pattern, List, Range) or extra is None:
+            pass
+        else:
+            self.err.warn("Unimplemented argtype for rhs of STRIP:",
+                          type(extra))
+            return nil
+            
+        if type(string) in (List, Range):
+            return List(self.STRIP(item, extra) for item in string)
+        elif type(string) is Scalar:
+            if type(extra) in (List, Range):
+                for item in extra:
+                    string = self.STRIP(string, item)
+                return string
+            elif type(extra) is str:
+                return Scalar(str(string).strip(extra))
+            elif type(extra) is Pattern:
+                # Python doesn't have a regex strip operation--we have to
+                # roll our own
+                patternStr = str(extra)
+                if patternStr == "":
+                    return string
+                oldString = str(string)
+                beginning = re.compile("^" + patternStr)
+                newString = beginning.sub("", oldString)
+                while oldString != newString:
+                    oldString = newString
+                    newString = beginning.sub("", oldString)
+                end = re.compile(patternStr + "$")
+                newString = end.sub("", oldString)
+                while oldString != newString:
+                    oldString = newString
+                    newString = end.sub("", oldString)
+                return Scalar(newString)
+            elif extra is None:
+                return Scalar(str(string).strip())
+        else:
+            self.err.warn("Unimplemented argtype for lhs of STRIP:",
+                          type(string))
+            return nil
 
     def STRLESS(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
@@ -1904,8 +1913,36 @@ class ProgramState:
                 number //= base
             return Scalar(sign + result)
         else:
-            self.err.warn("Unimplemented argtype for TOBASE:",
-                          type(number))
+            self.err.warn("Unimplemented argtype for TOBASE:", type(number))
+            return nil
+
+    def TRIM(self, string, extra=None):
+        if type(string) is Range:
+            # Apply memberwise to elements of Range (a flag takes care of the
+            # List case
+            return List(self.TRIM(element, extra) for element in string)
+
+        if extra is None:
+            front = back = 1
+        elif type(extra) is Scalar:
+            front = back = int(extra)
+        elif type(extra) is Range:
+            front = extra.getLower() or 0
+            back = extra.getUpper() or 0
+        elif extra is nil:
+            return string
+        else:
+            self.err.warn("Unimplemented argtype for rhs of TRIM:",
+                          type(extra))
+            return nil
+
+        if type(string) is Scalar:
+            front = max(front, 0)
+            back = max(back, 0)
+            return Scalar(str(string)[front:-back])
+        else:
+            self.err.warn("Unimplemented argtype for lhs of TRIM:",
+                          type(string))
             return nil
 
     def UNIQUE(self, iterable):

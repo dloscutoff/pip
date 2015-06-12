@@ -12,13 +12,17 @@ When Pip is called without any of these flags, the default is stdin for interact
 
 ### List formatting
 
-`-p` When printing lists, Pretty-print them by executing RP on them first
+`-p` Pretty-print lists by executing RP on them first
 
-`-s` When printing lists, join them on Space first
+`-s` Join lists on space
 
-`-n` When printing lists, join them on Newline first
+`-n` Join lists on newline
 
-`-l` When printing lists, join each item (if a list) on space, then join the list on newline (i.e. print list as multiple Lines)
+`-l` Join each item on empty string, then join results on newline (i.e. print list as multiple lines)
+
+`-P` Execute RP on each item, then join results on newline
+
+`-S` Join each item on space, then join results on newline
 
 The default is to join lists on empty string, as in CJam.
 

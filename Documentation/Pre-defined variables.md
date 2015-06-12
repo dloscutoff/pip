@@ -6,6 +6,8 @@ For the most up-to-date catalogue, see list near the top of `execution.py`. The 
 
 `i` 0
 
+`k` `", "`
+
 `l` Empty list
 
 `m` 1000 (mnemonic: Roman numeral M)

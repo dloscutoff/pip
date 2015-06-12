@@ -190,6 +190,10 @@ U/B/T = Unary/Binary/Ternary
 
 <pre>TB U</pre> Convert decimal integer to binary
 
+<pre>TM B</pre> Trim string by given number of characters from front and end (takes Scalar for same amt on both sides or Range for different amts)
+
+<pre>TM U</pre> Trim first and last characters from string
+
 <pre>UC U</pre> Convert to UPPERCASE
 
 <pre>UQ U</pre> Keep only unique values from iterable
