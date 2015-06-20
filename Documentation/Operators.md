@@ -16,6 +16,12 @@ U/B/T = Unary/Binary/Ternary
 
 <pre>#  U</pre> Length
 
+<pre>#< B</pre> Length less than
+
+<pre>#= B</pre> Length equal
+
+<pre>#> B</pre> Length greater than
+
 <pre>%  B</pre> Modulo
 
 <pre>&  B</pre> Logical and (short-circuiting)
@@ -161,6 +167,8 @@ U/B/T = Unary/Binary/Ternary
 <pre>PE B</pre> List with prepended element
 
 <pre>R  T</pre> Replace each occurrence in string of substring with replacement
+
+<pre>RC U</pre> Random choice
 
 <pre>RL B</pre> Repeat list
 

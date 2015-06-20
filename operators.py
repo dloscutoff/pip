@@ -135,6 +135,9 @@ precedenceTable = [
      ("LE", "STRLESSEQ", "C", 1, RVALS),
      ("GE", "STRGREATEREQ", "C", 1, RVALS),
      ("NE", "STRNOTEQUAL", "C", 1, RVALS),
+     ("#=", "LENEQUAL", "C", 1, RVALS),
+     ("#<", "LENLESS", "C", 1, RVALS),
+     ("#>", "LENGREATER", "C", 1, RVALS),
      ],
      # Note: comparison operators CAN also be used in lambdas, due to the
      # CHAIN pseudo-operator having the IN_LAMBDA flag (see below).
@@ -149,6 +152,7 @@ precedenceTable = [
     [1,
      ("MX", "MAX", "L", None, RVALS | IN_LAMBDA),
      ("MN", "MIN", "L", None, RVALS | IN_LAMBDA),
+     ("RC", "RANDCHOICE", "L", None, RVALS | IN_LAMBDA),
      ("SN", "SORTNUM", "L", None, RVALS | IN_LAMBDA),
      ("SS", "SORTSTRING", "L", None, RVALS | IN_LAMBDA),
      ("UQ", "UNIQUE", "L", None, RVALS | IN_LAMBDA),

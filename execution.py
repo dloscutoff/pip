@@ -969,6 +969,36 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for LEN:", type(rhs))
             return nil
 
+    def LENEQUAL(self, lhs, rhs):
+        types = (Scalar, List, Range)
+        if type(lhs) in types and type(rhs) in types:
+            result = len(lhs) == len(rhs)
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtypes for LENEQUAL:",
+                          type(lhs), "and", type(rhs))
+            return nil
+
+    def LENGREATER(self, lhs, rhs):
+        types = (Scalar, List, Range)
+        if type(lhs) in types and type(rhs) in types:
+            result = len(lhs) > len(rhs)
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtypes for LENGREATER:",
+                          type(lhs), "and", type(rhs))
+            return nil
+
+    def LENLESS(self, lhs, rhs):
+        types = (Scalar, List, Range)
+        if type(lhs) in types and type(rhs) in types:
+            result = len(lhs) < len(rhs)
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtypes for LENLESS:",
+                          type(lhs), "and", type(rhs))
+            return nil
+
     def LIST(self, *items):
         return List(items)
 
@@ -1367,6 +1397,15 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtypes for PREPENDELEM:",
                           type(lhs), "and", type(rhs))
+            return nil
+
+    def RANDCHOICE(self, iterable):
+        if type(iterable) in (List, Range, Scalar):
+            index = random.randrange(len(iterable))
+            return iterable[index]
+        else:
+            self.err.warn("Unimplemented argtype for RANDCHOICE:",
+                          type(iterable))
             return nil
 
     def RANDRANGE(self, lhs, rhs):

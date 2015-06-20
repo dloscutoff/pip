@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Operators: Random Choice, Replace At, Map Star, PerMutations, ComBinations,
-#    TriM, PUsh, POp, Push to Back, DeQueue
+#  Operators: Replace At, Map Star, PerMutations, ComBinations, PUsh, POp,
+#    Push to Back, DeQueue
 #  \ map meta-operator
 #  Fold meta-operator respects the associativity of the operator (R or L)
 #  Make all meta-operators orthogonal, i.e. combinable
@@ -22,7 +22,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.06.11"
+VERSION = "0.15.06.19"
 
 def pip(interactive=True):
     if interactive:
