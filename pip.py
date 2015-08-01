@@ -1,12 +1,14 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Operators: Replace At, Map Star, PerMutations, ComBinations, PUsh, POp,
-#    Push to Back, DeQueue
+#  Bug: interactive fake cmdline args ignore empty strings like ""
+#  Operators: Replace At, Map Star, PerMutations, ComBinations, ENumerate
+#  Remove Q command (for Qx, use x:q instead) and use Q for string equality
 #  \ map meta-operator
 #  Fold meta-operator respects the associativity of the operator (R or L)
 #  Make all meta-operators orthogonal, i.e. combinable
 #  More regex operations and looping constructs
+#  Rework ugly hacks in definition of Range class
 #  Do loop
 #  Limited backslash-escapes in strings?
 #  Experiment with using decimal module for better-precision arithmetic
@@ -22,7 +24,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.06.19"
+VERSION = "0.15.08.01"
 
 def pip(interactive=True):
     if interactive:

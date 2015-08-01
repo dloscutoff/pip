@@ -166,7 +166,8 @@ class Pattern:
 
     def copy(self):
         copy = Pattern(self._raw)
-        copy._compiled = re.compile(copy._raw)
+        copy._compiled = self._compiled
+        copy._separator = self._separator
         return copy
 
     def __str__(self):
@@ -446,13 +447,14 @@ class Range:
                 and self._upper == rhs._upper)
 
     def __len__(self):
-        # TBD: what if one of them (or both) is None?
         lower = self._lower or 0
         if self._upper is not None:
             return max(0, self._upper - lower)
         else:
             # A Range with no upper bound has an infinite length
-            return nil
+            # Because of Python's requirements on len(), the only way to mark
+            # this condition is by raising an error:
+            raise ValueError("Cannot take len() of infinite range")
 
     def toNumber(self):
         # Returns a Python list containing Python ints, if possible

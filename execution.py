@@ -38,7 +38,7 @@ class ProgramState:
             "t": Scalar("10"),
             "u": nil,
             "v": Scalar("-1"),
-            "w": Pattern("\\s+"),
+            "w": Pattern(r"\s+"),
             "x": Scalar(""),
             "y": Scalar(""),
             "z": Scalar(""),
@@ -765,6 +765,43 @@ class ProgramState:
             self.err.warn("Decrementing non-lvalue", rhs)
             # The expression still evaluates to the value minus one, though
             return self.SUB(rhs, scalarOne)
+
+    def DEQUEUE(self, iterable):
+        iterVal = self.getRval(iterable)
+        if type(iterVal) is List:
+            if len(iterVal) > 0:
+                item = iterVal[-1]
+                iterVal = iterVal[:-1]
+            else:
+                self.err.warn("Dequeuing from empty list")
+                return nil
+        elif type(iterVal) is Range:
+            try:
+                if len(iterVal) > 0:
+                    iterVal = Range(iterVal.getLower(), iterVal.getUpper() - 1)
+                    item = Scalar(iterVal.getUpper())
+                else:
+                    self.err.warn("Dequeuing from empty range")
+                    return nil
+            except ValueError:
+                # Infinite range raises this when you try to take the len()
+                self.err.warn("Cannot dequeue from infinite range")
+                return nil
+        elif type(iterVal) is Scalar:
+            if len(iterVal) > 0:
+                item = iterVal[-1]
+                iterVal = iterVal[:-1]
+            else:
+                self.err.warn("Dequeuing from empty scalar")
+                return nil
+        else:
+            self.err.warn("Unimplemented argtype for DEQUEUE:", type(iterVal))
+            return nil
+        if type(iterable) is Lval:
+            self.assign(iterable, iterVal)
+        else:
+            self.err.warn("Dequeuing from non-lvalue", iterable)
+        return item
     
     def DIV(self, lhs, rhs):
         if type(lhs) is Scalar and type(rhs) is Scalar:
@@ -1356,6 +1393,43 @@ class ProgramState:
         # Result of wrapping a single expression in parentheses
         return expr
 
+    def POP(self, iterable):
+        iterVal = self.getRval(iterable)
+        if type(iterVal) is List:
+            if len(iterVal) > 0:
+                item = iterVal[0]
+                iterVal = iterVal[1:]
+            else:
+                self.err.warn("Popping from empty list")
+                return nil
+        elif type(iterVal) is Range:
+            lower = iterVal.getLower() or 0
+            try:
+                if len(iterVal) > 0:
+                    iterVal = Range(lower + 1, iterVal.getUpper())
+                else:
+                    self.err.warn("Popping from empty range")
+                    return nil
+            except ValueError:
+                # Infinite range raises this when you try to take the len()
+                iterVal = Range(lower + 1, nil)
+            item = Scalar(lower)
+        elif type(iterVal) is Scalar:
+            if len(iterVal) > 0:
+                item = iterVal[0]
+                iterVal = iterVal[1:]
+            else:
+                self.err.warn("Popping from empty scalar")
+                return nil
+        else:
+            self.err.warn("Unimplemented argtype for POP:", type(iterVal))
+            return nil
+        if type(iterable) is Lval:
+            self.assign(iterable, iterVal)
+        else:
+            self.err.warn("Popping from non-lvalue", iterable)
+        return item
+
     def POS(self, rhs):
         if type(rhs) is Scalar:
             result = rhs.toNumber()
@@ -1398,6 +1472,40 @@ class ProgramState:
             self.err.warn("Unimplemented argtypes for PREPENDELEM:",
                           type(lhs), "and", type(rhs))
             return nil
+
+    def PUSH(self, iterable, item):
+        # Push the rhs onto the front of lhs in place
+        item = self.getRval(item)
+        iterVal = self.getRval(iterable)
+        if type(iterVal) in (List, Range):
+            iterVal = self.PREPENDELEM(iterVal, item)
+        elif type(iterVal) in (Scalar, Pattern):
+            iterVal = self.CAT(Scalar(item), iterVal)
+        elif type(iterVal) is Nil:
+            iterVal = List([item])
+        if type(iterable) is Lval:
+            self.assign(iterable, iterVal)
+            return iterable
+        else:
+            self.err.warn("Pushing to non-lvalue", iterable)
+            return iterVal
+
+    def PUSHBACK(self, iterable, item):
+        # Push the rhs onto the back of lhs in place
+        item = self.getRval(item)
+        iterVal = self.getRval(iterable)
+        if type(iterVal) in (List, Range):
+            iterVal = self.APPENDELEM(iterVal, item)
+        elif type(iterVal) in (Scalar, Pattern):
+            iterVal = self.CAT(iterVal, Scalar(item))
+        elif type(iterVal) is Nil:
+            iterVal = List([item])
+        if type(iterable) is Lval:
+            self.assign(iterable, iterVal)
+            return iterable
+        else:
+            self.err.warn("Pushing to non-lvalue", iterable)
+            return iterVal
 
     def RANDCHOICE(self, iterable):
         if type(iterable) in (List, Range, Scalar):
@@ -2009,6 +2117,12 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtype for UPPERCASE:", type(rhs))
             return nil
+
+    def YANK(self, rhs):
+        # Assigns rhs to the y variable
+        lhs = Lval("y")
+        self.assign(lhs, rhs)
+        return lhs
 
     def ZEROGRID(self, rows, cols):
         if type(rows) is type(cols) is Scalar:

@@ -128,6 +128,8 @@ U/B/T = Unary/Binary/Ternary
 
 <pre>CP U</pre> Cartesian product of a list of iterables
 
+<pre>DQ U</pre> Dequeue item from back of iterable (modifying argument in-place)
+
 <pre>EQ B</pre> String equal
 
 <pre>FB B</pre> Convert number from given base to decimal integer
@@ -164,7 +166,13 @@ U/B/T = Unary/Binary/Ternary
 
 <pre>NI B</pre> Not in (returns truth value 0 or 1)
 
+<pre>PB B</pre> Push item to back of iterable (modifying argument in-place)
+
 <pre>PE B</pre> List with prepended element
+
+<pre>PO U</pre> Pop item from front of iterable (modifying argument in-place)
+
+<pre>PU B</pre> Push item to front of iterable (modifying argument in-place)
 
 <pre>R  T</pre> Replace each occurrence in string of substring with replacement
 
@@ -211,6 +219,8 @@ U/B/T = Unary/Binary/Ternary
 <pre>V  U</pre> Evaluate code block in current context, returning value of final expression or nil if there isn't one
 
 <pre>X  B</pre> Repeat string given number of times
+
+<pre>Y  U</pre> Yank value into the variable `y` (`Yx` is equivalent to `(y:x)`)
 
 <pre>Z  B</pre> Zip two lists together (clipping to the shorter length)
 

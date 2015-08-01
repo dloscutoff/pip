@@ -32,7 +32,7 @@ For the most up-to-date catalogue, see list near the top of `execution.py`. The 
 
 `x` Empty string
 
-`y` Empty string (could change in future)
+`y` Empty string (modified by `Y` operator)
 
 `z` Empty string (could change in future)
 
