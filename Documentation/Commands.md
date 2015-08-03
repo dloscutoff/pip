@@ -50,11 +50,7 @@ The format in which lists are printed depends on command-line flags; see that do
 
 ### Query statement
 
-`Qx`
-
-`x := readline()`
-
-Gets a line of input from stdin, and stores it (sans newline) into the specified variable.
+**No longer available.** Use `q` special variable instead.
 
 ### Swap statement
 

@@ -67,16 +67,16 @@ class Operator(tokens.Token):
         return cpy
 
 cmdTable = [
-    ("F", "FOR", ["NAME", "RVAL", "CODE"]),
-    ("I", "IF", ["RVAL", "CODE", "ELSE"]),
-    ("L", "LOOP", ["RVAL", "CODE"]),
-    ("O", "OUTPUT", ["RVAL"]),
-    ("P", "PRINT", ["RVAL"]),
-    ("Q", "QUERY", ["LVAL"]),
-    ("S", "SWAP", ["LVAL", "LVAL"]),
-    ("T", "TILL", ["RVAL", "CODE"]),
+    ("F", "FOR", ["NAME", "EXPR", "CODE"]),
+    ("I", "IF", ["EXPR", "CODE", "ELSE"]),
+    ("L", "LOOP", ["EXPR", "CODE"]),
+    ("O", "OUTPUT", ["EXPR"]),
+    ("P", "PRINT", ["EXPR"]),
+    #("Q", "QUERY", ["EXPR"]),
+    ("S", "SWAP", ["EXPR", "EXPR"]),
+    ("T", "TILL", ["EXPR", "CODE"]),
     ("U", "UNIFY", ["NAMES", "WITH"]),
-    ("W", "WHILE", ["RVAL", "CODE"]),
+    ("W", "WHILE", ["EXPR", "CODE"]),
     ]
 
 commands = {cmdSpecs[0]:Command(*cmdSpecs) for cmdSpecs in cmdTable}
@@ -134,7 +134,8 @@ precedenceTable = [
      ("!=", "NUMNOTEQUAL", "C", 1, RVALS),
      ("LT", "STRLESS", "C", 1, RVALS),
      ("GT", "STRGREATER", "C", 1, RVALS),
-     ("EQ", "STREQUAL", "C", 1, RVALS),
+     ("Q", "STREQUAL", "C", 1, RVALS),
+     ("EQ", "STREQUAL", "C", 1, RVALS),  # Synonym for backward compatibility
      ("LE", "STRLESSEQ", "C", 1, RVALS),
      ("GE", "STRGREATEREQ", "C", 1, RVALS),
      ("NE", "STRNOTEQUAL", "C", 1, RVALS),
@@ -145,7 +146,8 @@ precedenceTable = [
      # Note: comparison operators CAN also be used in lambdas, due to the
      # CHAIN pseudo-operator having the IN_LAMBDA flag (see below).
     [2,
-     ("IN", "IN", "L", None, RVALS | IN_LAMBDA),
+     ("N", "IN", "L", None, RVALS | IN_LAMBDA),
+     ("IN", "IN", "L", None, RVALS | IN_LAMBDA), # Synonym for backward compat
      ("NI", "NOTIN", "L", None, RVALS | IN_LAMBDA),
      ],
     [1,

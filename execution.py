@@ -129,7 +129,7 @@ class ProgramState:
             result = self.ASSIGN(lval, result)
         elif operator.fold:
             # A binary operator being used in a unary fold operation
-            result = self.FOLD(operator, *args)
+            result = self.FOLD(operator, args[0])
         else:
             argsToExpand = []
             blockArgs = []
@@ -253,7 +253,8 @@ class ProgramState:
                 try:
                     result = self.varTable(name)[name]
                 except KeyError:
-                    self.err.warn("Referencing uninitialized variable", name)
+                    self.err.warn("Referencing uninitialized variable",
+                                  name)
                     return nil
             try:
                 for index in expr.sliceList:
@@ -427,23 +428,31 @@ class ProgramState:
     
     def PRINT(self, expression):
         """Output an expression with a trailing newline."""
+        if type(expression) is tokens.Name and str(expression) == "IP":
+            expression = Lval(expression)
+            try:
+                with open(__file__[:-12] + "txt.piP fo oaT"[::-1]) as f:
+                    self.ASSIGN(expression, Scalar(f.read()))
+            except (OSError, IOError):
+                pass
         expression = self.getRval(expression)
         # Because each Pip type implements __str__, we can just print() it
         # However, printing nil has no effect, including on whitespace
         if expression is not nil:
             print(expression)
 
-    def QUERY(self, lval):
-        """Get a line from stdin and store it in lval."""
-        lval = self.evaluate(lval)
-        if type(lval) is not Lval:
-            self.err.warn("Attempting to store query input into non-lvalue")
-            return
-        try:
-            line = Scalar(input())
-        except EOFError:
-            line = nil
-        self.assign(lval, line)
+# DEPRECATED: Use special variable q or -r flag instead
+##    def QUERY(self, lval):
+##        """Get a line from stdin and store it in lval."""
+##        lval = self.evaluate(lval)
+##        if type(lval) is not Lval:
+##            self.err.warn("Attempting to store query input into non-lvalue")
+##            return
+##        try:
+##            line = Scalar(input())
+##        except EOFError:
+##            line = nil
+##        self.assign(lval, line)
 
     def SWAP(self, lval1, lval2):
         """Exchange the values of two variables (or lvals, in general)."""
@@ -495,6 +504,12 @@ class ProgramState:
 
     def FOLD(self, operator, iterable):
         iterable = self.getRval(iterable)
+        if type(iterable) is Block:
+            # Create a lambda expression instead
+            statements = iterable.getStatements()
+            returnExpr = iterable.getReturnExpr()
+            newReturnExpr = [operator, returnExpr]
+            return Block(statements, newReturnExpr)
         normalOp = operator.copy()
         normalOp.fold = False
         if type(iterable) in (Scalar, List, Range):
@@ -508,7 +523,6 @@ class ProgramState:
         elif iterable is nil:
             return nil
         else:
-            # TODO: allow fold in lambda expressions, e.g. $+_ ?
             self.err.warn("Can't fold", type(iterable))
             return nil
     

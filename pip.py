@@ -1,9 +1,7 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Bug: interactive fake cmdline args ignore empty strings like ""
 #  Operators: Replace At, Map Star, PerMutations, ComBinations, ENumerate
-#  Remove Q command (for Qx, use x:q instead) and use Q for string equality
 #  \ map meta-operator
 #  Fold meta-operator respects the associativity of the operator (R or L)
 #  Make all meta-operators orthogonal, i.e. combinable
@@ -24,7 +22,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.08.01"
+VERSION = "0.15.08.03"
 
 def pip(interactive=True):
     if interactive:
@@ -35,20 +33,25 @@ def pip(interactive=True):
         # Parse the fake command-line input, simplistically accepting single-
         # and double-quoted strings (with no escapes or shell expansion)
         quote = None
-        buffer = ""
+        buffer = None
         for char in args:
             if char in "'\"":
                 if quote is None:
+                    # Open quote
                     quote = char
+                    buffer = buffer or ""
                 elif quote == char:
+                    # Close quote
                     quote = None
                 else:
+                    # Already inside the other type of quote
                     buffer += char
             elif char == " " and quote is None:
-                if buffer != "":
+                if buffer is not None:
                     sys.argv.append(buffer)
-                buffer = ""
+                buffer = None
             else:
+                buffer = buffer or ""
                 buffer += char
     argparser = argparse.ArgumentParser()
     codeSources = argparser.add_mutually_exclusive_group()

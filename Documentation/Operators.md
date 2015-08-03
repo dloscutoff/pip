@@ -130,7 +130,7 @@ U/B/T = Unary/Binary/Ternary
 
 <pre>DQ U</pre> Dequeue item from back of iterable (modifying argument in-place)
 
-<pre>EQ B</pre> String equal
+<pre>EQ B</pre> Alias for binary Q, kept for backwards compatibility
 
 <pre>FB B</pre> Convert number from given base to decimal integer
 
@@ -142,7 +142,7 @@ U/B/T = Unary/Binary/Ternary
 
 <pre>GE B</pre> String greater than or equal
 
-<pre>IN B</pre> In (returns count of occurrences or 0 if none)
+<pre>IN B</pre> Alias for binary N, kept for backwards compatibility
 
 <pre>J  B</pre> Join iterable on separator
 
@@ -162,6 +162,8 @@ U/B/T = Unary/Binary/Ternary
 
 <pre>MX U</pre> Max of iterable using numeric comparison
 
+<pre>N  B</pre> In (returns count of occurrences or 0 if none)
+
 <pre>NE B</pre> String not equal
 
 <pre>NI B</pre> Not in (returns truth value 0 or 1)
@@ -173,6 +175,8 @@ U/B/T = Unary/Binary/Ternary
 <pre>PO U</pre> Pop item from front of iterable (modifying argument in-place)
 
 <pre>PU B</pre> Push item to front of iterable (modifying argument in-place)
+
+<pre>Q  B</pre> String equal
 
 <pre>R  T</pre> Replace each occurrence in string of substring with replacement
 
