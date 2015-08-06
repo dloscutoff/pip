@@ -259,10 +259,9 @@ def parseOperand(tokenList):
             tokenList.pop(0)
             op = op.copy()
             op.assign = True
-        # TODO: copy Token metadata over for error-reporting purposes
-        #op.line = token.line
-        #op.char = token.char
-        subOperand = parseExpr(tokenList, minPrecedence = op.precedence)
+            assignOp = operators.opsByArity[2][":"]
+            op.precedence = assignOp.precedence
+        subOperand = parseExpr(tokenList, minPrecedence=op.precedence)
         return [op, subOperand]
     elif tokenList[0] == "$":
         # The fold meta-operator is modifying a subsequent binary operator
@@ -272,7 +271,14 @@ def parseOperand(tokenList):
             op = operators.opsByArity[2][token]
             op = op.copy()
             op.fold = True
-            subOperand = parseExpr(tokenList, minPrecedence = op.precedence)
+            # Check whether the next token is the : meta-operator
+            if tokenList[0] == ":":
+                # If so, turn this into a compute-and-assign operation
+                tokenList.pop(0)
+                op.assign = True
+                assignOp = operators.opsByArity[2][":"]
+                op.precedence = assignOp.precedence
+            subOperand = parseExpr(tokenList, minPrecedence=op.precedence)
             return [op, subOperand]
         else:
             err.die("Missing operator for $ meta-operator? Got",

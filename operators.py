@@ -161,6 +161,7 @@ precedenceTable = [
      ("SN", "SORTNUM", "L", None, RVALS | IN_LAMBDA),
      ("SS", "SORTSTRING", "L", None, RVALS | IN_LAMBDA),
      ("UQ", "UNIQUE", "L", None, RVALS | IN_LAMBDA),
+     ("EN", "ENUMERATE", "L", None, RVALS | IN_LAMBDA),
      ],
     [2,
      ("AE", "APPENDELEM", "L", [], RVALS | IN_LAMBDA),

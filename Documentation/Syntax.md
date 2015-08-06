@@ -56,9 +56,11 @@ Expressions use infix operators; precedence/associativity may be coerced using p
 
 Lists are constructed via square braces: `[1 2 3]`. No separator is necessary, except in cases of ambiguity in scanning or parsing: `[-1 2 3]` works as expected, but `[1 -2 3]` is actually `[-1 3]` because the `-` is treated as a binary operator if possible. Here, the expression terminator `;` can be used to eliminate the ambiguity: `[1;-2 3]`. (`;` can also be useful with ternary operators: `a?1;-1`.)
 
-As in C, assignments are valid expressions that can be used anywhere an expression can be used: in a loop test, for example. Appending a colon to any operator turns it into a compound assignment operator: `x+:5` is equivalent to `x:x+5`; note that this also works with unary and ternary operators: `-:x` flips the sign of the variable.
+As in C, assignments are valid expressions that can be used anywhere an expression can be used: in a loop test, for example. Appending a colon to any operator turns it into a compound assignment operator: `x+:5` is equivalent to `x:x+5`. This also works with unary and ternary operators: `-:x` flips the sign of the variable.
 
-Another meta-operator is `$`, fold. Prepended to a binary operator, it turns it into a unary fold operation on that operator: e.g., `$+[1 2 3 4]` gives 10. **Note**: the precedence of the compound operator is the same as that of the original binary operator, so `$.[1 2]+3` is interpreted as `$.([1 2]+3)` == `$.[4 5]` == 45. 
+Another meta-operator is `$`, fold. Prepended to a binary operator, it turns it into a unary fold operation on that operator: e.g., `$+[1 2 3 4]` gives 10. **Note**: the precedence of the compound operator is the same as that of the original binary operator, so `$.[1 2]+3` is interpreted as `$.([1 2]+3)` == `$.[4 5]` == 45. Folding respects the associativity of the operator: `$**[2 3 4]` is `2**(3**4)`, not `(2**3)**4`. Furthermore, folding on a chaining comparison operator results in a chaining comparison: `$>[9 8 7]` is `9>8>7` (true), not `(9>8)>7` (equiv to `1>7`, false).
+
+Meta-operators can be combined: `$+:x` sums over `x` and assigns the result back to `x`.
 
 As in C, loops and if statements use curly braces to mark off their blocks, and the curly braces can be dropped if the block is a single statement.
 
@@ -68,4 +70,4 @@ Within a function, the arguments are available through the local variables `a-e`
 
 The main program is an implicitly declared anonymous function, which gets its arguments from the command-line args and prints its return value. Thus, a full factorial program can be written using recursion as `a?a*(fa-1)1`--identical to a factorial function, just without the curly braces.
 
-The `M` operator is used to map a function to each element of a list, range, or scalar: `_*_ M ,5` gives `[0 1 4 9 16]`. The result is always a list.
+The `M` operator is used to map a function to each element of a list, range, or scalar: `_*_ M ,5` gives `[0 1 4 9 16]`. The result is always a list, although there is also a `MJ` operator that joins the results into a string after mapping.

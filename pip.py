@@ -1,11 +1,10 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Operators: Replace At, Map Star, PerMutations, ComBinations, ENumerate
+#  Operators: Replace At, Map Star, PerMutations, ComBinations
 #  \ map meta-operator
-#  Fold meta-operator respects the associativity of the operator (R or L)
-#  Make all meta-operators orthogonal, i.e. combinable
 #  More regex operations and looping constructs
+#  Special variables for regex capturing groups
 #  Rework ugly hacks in definition of Range class
 #  Do loop
 #  Limited backslash-escapes in strings?
@@ -22,7 +21,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.08.03"
+VERSION = "0.15.08.05"
 
 def pip(interactive=True):
     if interactive:

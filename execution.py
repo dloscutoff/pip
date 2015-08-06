@@ -516,9 +516,25 @@ class ProgramState:
             if len(iterable) == 0:
                 return operator.default
             else:
-                foldValue = iterable[0]
-                for val in iterable[1:]:
-                    foldValue = self.evaluate([normalOp, foldValue, val])
+                if operator.associativity == "L":
+                    # Left fold for left-associative operators
+                    foldValue = iterable[0]
+                    for val in iterable[1:]:
+                        foldValue = self.evaluate([normalOp, foldValue, val])
+                elif operator.associativity == "R":
+                    # Right fold for right-associative operators
+                    foldValue = iterable[-1]
+                    for val in iterable[-2::-1]:
+                        foldValue = self.evaluate([normalOp, val, foldValue])
+                elif operator.associativity == "C":
+                    # Chaining fold for chaining operators
+                    chainExpr = [ops.chain, iterable[0]]
+                    for val in iterable[1:]:
+                        chainExpr.extend((normalOp, val))
+                    foldValue = self.evaluate(chainExpr)
+                else:
+                    self.err.die("Implementation error: unknown associativity",
+                                 operator.associativity, "in FOLD")
                 return foldValue
         elif iterable is nil:
             return nil
@@ -828,6 +844,19 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtypes for DIV:",
                           type(lhs), "and", type(rhs))
+            return nil
+
+    def ENUMERATE(self, iterable):
+        if type(iterable) in (List, Range, Scalar):
+            if type(iterable) is Range and iterable.getUpper() is None:
+                self.err.warn("Cannot enumerate infinite range")
+                return nil
+            else:
+                return List(List((Scalar(index), item))
+                            for index, item in enumerate(iterable))
+        else:
+            self.err.warn("Unimplemented argtype for ENUMERATE:",
+                          type(iterable))
             return nil
 
     def EVAL(self, function, argList=None):
@@ -1212,10 +1241,17 @@ class ProgramState:
     def NUMEQUAL(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() == rhs.toNumber()
-        elif type(lhs) is type(rhs) is List:
-            result = (len(lhs) == len(rhs)
-                      and all(self.NUMEQUAL(i, j)
-                              for i, j in zip(lhs, rhs)))
+        elif (type(lhs) is type(rhs) is List
+              or type(lhs) is List and type(rhs) is Range
+              or type(lhs) is Range and type(rhs) is List):
+            try:
+                result = (len(lhs) == len(rhs)
+                          and all(self.NUMEQUAL(i, j)
+                                  for i, j in zip(lhs, rhs)))
+            except ValueError:
+                # Raised by taking len of infinite Range, which cannot be
+                # equal to any list
+                result = False
         elif type(lhs) is type(rhs) is Range:
             result = lhs == rhs
         else:
@@ -1225,7 +1261,9 @@ class ProgramState:
     def NUMGREATER(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() > rhs.toNumber()
-        elif type(lhs) is type(rhs) is List:
+        elif (type(lhs) is type(rhs) is List
+              or type(lhs) is List and type(rhs) is Range
+              or type(lhs) is Range and type(rhs) is List):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMGREATER(i, j):
@@ -1237,7 +1275,17 @@ class ProgramState:
             if result is None:
                 # The two lists were equal as far as they went... but are they
                 # the same length?
-                result = len(lhs) > len(rhs)
+                try:
+                    leftLen = len(lhs)
+                except ValueError:
+                    # Lhs is infinite Range
+                    return True
+                try:
+                    rightLen = len(rhs)
+                except ValueError:
+                    # Rhs is infinite Range
+                    return False
+                result = leftLen > rightLen
         elif type(lhs) is type(rhs) is Range:
             leftLower = lhs.getLower() or 0
             rightLower = rhs.getLower() or 0
@@ -1265,7 +1313,9 @@ class ProgramState:
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() >= rhs.toNumber()
             return Scalar(result)
-        elif type(lhs) is type(rhs) is List:
+        elif (type(lhs) is type(rhs) is List
+              or type(lhs) is List and type(rhs) is Range
+              or type(lhs) is Range and type(rhs) is List):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMGREATER(i, j):
@@ -1277,7 +1327,17 @@ class ProgramState:
             if result is None:
                 # The two lists were equal as far as they went... but are they
                 # the same length?
-                result = len(lhs) >= len(rhs)
+                try:
+                    leftLen = len(lhs)
+                except ValueError:
+                    # Lhs is infinite Range
+                    return True
+                try:
+                    rightLen = len(rhs)
+                except ValueError:
+                    # Rhs is infinite Range
+                    return False
+                result = leftLen >= rightLen
             return Scalar(result)
         elif type(lhs) is type(rhs) is Range:
             leftLower = lhs.getLower() or 0
@@ -1304,7 +1364,9 @@ class ProgramState:
     def NUMLESS(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() < rhs.toNumber()
-        elif type(lhs) is type(rhs) is List:
+        elif (type(lhs) is type(rhs) is List
+              or type(lhs) is List and type(rhs) is Range
+              or type(lhs) is Range and type(rhs) is List):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMLESS(i, j):
@@ -1316,7 +1378,17 @@ class ProgramState:
             if result is None:
                 # The two lists were equal as far as they went... but are they
                 # the same length?
-                result = len(lhs) < len(rhs)
+                try:
+                    leftLen = len(lhs)
+                except ValueError:
+                    # Lhs is infinite Range
+                    return False
+                try:
+                    rightLen = len(rhs)
+                except ValueError:
+                    # Rhs is infinite Range
+                    return True
+                result = leftLen <= rightLen
         elif type(lhs) is type(rhs) is Range:
             leftLower = lhs.getLower() or 0
             rightLower = rhs.getLower() or 0
@@ -1343,7 +1415,9 @@ class ProgramState:
     def NUMLESSEQ(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() <= rhs.toNumber()
-        elif type(lhs) is type(rhs) is List:
+        elif (type(lhs) is type(rhs) is List
+              or type(lhs) is List and type(rhs) is Range
+              or type(lhs) is Range and type(rhs) is List):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMLESS(i, j):
@@ -1355,7 +1429,17 @@ class ProgramState:
             if result is None:
                 # The two lists were equal as far as they went... but are they
                 # the same length?
-                result = len(lhs) <= len(rhs)
+                try:
+                    leftLen = len(lhs)
+                except ValueError:
+                    # Lhs is infinite Range
+                    return False
+                try:
+                    rightLen = len(rhs)
+                except ValueError:
+                    # Rhs is infinite Range
+                    return True
+                result = leftLen <= rightLen
         elif type(lhs) is type(rhs) is Range:
             leftLower = lhs.getLower() or 0
             rightLower = rhs.getLower() or 0
@@ -1382,10 +1466,17 @@ class ProgramState:
     def NUMNOTEQUAL(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() != rhs.toNumber()
-        elif type(lhs) is type(rhs) is List:
-            result = (len(lhs) != len(rhs)
-                      or any(self.NUMNOTEQUAL(i, j)
-                              for i, j in zip(lhs, rhs)))
+        elif (type(lhs) is type(rhs) is List
+              or type(lhs) is List and type(rhs) is Range
+              or type(lhs) is Range and type(rhs) is List):
+            try:
+                result = (len(lhs) != len(rhs)
+                          or any(self.NUMNOTEQUAL(i, j)
+                                  for i, j in zip(lhs, rhs)))
+            except ValueError:
+                # Raised by taking len of infinite Range, which cannot be
+                # equal to any list
+                result = True
         elif type(lhs) is type(rhs) is Range:
             result = lhs != rhs
         else:

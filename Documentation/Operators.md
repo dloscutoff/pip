@@ -130,6 +130,8 @@ U/B/T = Unary/Binary/Ternary
 
 <pre>DQ U</pre> Dequeue item from back of iterable (modifying argument in-place)
 
+<pre>EN U</pre> Enumerate an iterable (gives list of `[index item]` lists)
+
 <pre>EQ B</pre> Alias for binary Q, kept for backwards compatibility
 
 <pre>FB B</pre> Convert number from given base to decimal integer
