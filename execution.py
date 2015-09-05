@@ -417,29 +417,6 @@ class ProgramState:
         for i in range(count):
             for statement in code:
                 self.executeStatement(statement)
-    
-    def OUTPUT(self, expression):
-        """Output an expression with NO trailing newline."""
-        expression = self.getRval(expression)
-        # Because each Pip type implements __str__, we can just print() it
-        # However, printing nil has no effect, including on whitespace
-        if expression is not nil:
-            print(expression, end="")
-    
-    def PRINT(self, expression):
-        """Output an expression with a trailing newline."""
-        if type(expression) is tokens.Name and str(expression) == "IP":
-            expression = Lval(expression)
-            try:
-                with open(__file__[:-12] + "txt.piP fo oaT"[::-1]) as f:
-                    self.ASSIGN(expression, Scalar(f.read()))
-            except (OSError, IOError):
-                pass
-        expression = self.getRval(expression)
-        # Because each Pip type implements __str__, we can just print() it
-        # However, printing nil has no effect, including on whitespace
-        if expression is not nil:
-            print(expression)
 
 # DEPRECATED: Use special variable q or -r flag instead
 ##    def QUERY(self, lval):
@@ -998,7 +975,7 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
     
-    def JOIN(self, iterable, sep = None):
+    def JOIN(self, iterable, sep=None):
         if sep is not None and type(sep) not in (Scalar, Pattern):
             # TBD: does a list as separator give a list of results?
             self.err.warn("Can't join on", type(sep))
@@ -1015,7 +992,10 @@ class ProgramState:
                     if sep is not None:
                         result = self.CAT(result, sep)
                     result = self.CAT(result, item)
-            return result
+            if result is None:
+                return Scalar("")
+            else:
+                return result
         else:
             if sep is None:
                 self.err.warn("Unimplemented argtype for JOIN:",
@@ -1094,9 +1074,7 @@ class ProgramState:
     def LSTRIP(self, string, extra=None):
         if extra is nil:
             return string
-        elif type(extra) is Scalar:
-            extra = str(extra)
-        elif type(extra) in (Pattern, List, Range) or extra is None:
+        elif type(extra) in (Scalar, Pattern, List, Range) or extra is None:
             pass
         else:
             self.err.warn("Unimplemented argtype for rhs of LSTRIP:",
@@ -1110,8 +1088,8 @@ class ProgramState:
                 for item in extra:
                     string = self.LSTRIP(string, item)
                 return string
-            elif type(extra) is str:
-                return Scalar(str(string).lstrip(extra))
+            elif type(extra) is Scalar:
+                return Scalar(str(string).lstrip(str(extra)))
             elif type(extra) is Pattern:
                 # Python doesn't have a regex strip operation--we have to
                 # roll our own
@@ -1494,6 +1472,15 @@ class ProgramState:
             result = self.getRval(rhs)
         return result
     
+    def OUTPUT(self, expression):
+        """Output an expression, NO trailing newline, and pass it through."""
+        expression = self.getRval(expression)
+        # Because each Pip type implements __str__, we can just print() it
+        # However, printing nil has no effect, including on whitespace
+        if expression is not nil:
+            print(expression, end="")
+        return expression
+    
     def PARENTHESIZE(self, expr):
         # Result of wrapping a single expression in parentheses
         return expr
@@ -1566,8 +1553,7 @@ class ProgramState:
             return nil
 
     def PREPENDELEM(self, lhs, rhs):
-        # Note that the order of operands has been changed: lhs is now the
-        # list, so that one could do lPE:x
+        # Note the order of operands: lhs is the list
         if type(lhs) is Scalar:
             lhs = List([lhs])
         if type(lhs) in (List, Range):
@@ -1577,9 +1563,25 @@ class ProgramState:
             self.err.warn("Unimplemented argtypes for PREPENDELEM:",
                           type(lhs), "and", type(rhs))
             return nil
+    
+    def PRINT(self, expression):
+        """Output an expression with trailing newline and pass it through."""
+        if type(expression) is tokens.Name and str(expression) == "IP":
+            expression = Lval(expression)
+            try:
+                with open(__file__[:-12] + "txt.piP fo oaT"[::-1]) as f:
+                    self.ASSIGN(expression, Scalar(f.read()))
+            except (OSError, IOError):
+                pass
+        expression = self.getRval(expression)
+        # Because each Pip type implements __str__, we can just print() it
+        # However, printing nil has no effect, including on whitespace
+        if expression is not nil:
+            print(expression)
+        return expression
 
     def PUSH(self, iterable, item):
-        # Push the rhs onto the front of lhs in place
+        """Push the rhs onto the front of lhs in place."""
         item = self.getRval(item)
         iterVal = self.getRval(iterable)
         if type(iterVal) in (List, Range):
@@ -1795,9 +1797,7 @@ class ProgramState:
     def RSTRIP(self, string, extra=None):
         if extra is nil:
             return string
-        elif type(extra) is Scalar:
-            extra = str(extra)
-        elif type(extra) in (Pattern, List, Range) or extra is None:
+        elif type(extra) in (Scalar, Pattern, List, Range) or extra is None:
             pass
         else:
             self.err.warn("Unimplemented argtype for rhs of RSTRIP:",
@@ -1811,8 +1811,8 @@ class ProgramState:
                 for item in extra:
                     string = self.RSTRIP(string, item)
                 return string
-            elif type(extra) is str:
-                return Scalar(str(string).rstrip(extra))
+            elif type(extra) is Scalar:
+                return Scalar(str(string).rstrip(str(extra)))
             elif type(extra) is Pattern:
                 # Python doesn't have a regex strip operation--we have to
                 # roll our own
@@ -2014,9 +2014,7 @@ class ProgramState:
     def STRIP(self, string, extra=None):
         if extra is nil:
             return string
-        elif type(extra) is Scalar:
-            extra = str(extra)
-        elif type(extra) in (Pattern, List, Range) or extra is None:
+        elif type(extra) in (Scalar, Pattern, List, Range) or extra is None:
             pass
         else:
             self.err.warn("Unimplemented argtype for rhs of STRIP:",
@@ -2030,8 +2028,8 @@ class ProgramState:
                 for item in extra:
                     string = self.STRIP(string, item)
                 return string
-            elif type(extra) is str:
-                return Scalar(str(string).strip(extra))
+            elif type(extra) is Scalar:
+                return Scalar(str(string).strip(str(extra)))
             elif type(extra) is Pattern:
                 # Python doesn't have a regex strip operation--we have to
                 # roll our own
@@ -2191,7 +2189,8 @@ class ProgramState:
         if type(string) is Scalar:
             front = max(front, 0)
             back = max(back, 0)
-            return Scalar(str(string)[front:-back])
+            string = str(string)
+            return Scalar(string[front:len(string)-back])
         else:
             self.err.warn("Unimplemented argtype for lhs of TRIM:",
                           type(string))

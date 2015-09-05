@@ -170,6 +170,10 @@ U/B/T = Unary/Binary/Ternary
 
 <pre>NI B</pre> Not in (returns truth value 0 or 1)
 
+<pre>O  U</pre> Output value and pass through unchanged (same as P but without trailing newline)
+
+<pre>P  U</pre> Print value with newline and pass through unchanged (output format for lists depends on command-line flags; nil gives no output, including trailing newline)
+
 <pre>PB B</pre> Push item to back of iterable (modifying argument in-place)
 
 <pre>PE B</pre> List with prepended element

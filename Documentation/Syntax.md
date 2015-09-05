@@ -45,7 +45,7 @@ Most operators can be used to construct lambda expressions from the identity fun
 
 ### Syntax
 
-Programs consist of a series of statements that are executed one by one. Bare expressions also count as statements. If the program ends with a bare expression, its value is automatically printed.
+Programs consist of a series of statements that are executed one by one. Bare expressions also count as statements. If the program ends with a bare expression, its value is automatically printed. To suppress printing, end the program with a statement or a nil expression. **Note**: as of version 0.15.09.04, `P` and `O` are operators, not statements, so code like `P"abcd"` at the end of the program will print twice. Use `"abcd"` instead.
 
 Expressions use infix operators; precedence/associativity may be coerced using parentheses. Basic operators are mostly chosen to coincide with familiar ones from C, Python, or Perl/PHP: `+-*/%!?` are as expected; comparison operators chain, as in Python; `.`, `X`, and string comparison operators are borrowed from Perl, `//` integer division and `**` exponentiation from Python. A few potential "gotchas":
 
@@ -54,7 +54,7 @@ Expressions use infix operators; precedence/associativity may be coerced using p
  - Ternary operators do not have a symbol between their second and third arguments: `a?"Yes""No"`
  - Increment `++` and decrement `--` are pre- only (i.e. you can do `++x` but not `x++`)
 
-Lists are constructed via square braces: `[1 2 3]`. No separator is necessary, except in cases of ambiguity in scanning or parsing: `[-1 2 3]` works as expected, but `[1 -2 3]` is actually `[-1 3]` because the `-` is treated as a binary operator if possible. Here, the expression terminator `;` can be used to eliminate the ambiguity: `[1;-2 3]`. (`;` can also be useful with ternary operators: `a?1;-1`.)
+Lists are constructed via square braces: `[1 2 3]`. No separator is necessary, except in cases of ambiguity in scanning or parsing: `[-1 2 3]` works as expected, but `[1 -2 3]` is actually `[-1 3]` because the `-` is treated as a binary operator if possible. Here, the expression terminator `;` can be used to eliminate the ambiguity: `[1;-2 3]`. (`;` can also be useful with ternary operators: `a?1;-1`.) The format in which lists are printed depends on command-line flags; see that documentation page for details.
 
 As in C, assignments are valid expressions that can be used anywhere an expression can be used: in a loop test, for example. Appending a colon to any operator turns it into a compound assignment operator: `x+:5` is equivalent to `x:x+5`. This also works with unary and ternary operators: `-:x` flips the sign of the variable.
 

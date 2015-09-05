@@ -30,23 +30,11 @@ Like a for loop, but takes a number rather than an iterable, and does not assign
 
 ### Output statement
 
-`O"Hello world"`
-
-`write("Hello world")`
-
-Same as `P`, but does not output a newline at the end.
+See the `O` operator.
 
 ### Print statement
 
-`P"Hello world"`
-
-`writeline("Hello world")`
-
-Converts value to a string using `ST` and outputs the result. Always has a trailing newline, unless the value is nil, in which case no output happens at all. **Note**: only takes a single expression! To print more than one value on the same line, use string concatenation or put them in a list.
-
-The last bare expression in a program is automatically printed. To suppress printing, end the program with statement or a nil expression.
-
-The format in which lists are printed depends on command-line flags; see that documentation page for details.
+See the `P` operator.
 
 ### Query statement
 

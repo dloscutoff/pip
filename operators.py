@@ -70,8 +70,8 @@ cmdTable = [
     ("F", "FOR", ["NAME", "EXPR", "CODE"]),
     ("I", "IF", ["EXPR", "CODE", "ELSE"]),
     ("L", "LOOP", ["EXPR", "CODE"]),
-    ("O", "OUTPUT", ["EXPR"]),
-    ("P", "PRINT", ["EXPR"]),
+    #("O", "OUTPUT", ["EXPR"]),
+    #("P", "PRINT", ["EXPR"]),
     #("Q", "QUERY", ["EXPR"]),
     ("S", "SWAP", ["EXPR", "EXPR"]),
     ("T", "TILL", ["EXPR", "CODE"]),
@@ -95,11 +95,13 @@ LIST_EACH = 0x08     # Perform operation item by item on Lists
 IN_LAMBDA = 0x10     # Can be used to build lambda expressions from _
 
 precedenceTable = [
+    [1,
+     ("O", "OUTPUT", "L", None, RVALS),
+     ("P", "PRINT", "L", None, RVALS),
+     ("Y", "YANK", "L", None, RVALS),
+     ],
     [2,
      (":", "ASSIGN", "R", None, VALS),
-     ],
-    [1,
-     ("Y", "YANK", "L", None, RVALS),
      ],
     [3,
      ("?", "IFTE", "R"),
