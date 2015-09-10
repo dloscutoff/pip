@@ -28,13 +28,13 @@ For the most up-to-date catalogue, see list near the top of `execution.py`. The 
 
 `v` -1
 
-`w` Pattern matching 1 or more whitespace characters (i.e. `\s+`)
+`w` Pattern matching 1 or more whitespace characters (<code>`\s+`</code>)
 
 `x` Empty string
 
 `y` Empty string (modified by `Y` operator)
 
-`z` Empty string (could change in future)
+`z` Lowercase alphabet
 
 `AZ` Uppercase alphabet
 

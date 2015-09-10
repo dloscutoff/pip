@@ -155,6 +155,7 @@ precedenceTable = [
     [1,
      ("RP", "REPR", "L", None, RVALS),
      ("ST", "STR", "L", None, RVALS),
+     ("X", "REGEX", "L", None, RVALS | IN_LAMBDA),
      ],
     [1,
      ("MX", "MAX", "L", None, RVALS | IN_LAMBDA),

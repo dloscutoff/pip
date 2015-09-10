@@ -10,234 +10,236 @@ U/B/T = Unary/Binary/Ternary
 
 ### Symbolic operators
 
-<pre>!  U</pre> Logical not
+<code>!  U</code> Logical not
 
-<pre>!= B</pre> Numeric not equal
+<code>!= B</code> Numeric not equal
 
-<pre>#  U</pre> Length
+<code>#  U</code> Length
 
-<pre>#< B</pre> Length less than
+<code>#< B</code> Length less than
 
-<pre>#= B</pre> Length equal
+<code>#= B</code> Length equal
 
-<pre>#> B</pre> Length greater than
+<code>#> B</code> Length greater than
 
-<pre>%  B</pre> Modulo
+<code>%  B</code> Modulo
 
-<pre>&  B</pre> Logical and (short-circuiting)
+<code>&  B</code> Logical and (short-circuiting)
 
-<pre>*  B</pre> Multiplication
+<code>*  B</code> Multiplication
 
-<pre>** B</pre> Exponentiation
+<code>** B</code> Exponentiation
 
-<pre>+  B</pre> Addition
+<code>+  B</code> Addition
 
-<pre>+  U</pre> Cast value as number
+<code>+  U</code> Cast value as number; set dotall flag on Pattern
 
-<pre>++ U</pre> Pre-increment (always comes before operand)
+<code>++ U</code> Pre-increment (always comes before operand)
 
-<pre>,  B</pre> Range
+<code>,  B</code> Range
 
-<pre>,  U</pre> Range from 0 up to
+<code>,  U</code> Range from 0 up to; set multiline flag on Pattern
 
-<pre>-  B</pre> Subtraction
+<code>-  B</code> Subtraction
 
-<pre>-  U</pre> Numeric negation
+<code>-  U</code> Numeric negation; set case-insensitive flag on Pattern
 
-<pre>-- U</pre> Pre-decrement (always comes before operand)
+<code>-- U</code> Pre-decrement (always comes before operand)
 
-<pre>.  B</pre> Concatenation
+<code>.  B</code> Concatenation
 
-<pre>/  B</pre> Division
+<code>/  B</code> Division
 
-<pre>// B</pre> Integer division
+<code>// B</code> Integer division
 
-<pre>:  B</pre> Assignment
+<code>:  B</code> Assignment
 
-<pre><  B</pre> Numeric less than
+<code><  B</code> Numeric less than
 
-<pre><= B</pre> Numeric less than or equal
+<code><= B</code> Numeric less than or equal
 
-<pre><=>B</pre> Numeric cmp (-1 if less, 0 if equal, 1 if greater)
+<code><=>B</code> Numeric cmp (-1 if less, 0 if equal, 1 if greater)
 
-<pre><> B</pre> Group iterable into sections of given length
+<code><> B</code> Group iterable into sections of given length
 
-<pre><| B</pre> Strip from right
+<code><| B</code> Strip from right
 
-<pre><| U</pre> Strip whitespace from right
+<code><| U</code> Strip whitespace from right
 
-<pre>=  B</pre> Numeric equal
+<code>=  B</code> Numeric equal
 
-<pre>== B</pre> Exactly equal
+<code>== B</code> Exactly equal
 
-<pre>>  B</pre> Numeric greater than
+<code>>  B</code> Numeric greater than
 
-<pre>>= B</pre> Numeric greater than or equal
+<code>>= B</code> Numeric greater than or equal
 
-<pre>?  T</pre> If-then-else operator (short-circuiting)
+<code>?  T</code> If-then-else operator (short-circuiting)
 
-<pre>@  B</pre> Get item/slice at index
+<code>@  B</code> Get item/slice at index
 
-<pre>@* B</pre> Find all
+<code>@* B</code> Find all
 
-<pre>@< B</pre> Slice of string left of index
+<code>@< B</code> Slice of iterable left of index
 
-<pre>@> B</pre> Slice of string right of index
+<code>@> B</code> Slice of iterable right of index
 
-<pre>@? B</pre> Find
+<code>@? B</code> Find
 
-<pre>^  B</pre> Split string on separator
+<code>^  B</code> Split Scalar on separator
 
-<pre>^  U</pre> Split string into list of characters
+<code>^  U</code> Split Scalar into List of characters
 
-<pre>^@ B</pre> Split iterable at index or list of indices
+<code>^@ B</code> Split iterable at index or List of indices
 
-<pre>|  B</pre> Logical or (short-circuiting)
+<code>|  B</code> Logical or (short-circuiting)
 
-<pre>|> B</pre> Strip from left
+<code>|> B</code> Strip from left
 
-<pre>|> U</pre> Strip whitespace from left
+<code>|> U</code> Strip whitespace from left
 
-<pre>|| B</pre> Strip
+<code>|| B</code> Strip
 
-<pre>|| U</pre> Strip whitespace
+<code>|| U</code> Strip whitespace
 
 ### Alphabetic operators
 
-<pre>A  U</pre> Convert (first) char to ASCII value (or Unicode point)
+<code>A  U</code> Convert (first) char to ASCII value (or Unicode point); set ASCII-only flag on Pattern
 
-<pre>AB U</pre> Absolute value of number
+<code>AB U</code> Absolute value of number
 
-<pre>AE B</pre> List with appended element
+<code>AE B</code> List with appended element
 
-<pre>AL B</pre> List with appended list
+<code>AL B</code> List with appended List
 
-<pre>BA B</pre> Bitwise and
+<code>BA B</code> Bitwise and
 
-<pre>BN U</pre> Bitwise not
+<code>BN U</code> Bitwise not
 
-<pre>BO B</pre> Bitwise or
+<code>BO B</code> Bitwise or
 
-<pre>BX B</pre> Bitwise xor
+<code>BX B</code> Bitwise xor
 
-<pre>C  U</pre> Convert ASCII value/Unicode point to character
+<code>C  U</code> Convert ASCII value/Unicode point to character
 
-<pre>CG B</pre> Coordinate grid of i rows by j columns
+<code>CG B</code> Coordinate grid of i rows by j columns
 
-<pre>CP B</pre> Cartesian product of two iterables
+<code>CP B</code> Cartesian product of two iterables
 
-<pre>CP U</pre> Cartesian product of a list of iterables
+<code>CP U</code> Cartesian product of a List of iterables
 
-<pre>DQ U</pre> Dequeue item from back of iterable (modifying argument in-place)
+<code>DQ U</code> Dequeue item from back of iterable (modifying argument in-place)
 
-<pre>EN U</pre> Enumerate an iterable (gives list of `[index item]` lists)
+<code>EN U</code> Enumerate an iterable (gives List of `[index item]` Lists)
 
-<pre>EQ B</pre> Alias for binary Q, kept for backwards compatibility
+<code>EQ B</code> Alias for binary Q, kept for backwards compatibility
 
-<pre>FB B</pre> Convert number from given base to decimal integer
+<code>FB B</code> Convert number from given base to decimal integer
 
-<pre>FB U</pre> Convert number from binary to decimal integer
+<code>FB U</code> Convert number from binary to decimal integer
 
-<pre>FI B</pre> Filter (1st arg is function, 2nd is list)
+<code>FI B</code> Filter (1st arg is Block, 2nd is List)
 
-<pre>GT B</pre> String greater than
+<code>GT B</code> String greater than
 
-<pre>GE B</pre> String greater than or equal
+<code>GE B</code> String greater than or equal
 
-<pre>IN B</pre> Alias for binary N, kept for backwards compatibility
+<code>IN B</code> Alias for binary N, kept for backwards compatibility
 
-<pre>J  B</pre> Join iterable on separator
+<code>J  B</code> Join iterable on separator
 
-<pre>J  U</pre> Join iterable on empty string
+<code>J  U</code> Join iterable on empty string
 
-<pre>LC U</pre> Convert to lowercase
+<code>LC U</code> Convert to lowercase
 
-<pre>LT B</pre> String less than
+<code>LT B</code> String less than
 
-<pre>LE B</pre> String less than or equal
+<code>LE B</code> String less than or equal
 
-<pre>M  B</pre> Map function to iterable, returning list
+<code>M  B</code> Map Block to iterable, returning List
 
-<pre>MJ B</pre> Map function to iterable and join results into string
+<code>MJ B</code> Map Block to iterable and join results into Scalar
 
-<pre>MN U</pre> Min of iterable using numeric comparison
+<code>MN U</code> Min of iterable using numeric comparison
 
-<pre>MX U</pre> Max of iterable using numeric comparison
+<code>MX U</code> Max of iterable using numeric comparison
 
-<pre>N  B</pre> In (returns count of occurrences or 0 if none)
+<code>N  B</code> In (returns count of occurrences or 0 if none)
 
-<pre>NE B</pre> String not equal
+<code>NE B</code> String not equal
 
-<pre>NI B</pre> Not in (returns truth value 0 or 1)
+<code>NI B</code> Not in (returns truth value 0 or 1)
 
-<pre>O  U</pre> Output value and pass through unchanged (same as P but without trailing newline)
+<code>O  U</code> Output value and pass through unchanged (same as P but without trailing newline)
 
-<pre>P  U</pre> Print value with newline and pass through unchanged (output format for lists depends on command-line flags; nil gives no output, including trailing newline)
+<code>P  U</code> Print value with newline and pass through unchanged (output format for Lists depends on command-line flags; Nil gives no output, including trailing newline)
 
-<pre>PB B</pre> Push item to back of iterable (modifying argument in-place)
+<code>PB B</code> Push item to back of iterable (modifying argument in-place)
 
-<pre>PE B</pre> List with prepended element
+<code>PE B</code> List with prepended element
 
-<pre>PO U</pre> Pop item from front of iterable (modifying argument in-place)
+<code>PO U</code> Pop item from front of iterable (modifying argument in-place)
 
-<pre>PU B</pre> Push item to front of iterable (modifying argument in-place)
+<code>PU B</code> Push item to front of iterable (modifying argument in-place)
 
-<pre>Q  B</pre> String equal
+<code>Q  B</code> String equal
 
-<pre>R  T</pre> Replace each occurrence in string of substring with replacement
+<code>R  T</code> Replace each occurrence in Scalar of substring or Pattern with replacement
 
-<pre>RC U</pre> Random choice
+<code>RC U</code> Random choice
 
-<pre>RL B</pre> Repeat list
+<code>RL B</code> Repeat List
 
-<pre>RM B</pre> From string remove characters; from list remove item
+<code>RM B</code> From Scalar remove characters; from List remove item
 
-<pre>RP B</pre> Convert to Pip representation
+<code>RP B</code> Convert to Pip representation
 
-<pre>RR B</pre> Randrange
+<code>RR B</code> Randrange
 
-<pre>RR U</pre> Randrange from 0
+<code>RR U</code> Randrange from 0
 
-<pre>RT B</pre> Nth root
+<code>RT B</code> Nth root
 
-<pre>RT U</pre> Square root
+<code>RT U</code> Square root
 
-<pre>RV B</pre> Reverse iterable
+<code>RV B</code> Reverse iterable
 
-<pre>SG U</pre> Sign of number (-1, 0, or 1)
+<code>SG U</code> Sign of number (-1, 0, or 1)
 
-<pre>SN U</pre> Sort iterable using numeric comparison
+<code>SN U</code> Sort iterable using numeric comparison
 
-<pre>SS U</pre> Sort iterable using string comparison
+<code>SS U</code> Sort iterable using string comparison
 
-<pre>ST B</pre> Convert to string (for lists, the format of the result depends on command-line flags)
+<code>ST B</code> Convert to string (for Lists, the format of the result depends on command-line flags)
 
-<pre>TB B</pre> Convert decimal integer to given base
+<code>TB B</code> Convert decimal integer to given base
 
-<pre>TB U</pre> Convert decimal integer to binary
+<code>TB U</code> Convert decimal integer to binary
 
-<pre>TM B</pre> Trim string by given number of characters from front and end (takes Scalar for same amt on both sides or Range for different amts)
+<code>TM B</code> Trim Scalar by given number of characters from front and end (Scalar rhs trims same amt on both sides; Range rhs trims different amts)
 
-<pre>TM U</pre> Trim first and last characters from string
+<code>TM U</code> Trim first and last characters from Scalar
 
-<pre>UC U</pre> Convert to UPPERCASE
+<code>UC U</code> Convert to UPPERCASE
 
-<pre>UQ U</pre> Keep only unique values from iterable
+<code>UQ U</code> Keep only unique values from iterable
 
-<pre>V  B</pre> Evaluate function with arglist (fVl is equivalent to f(*l) in Python)
+<code>V  B</code> Call Block as function with arglist (fVl is equivalent to f(*l) in Python)
 
-<pre>V  U</pre> Evaluate code block in current context, returning value of final expression or nil if there isn't one
+<code>V  U</code> Evaluate Block in current context, returning value of final expression or Nil if there isn't one
 
-<pre>X  B</pre> Repeat string given number of times
+<code>X  B</code> Repeat Scalar given number of times
 
-<pre>Y  U</pre> Yank value into the variable `y` (`Yx` is equivalent to `(y:x)`)
+<code>X  U</code> Covert Scalar or List/Range to equivalent regex Pattern (escaping special characters as necessary)
 
-<pre>Z  B</pre> Zip two lists together (clipping to the shorter length)
+<code>Y  U</code> Yank value into the variable `y` (`Yx` is equivalent to `(y:x)`)
 
-<pre>Z  U</pre> Zip a list of lists together (clipping to the shortest length)
+<code>Z  B</code> Zip two Lists together (clipping to the shorter length)
 
-<pre>ZD B</pre> Zip a list of lists together, filling missing values with given default
+<code>Z  U</code> Zip a List of Lists together (clipping to the shortest length)
 
-<pre>ZD U</pre> Zip a list of lists together, filling missing values with nil
+<code>ZD B</code> Zip a List of Lists together, filling missing values with given default
 
-<pre>ZG B</pre> Grid of zeros (i rows by j columns)
+<code>ZD U</code> Zip a List of Lists together, filling missing values with Nil
+
+<code>ZG B</code> Grid of zeros (i rows by j columns)

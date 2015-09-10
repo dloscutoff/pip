@@ -7,13 +7,10 @@
 #  Special variables for regex capturing groups
 #  Rework ugly hacks in definition of Range class
 #  Do loop
-#  Limited backslash-escapes in strings?
-#  Experiment with using decimal module for better-precision arithmetic
-#  Built-in functions that are implemented in Python code?
 #  Figure out how to get correct warning/error reporting in ptypes classes
-#  Reconstitute code from parse tree and print that for functions' str and
+#  Reconstitute code from parse tree and return that for functions' str and
 #    repr
-#  More operators! Esp. random, string, regex, and math operators needed
+#  More operators!
 
 from scanning import scan, addSpaces
 from parsing import parse
@@ -21,7 +18,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.09.04"
+VERSION = "0.15.09.09"
 
 def pip(interactive=True):
     if interactive:

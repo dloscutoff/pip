@@ -29,11 +29,15 @@ class ProgramState:
             "_": Block([], tokens.Name("a")),
             "h": Scalar("100"),
             "i": Scalar("0"),
+            #j
             "k": Scalar(", "),
             "l": List([]),
             "m": Scalar("1000"),
             "n": Scalar("\n"),
             "o": Scalar("1"),
+            #p
+            #q is a special variable
+            #r is a special variable
             "s": Scalar(" "),
             "t": Scalar("10"),
             "u": nil,
@@ -41,7 +45,7 @@ class ProgramState:
             "w": Pattern(r"\s+"),
             "x": Scalar(""),
             "y": Scalar(""),
-            "z": Scalar(""),
+            "z": Scalar("abcdefghijklmnopqrstuvwxyz"),
             "AZ": Scalar("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
             "PA": Scalar("".join(chr(i) for i in range(32, 127))),
             "PI": Scalar(math.pi),
@@ -590,6 +594,10 @@ class ProgramState:
         if type(rhs) is Scalar:
             result = ord(str(rhs)[0])
             return Scalar(result)
+        elif type(rhs) is Pattern:
+            # A operator on a Pattern makes it ASCII-only
+            result = "(?a)" + str(rhs)
+            return Pattern(result)
         else:
             self.err.warn("Unimplemented argtype for ASC:", type(rhs))
             return nil
@@ -1190,6 +1198,10 @@ class ProgramState:
         if type(rhs) is Scalar:
             result = -rhs.toNumber()
             return Scalar(result)
+        elif type(rhs) is Pattern:
+            # - operator on a Pattern makes it case-insensitive
+            result = "(?i)" + str(rhs)
+            return Pattern(result)
         else:
             self.err.warn("Unimplemented argtype for NEG:", type(rhs))
             return nil
@@ -1528,6 +1540,10 @@ class ProgramState:
             return Scalar(result)
         elif type(rhs) is Range:
             return rhs
+        elif type(rhs) is Pattern:
+            # + operator on Pattern makes . match newlines
+            result = "(?s)" + str(rhs)
+            return Pattern(result)
         else:
             self.err.warn("Unimplemented argtype for POS:", type(rhs))
             return nil
@@ -1637,7 +1653,7 @@ class ProgramState:
             return nil
         
     def RANDRANGETO(self, rhs):
-        # Unary version of RANDRANGE
+        """Unary version of RANDRANGE."""
         if type(rhs) is Scalar:
             return Scalar(random.randrange(rhs.toNumber()))
         else:
@@ -1653,11 +1669,34 @@ class ProgramState:
             return nil
 
     def RANGETO(self, rhs):
-        # Unary version of RANGE
+        """Unary version of RANGE."""
         if type(rhs) in (Scalar, Nil):
             return Range(nil, rhs)
+        elif type(rhs) is Pattern:
+            # , operator on a Pattern makes ^ and $ match fronts & ends of lines
+            result = "(?m)" + str(rhs)
+            return Pattern(result)
         else:
             self.err.warn("Unimplemented argtype for RANGETO:", type(rhs))
+            return nil
+
+    def REGEX(self, rhs):
+        """Converts a Scalar to a properly-escaped Pattern."""
+        if type(rhs) is Scalar:
+            regex = re.escape(str(rhs))
+            if len(rhs) > 1:
+                # Surround expression in a non-capturing group so repetition
+                # constructs will function as expected if appended
+                regex = "(?:" + regex + ")"
+            return Pattern(regex)
+        elif type(rhs) is Pattern:
+            return rhs
+        elif type(rhs) in (List, Range):
+            return Pattern("(?:"
+                           + "|".join(str(self.REGEX(item)) for item in rhs)
+                           + ")")
+        else:
+            self.err.warn("Unimplemented argtype for REGEX:", type(rhs))
             return nil
 
     def REPEATLIST(self, lhs, rhs):
@@ -1701,7 +1740,7 @@ class ProgramState:
             elif type(old) is Pattern:
                 if type(new) is Pattern:
                     replacement = new.asReplacement()
-                elif type(new) is (Scalar, List):
+                elif type(new) in (Scalar, List):
                     # If replacing with a literal string, escape all
                     # backslashes first
                     replacement = str(new).replace("\\", "\\\\")
