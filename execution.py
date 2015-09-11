@@ -854,8 +854,12 @@ class ProgramState:
                 self.executeStatement(statement)
             return self.evaluate(function.getReturnExpr())
         else:
-            self.err.warn("Unimplemented argtypes for EVAL:",
-                          type(function), "and", type(argList))
+            if argList is None:
+                self.err.warn("Unimplemented argtype for EVAL:",
+                              type(function))
+            else:
+                self.err.warn("Unimplemented argtypes for EVAL:",
+                              type(function), "and", type(argList))
             return nil
 
     def FILTER(self, function, iterable):
