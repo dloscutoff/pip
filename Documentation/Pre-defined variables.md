@@ -36,6 +36,8 @@ For the most up-to-date catalogue, see list near the top of `execution.py`. The 
 
 `z` Lowercase alphabet
 
+`B` Block that returns its second argument (`{b}`)
+
 `AZ` Uppercase alphabet
 
 `PA` All **P**rintable **A**SCII characters, 32 through 126

@@ -50,6 +50,8 @@ U/B/T = Unary/Binary/Ternary
 
 <code>/  B</code> Division
 
+<code>/  B</code> Inverse
+
 <code>// B</code> Integer division
 
 <code>:  B</code> Assignment
@@ -112,6 +114,10 @@ U/B/T = Unary/Binary/Ternary
 
 <code>AL B</code> List with appended List
 
+<code>AT B</code> Arctangent (operands are y and x)
+
+<code>AT U</code> Arctangent
+
 <code>BA B</code> Bitwise and
 
 <code>BN U</code> Bitwise not
@@ -124,9 +130,19 @@ U/B/T = Unary/Binary/Ternary
 
 <code>CG B</code> Coordinate grid of i rows by j columns
 
+<code>CG U</code> Coordinate grid of i rows by i columns
+
 <code>CP B</code> Cartesian product of two iterables
 
+<code>CO U</code> Cosine
+
 <code>CP U</code> Cartesian product of a List of iterables
+
+<code>CS U</code> Cosecant
+
+<code>CT U</code> Cotangent
+
+<code>DG U</code> Convert radians to degrees
 
 <code>DQ U</code> Dequeue item from back of iterable (modifying argument in-place)
 
@@ -160,6 +176,8 @@ U/B/T = Unary/Binary/Ternary
 
 <code>MJ B</code> Map Block to iterable and join results into Scalar
 
+<code>MM B</code> Map Block to each subitem of iterable, returning List of Lists
+
 <code>MN U</code> Min of iterable using numeric comparison
 
 <code>MX U</code> Max of iterable using numeric comparison
@@ -188,6 +206,8 @@ U/B/T = Unary/Binary/Ternary
 
 <code>RC U</code> Random choice
 
+<code>RD U</code> Convert degrees to radians
+
 <code>RL B</code> Repeat List
 
 <code>RM B</code> From Scalar remove characters; from List remove item
@@ -204,13 +224,19 @@ U/B/T = Unary/Binary/Ternary
 
 <code>RV B</code> Reverse iterable
 
+<code>SE U</code> Secant
+
 <code>SG U</code> Sign of number (-1, 0, or 1)
+
+<code>SI U</code> Sine
 
 <code>SN U</code> Sort iterable using numeric comparison
 
 <code>SS U</code> Sort iterable using string comparison
 
 <code>ST B</code> Convert to string (for Lists, the format of the result depends on command-line flags)
+
+<code>TA U</code> Tangent
 
 <code>TB B</code> Convert decimal integer to given base
 
@@ -243,3 +269,5 @@ U/B/T = Unary/Binary/Ternary
 <code>ZD U</code> Zip a List of Lists together, filling missing values with Nil
 
 <code>ZG B</code> Grid of zeros (i rows by j columns)
+
+<code>ZG U</code> Grid of zeros (i rows by i columns)

@@ -2,16 +2,17 @@
 import itertools, math, random, re
 import tokens
 import operators as ops
-from parsing import isExpr
+from scanning import scan
+from parsing import isExpr, parse
 from ptypes import Scalar, Pattern, List, Range, Block, Nil, nil
-from errors import ErrorReporter
+from errors import ErrorReporter, FatalError
 
 # Generate a Scalar constant 1 now to make (in|de)crements more efficient
 scalarOne = Scalar(1)
 
 
 class ProgramState:
-    """Represents the internal state of a program during execution."""
+    "Represents the internal state of a program during execution."
     
     def __init__(self, listFormat=None, showWarnings=False):
         # The listFormat parameter determines how lists are formatted when
@@ -46,6 +47,7 @@ class ProgramState:
             "x": Scalar(""),
             "y": Scalar(""),
             "z": Scalar("abcdefghijklmnopqrstuvwxyz"),
+            "B": Block([], tokens.Name("b")),
             "AZ": Scalar("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
             "PA": Scalar("".join(chr(i) for i in range(32, 127))),
             "PI": Scalar(math.pi),
@@ -216,7 +218,7 @@ class ProgramState:
         return result
 
     def varTable(self, varName):
-        """Returns which table (local or global) a variable resides in."""
+        "Returns which table (local or global) a variable resides in."
         if varName in "abcdefg":
             # Local variable
             return self.locals[self.callDepth]
@@ -277,7 +279,7 @@ class ProgramState:
                          type(expr), "in getRval()")
 
     def assign(self, lval, rval):
-        """Sets the value of lval to rval."""
+        "Sets the value of lval to rval."
         #!print("In assign,", lval, rval)
         name = lval.name
         if name in self.specialVars:
@@ -341,7 +343,7 @@ class ProgramState:
             return
 
     def functionCall(self, function, argList):
-        """Calls the given function in a new scope with the given arguments."""
+        "Calls the given function in a new scope with the given arguments."
         argList = [self.getRval(arg) if type(arg) is Lval else arg
                    for arg in argList]
         # Open a new scope for the function's local variables
@@ -387,7 +389,7 @@ class ProgramState:
     ################################
 
     def FOR(self, loopVar, iterable, code):
-        """Execute code for each item in iterable, assigned to loopVar."""
+        "Execute code for each item in iterable, assigned to loopVar."
         loopVar = Lval(loopVar)
         iterable = self.getRval(iterable)
         if type(iterable) in (List, Range, Scalar):
@@ -400,7 +402,7 @@ class ProgramState:
             pass
     
     def IF(self, cond, code, elseCode):
-        """Execute code if cond evaluates to true; otherwise, elseCode."""
+        "Execute code if cond evaluates to true; otherwise, elseCode."
         condVal = self.getRval(cond)
         if condVal:
             for statement in code:
@@ -410,7 +412,7 @@ class ProgramState:
                 self.executeStatement(statement)
 
     def LOOP(self, count, code):
-        """Execute code count times."""
+        "Execute code count times."
         count = self.getRval(count)
         if count is nil:
             return
@@ -436,7 +438,7 @@ class ProgramState:
 ##        self.assign(lval, line)
 
     def SWAP(self, lval1, lval2):
-        """Exchange the values of two variables (or lvals, in general)."""
+        "Exchange the values of two variables (or lvals, in general)."
         lval1 = self.evaluate(lval1)
         lval2 = self.evaluate(lval2)
         rval1 = self.getRval(lval1)
@@ -451,7 +453,7 @@ class ProgramState:
             self.err.warn("Attempting to swap non-lvalue", lval2)
 
     def TILL(self, cond, code):
-        """Loop, executing code, until cond evaluates to true."""
+        "Loop, executing code, until cond evaluates to true."
         condVal = self.getRval(cond)
         while not condVal:
             for statement in code:
@@ -459,7 +461,7 @@ class ProgramState:
             condVal = self.getRval(cond)
 
     def UNIFY(self, lvals, rval):
-        """Unify lvals with items of rval, like Python's tuple unpacking."""
+        "Unify lvals with items of rval, like Python's tuple unpacking."
         rval = self.getRval(rval)
         if type(rval) in (List, Scalar, Range):
             for i, lval in enumerate(lvals):
@@ -472,7 +474,7 @@ class ProgramState:
             # TBD: assign nil to all variables, or leave them unmodified?
 
     def WHILE(self, cond, code):
-        """Loop, executing code, while cond evaluates to true."""
+        "Loop, executing code, while cond evaluates to true."
         condVal = self.getRval(cond)
         while condVal:
             for statement in code:
@@ -589,6 +591,21 @@ class ProgramState:
             self.err.warn("Unimplemented argtypes for APPENDLIST:",
                           type(lhs), "and", type(rhs))
             return nil
+
+    def ARCTAN(self, lhs, rhs=None):
+        if rhs is None:
+            if type(lhs) is Scalar:
+                return Scalar(math.atan(lhs.toNumber()))
+            else:
+                self.err.warn("Unimplemented argtype for ASC:", type(rhs))
+                return nil
+        else:
+            if type(lhs) is type(rhs) is Scalar:
+                return Scalar(math.atan2(lhs.toNumber(), rhs.toNumber()))
+            else:
+                self.err.warn("Unimplemented argtypes for ARCTAN:",
+                              type(lhs), "and", type(rhs))
+                return nil
 
     def ASC(self, rhs):
         if type(rhs) is Scalar:
@@ -759,7 +776,9 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for CHR:", type(rhs))
             return nil
 
-    def COORDINATEGRID(self, rows, cols):
+    def COORDINATEGRID(self, rows, cols=None):
+        if cols is None:
+            cols = rows
         if type(rows) is type(cols) is Scalar:
             rows = range(int(rows))
             cols = range(int(cols))
@@ -769,6 +788,27 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtypes for COORDINATEGRID:",
                           type(rows), "and", type(cols))
+            return nil
+
+    def COSEC(self, rhs):
+        if type(rhs) is Scalar:
+            return Scalar(1/math.sin(rhs.toNumber()))
+        else:
+            self.err.warn("Unimplemented argtype for COSEC:", type(rhs))
+            return nil
+
+    def COSINE(self, rhs):
+        if type(rhs) is Scalar:
+            return Scalar(math.cos(rhs.toNumber()))
+        else:
+            self.err.warn("Unimplemented argtype for COSINE:", type(rhs))
+            return nil
+
+    def COTAN(self, rhs):
+        if type(rhs) is Scalar:
+            return Scalar(1/math.tan(rhs.toNumber()))
+        else:
+            self.err.warn("Unimplemented argtype for COTAN:", type(rhs))
             return nil
         
     def DEC(self, rhs):
@@ -780,6 +820,15 @@ class ProgramState:
             self.err.warn("Decrementing non-lvalue", rhs)
             # The expression still evaluates to the value minus one, though
             return self.SUB(rhs, scalarOne)
+
+    def DEGREES(self, rhs):
+        "Converts from radians to degrees."
+        if type(rhs) is Scalar:
+            result = rhs.toNumber() / math.pi * 180
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtype for DEGREES:", type(rhs))
+            return nil
 
     def DEQUEUE(self, iterable):
         iterVal = self.getRval(iterable)
@@ -844,15 +893,26 @@ class ProgramState:
                           type(iterable))
             return nil
 
-    def EVAL(self, function, argList=None):
+    def EVAL(self, code, argList=None):
         # TODO: Scalars evaluated as code
-        if type(function) is Block and argList is not None:
-            return self.functionCall(function, argList)
-        elif type(function) is Block and argList is None:
+        if type(code) is Scalar:
+            # Scan, parse, and convert to Block first
+            try:
+                tkns = scan(str(code) + "\n")
+            except FatalError:
+                self.err.die("Fatal scanning error while evaluating", code)
+            try:
+                tree = parse(tkns)
+            except FatalError:
+                self.err.die("Fatal parsing error while evaluating", code)
+            code = self.BLOCK(tree)
+        if type(code) is Block and argList is not None:
+            return self.functionCall(code, argList)
+        elif type(code) is Block and argList is None:
             # Not a function call--just run the block at current scope
-            for statement in function.getStatements():
+            for statement in code.getStatements():
                 self.executeStatement(statement)
-            return self.evaluate(function.getReturnExpr())
+            return self.evaluate(code.getReturnExpr())
         else:
             if argList is None:
                 self.err.warn("Unimplemented argtype for EVAL:",
@@ -913,8 +973,7 @@ class ProgramState:
         elif type(base) is Scalar:
             base = int(base)
         else:
-            self.err.warn("Unimplemented base type for FROMBASE:",
-                          type(base))
+            self.err.warn("Unimplemented base type for FROMBASE:", type(base))
             return nil
         if base < 2 or base > 36:
             self.err.warn("Invalid base for conversion:", base)
@@ -986,7 +1045,19 @@ class ProgramState:
             self.err.warn("Unimplemented argtypes for INTDIV:",
                           type(lhs), "and", type(rhs))
             return nil
-    
+
+    def INVERT(self, rhs):
+        if type(rhs) is Scalar:
+            try:
+                result = int(1 / rhs.toNumber())
+                return Scalar(result)
+            except ZeroDivisionError:
+                self.err.warn("Inverting zero")
+                return nil
+        else:
+            self.err.warn("Unimplemented argtype for INVERT:", type(rhs))
+            return nil
+
     def JOIN(self, iterable, sep=None):
         if sep is not None and type(sep) not in (Scalar, Pattern):
             # TBD: does a list as separator give a list of results?
@@ -1123,6 +1194,7 @@ class ProgramState:
             return nil
 
     def MAP(self, function, iterable):
+        "Maps function over the items of iterable."
         if type(function) is Block and type(iterable) in (Scalar, List, Range):
             result = (self.functionCall(function, [item])
                       for item in iterable)
@@ -1133,11 +1205,22 @@ class ProgramState:
             return nil
 
     def MAPJOIN(self, function, iterable):
-        # Same as MAP, but join the result into a string afterwards
+        "Same as MAP, but join the result into a string afterwards."
         # aMJb == J(aMb)
         return self.JOIN(self.MAP(function, iterable))
 
+    def MAPMAP(self, function, iterable):
+        "Maps function over the items of the items of iterable."
+        if type(function) is Block and type(iterable) in (Scalar, List, Range):
+            result = (self.MAP(function, item) for item in iterable)
+            return List(result)
+        else:
+            self.err.warn("Unimplemented argtypes for MAPMAP:",
+                          type(function), "and", type(iterable))
+            return nil
+
     def MAX(self, iterable):
+        "Numeric maximum of iterable."
         if type(iterable) in (Scalar, List, Range):
             try:
                 return max(iterable, key=lambda x:x.toNumber())
@@ -1157,6 +1240,7 @@ class ProgramState:
             return nil
 
     def MIN(self, iterable):
+        "Numeric minimum of iterable."
         if type(iterable) in (Scalar, List, Range):
             try:
                 return min(iterable, key=lambda x:x.toNumber())
@@ -1489,7 +1573,7 @@ class ProgramState:
         return result
     
     def OUTPUT(self, expression):
-        """Output an expression, NO trailing newline, and pass it through."""
+        "Output an expression, NO trailing newline, and pass it through."
         expression = self.getRval(expression)
         # Because each Pip type implements __str__, we can just print() it
         # However, printing nil has no effect, including on whitespace
@@ -1585,7 +1669,7 @@ class ProgramState:
             return nil
     
     def PRINT(self, expression):
-        """Output an expression with trailing newline and pass it through."""
+        "Output an expression with trailing newline and pass it through."
         if type(expression) is tokens.Name and str(expression) == "IP":
             expression = Lval(expression)
             try:
@@ -1601,7 +1685,7 @@ class ProgramState:
         return expression
 
     def PUSH(self, iterable, item):
-        """Push the rhs onto the front of lhs in place."""
+        "Push the rhs onto the front of lhs in place."
         item = self.getRval(item)
         iterVal = self.getRval(iterable)
         if type(iterVal) in (List, Range):
@@ -1634,6 +1718,15 @@ class ProgramState:
             self.err.warn("Pushing to non-lvalue", iterable)
             return iterVal
 
+    def RADIANS(self, rhs):
+        "Converts from degrees to radians."
+        if type(rhs) is Scalar:
+            result = rhs.toNumber() / 180 * math.pi
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtype for RADIANS:", type(rhs))
+            return nil
+
     def RANDCHOICE(self, iterable):
         if type(iterable) in (List, Range, Scalar):
             index = random.randrange(len(iterable))
@@ -1657,7 +1750,7 @@ class ProgramState:
             return nil
         
     def RANDRANGETO(self, rhs):
-        """Unary version of RANDRANGE."""
+        "Unary version of RANDRANGE."
         if type(rhs) is Scalar:
             return Scalar(random.randrange(rhs.toNumber()))
         else:
@@ -1673,7 +1766,7 @@ class ProgramState:
             return nil
 
     def RANGETO(self, rhs):
-        """Unary version of RANGE."""
+        "Unary version of RANGE."
         if type(rhs) in (Scalar, Nil):
             return Range(nil, rhs)
         elif type(rhs) is Pattern:
@@ -1685,7 +1778,7 @@ class ProgramState:
             return nil
 
     def REGEX(self, rhs):
-        """Converts a Scalar to a properly-escaped Pattern."""
+        "Converts a Scalar to a properly-escaped Pattern."
         if type(rhs) is Scalar:
             regex = re.escape(str(rhs))
             if len(rhs) > 1:
@@ -1718,10 +1811,10 @@ class ProgramState:
         args = (List(arg) if type(arg) is Range else arg for arg in args)
         lhs, old, new = args
         if type(old) is Scalar and type(new) is Pattern:
-            old = Pattern(old)
+            old = self.REGEX(old)
         if (type(lhs) in (List, Scalar)
             and type(old) in (List, Scalar, Pattern)
-            and type(new) in (List, Scalar, Pattern, Nil)):
+            and type(new) in (List, Scalar, Pattern, Block, Nil)):
             if type(lhs) is List:
                 # Return a List of results
                 return List(self.REPLACE(eachLhs, old, new) for eachLhs in lhs)
@@ -1748,6 +1841,19 @@ class ProgramState:
                     # If replacing with a literal string, escape all
                     # backslashes first
                     replacement = str(new).replace("\\", "\\\\")
+                elif type(new) is Block:
+                    # For each match of the pattern, call the function with
+                    # the match and groups as arguments and substitute the
+                    # result
+                    # First we need to define a Python function that we can
+                    # pass to re.sub()
+                    def replacement(matchObj):
+                        # Helper function to convert str to Scalar, None to nil
+                        convert = lambda pyObj:(nil if pyObj is None
+                                                else Scalar(pyObj))
+                        groups = matchObj.groups()
+                        retVal = self.functionCall(new, map(convert, groups))
+                        return str(retVal)
                 elif new is nil:
                     replacement = ""
                 result = old.asRegex().sub(replacement, str(lhs))
@@ -1876,6 +1982,13 @@ class ProgramState:
                           type(string))
             return nil
 
+    def SECANT(self, rhs):
+        if type(rhs) is Scalar:
+            return Scalar(1 / math.cos(rhs.toNumber()))
+        else:
+            self.err.warn("Unimplemented argtype for SECANT:", type(rhs))
+            return nil
+
     def SEND(self, head, *tail):
         # A send-expression's semantics depend on the type of the head:
         # - Block: function call
@@ -1909,6 +2022,13 @@ class ProgramState:
                 return Scalar(0)
         else:
             self.err.warn("Unimplemented argtype for SIGN:", type(rhs))
+            return nil
+
+    def SINE(self, rhs):
+        if type(rhs) is Scalar:
+            return Scalar(math.sin(rhs.toNumber()))
+        else:
+            self.err.warn("Unimplemented argtype for SINE:", type(rhs))
             return nil
 
     def SORTNUM(self, iterable):
@@ -2177,6 +2297,13 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
+    def TANGENT(self, rhs):
+        if type(rhs) is Scalar:
+            return Scalar(math.tan(rhs.toNumber()))
+        else:
+            self.err.warn("Unimplemented argtype for TANGENT:", type(rhs))
+            return nil
+
     def TOBASE(self, number, base=None):
         # Converts a decimal integer to a string in the specified base
         if base is None:
@@ -2271,7 +2398,9 @@ class ProgramState:
         self.assign(lhs, rhs)
         return lhs
 
-    def ZEROGRID(self, rows, cols):
+    def ZEROGRID(self, rows, cols=None):
+        if cols is None:
+            cols = rows
         if type(rows) is type(cols) is Scalar:
             rows = range(int(rows))
             cols = range(int(cols))
