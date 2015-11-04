@@ -776,6 +776,19 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for CHR:", type(rhs))
             return nil
 
+    def COMBINATIONS(self, iterable, num):
+        "Returns List of all ways to choose num items from iterable."
+        if type(iterable) in (List, Range, Scalar) and type(num) is Scalar:
+            result = itertools.combinations(iterable, int(num))
+            if type(iterable) is Scalar:
+                return List(self.JOIN(comb) for comb in result)
+            else:
+                return List(List(comb) for comb in result)
+        else:
+            self.err.warn("Unimplemented argtypes for COMBINATIONS:",
+                          type(iterable), "and", type(num))
+            return nil
+    
     def COORDINATEGRID(self, rows, cols=None):
         if cols is None:
             cols = rows
@@ -923,6 +936,10 @@ class ProgramState:
             return nil
 
     def FILTER(self, function, iterable):
+        "Filters iterable by truth value of function applied to each item."
+        if type(iterable) is Block and type(function) in (Scalar, List, Range):
+            # The arguments are reversible to enable things like lFI:f
+            function, iterable = iterable, function
         if type(function) is Block and type(iterable) in (Scalar, List, Range):
             result = (item for item in iterable
                       if self.functionCall(function, [item]))
@@ -1049,7 +1066,7 @@ class ProgramState:
     def INVERT(self, rhs):
         if type(rhs) is Scalar:
             try:
-                result = int(1 / rhs.toNumber())
+                result = 1 / rhs.toNumber()
                 return Scalar(result)
             except ZeroDivisionError:
                 self.err.warn("Inverting zero")
@@ -1064,7 +1081,7 @@ class ProgramState:
             self.err.warn("Can't join on", type(sep))
             return nil
 
-        if type(iterable) in (Scalar, List, Range):
+        if type(iterable) in (Scalar, List, Range, list, tuple):
             result = None
             for item in iterable:
                 if type(item) in (List, Range):
@@ -1087,7 +1104,7 @@ class ProgramState:
                 self.err.warn("Unimplemented argtypes for JOIN:",
                               type(iterable), "and", type(sep))
             return nil
-
+        
     def LEFTOF(self, lhs, rhs):
         # TBD: allow Range or List (of Scalars) as rhs? What would the
         # semantics be?
@@ -1193,15 +1210,23 @@ class ProgramState:
                           type(string))
             return nil
 
-    def MAP(self, function, iterable):
+    def MAP(self, lhs, iterable):
         "Maps function over the items of iterable."
-        if type(function) is Block and type(iterable) in (Scalar, List, Range):
-            result = (self.functionCall(function, [item])
-                      for item in iterable)
+        if type(iterable) is Block and type(lhs) in (Scalar, List, Range):
+            # The arguments are reversible to enable things like lM:f
+            lhs, iterable = iterable, lhs
+        if type(iterable) in (Scalar, List, Range):
+            if type(lhs) is Block:
+                result = (self.functionCall(lhs, [item]) for item in iterable)
+            else:
+                # If lhs isn't a function, just replace each item in iterable
+                # with it
+                # TBD: different behavior for Patterns?
+                result = (lhs for item in iterable)
             return List(result)
         else:
             self.err.warn("Unimplemented argtypes for MAP:",
-                          type(function), "and", type(iterable))
+                          type(lhs), "and", type(iterable))
             return nil
 
     def MAPJOIN(self, function, iterable):
@@ -1211,6 +1236,9 @@ class ProgramState:
 
     def MAPMAP(self, function, iterable):
         "Maps function over the items of the items of iterable."
+        if type(iterable) is Block and type(function) in (Scalar, List, Range):
+            # The arguments are reversible to enable things like lMM:f
+            function, iterable = iterable, function
         if type(function) is Block and type(iterable) in (Scalar, List, Range):
             result = (self.MAP(function, item) for item in iterable)
             return List(result)
@@ -1218,6 +1246,15 @@ class ProgramState:
             self.err.warn("Unimplemented argtypes for MAPMAP:",
                           type(function), "and", type(iterable))
             return nil
+
+    def MAPSUM(self, function, iterable):
+        "Same as MAP, but sum the result afterwards."
+        # aMSb == $+(aMb)
+        result = Scalar(0)
+        plus = ops.opsByArity[2]["+"]
+        for item in self.MAP(function, iterable):
+            result = self.evaluate([plus, result, item])
+        return result
 
     def MAX(self, iterable):
         "Numeric maximum of iterable."
@@ -1584,6 +1621,19 @@ class ProgramState:
     def PARENTHESIZE(self, expr):
         # Result of wrapping a single expression in parentheses
         return expr
+
+    def PERMUTATIONS(self, iterable):
+        "Returns List of all permutations of iterable."
+        if type(iterable) in (List, Range, Scalar):
+            result = itertools.permutations(iterable)
+            if type(iterable) is Scalar:
+                return List(self.JOIN(perm) for perm in result)
+            else:
+                return List(List(perm) for perm in result)
+        else:
+            self.err.warn("Unimplemented argtype for PERMUTATIONS:",
+                          type(iterable))
+            return nil
 
     def POP(self, iterable):
         iterVal = self.getRval(iterable)
@@ -2031,10 +2081,27 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for SINE:", type(rhs))
             return nil
 
+    def SORTKEYED(self, key, iterable):
+        "Sort by value of (numeric!) key function applied to each item."
+        if type(key) is not Block and type(iterable) is Block:
+            key, iterable = iterable, key
+        if type(key) is Block and type(iterable) in (List, Range, Scalar):
+            pyKey = lambda x: self.functionCall(key, [x]).toNumber()
+            try:
+                return List(sorted(iterable, key=pyKey))
+            except TypeError:
+                raise
+                self.err.warn("Sort key must always return a number")
+                return nil
+        else:
+            self.err.warn("Unimplemented argtypes for SORTKEYED:",
+                          type(key), "and", type(iterable))
+            return nil
+
     def SORTNUM(self, iterable):
         if type(iterable) in (Scalar, List, Range):
             try:
-                return List(sorted(iterable, key=lambda x:x.toNumber()))
+                return List(sorted(iterable, key=lambda x: x.toNumber()))
             except TypeError:
                 self.err.warn("Cannot sort mixed types in list")
                 return nil
@@ -2261,7 +2328,7 @@ class ProgramState:
     def STRMUL(self, lhs, rhs):
         if type(lhs) in (Scalar, Pattern) and type(rhs) is Scalar:
             string = str(lhs)
-            num = rhs.toNumber()
+            num = int(rhs)
             return type(lhs)(string*num)
         else:
             self.err.warn("Unimplemented argtypes for STRMUL:",
@@ -2292,6 +2359,13 @@ class ProgramState:
             if upper is not None:
                 upper -= int(rhs)
             return Range(lower, upper)
+        elif type(lhs) is Scalar and type(rhs) is Range:
+            return List(self.SUB(lhs, item) for item in rhs)
+        elif type(lhs) is type(rhs) is Range:
+            # TODO... this sort of situation might warrant some rethinking of
+            # the RANGE_EACH/LIST_EACH handling
+            self.err.warn("Can't subtract two Ranges yet")
+            return nil
         else:
             self.err.warn("Unimplemented argtypes for SUB:",
                           type(lhs), "and", type(rhs))

@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Operators: Replace At, Map Star, PerMutations, ComBinations
+#  Bug: Yt;-y*y parses as ((Yt)-y)*y instead of (Yt);(-(y*y))
+#  Operators: Replace At, Star Map, TRanslate
 #  \ map meta-operator
 #  More regex operations and looping constructs
 #  Special variables for regex capturing groups
@@ -18,7 +19,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.10.04"
+VERSION = "0.15.11.03"
 
 def pip(interactive=True):
     if interactive:

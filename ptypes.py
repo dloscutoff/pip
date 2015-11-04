@@ -186,6 +186,9 @@ class Pattern:
     def __len__(self):
         return len(self._raw)
 
+    def toNumber(self):
+        return 0
+    
     def __iter__(self):
         for char in self._raw:
             yield Scalar(char)
@@ -273,8 +276,7 @@ class List:
         return len(self._value)
 
     def toNumber(self):
-        # Returns a Python list containing Python number types, if possible
-        # Raises AttributeError if one of the items doesn't have toNumber()
+        # Returns a Python list containing Python number types
         return [item.toNumber() for item in self]
 
     def __contains__(self, item):
@@ -395,9 +397,9 @@ class Range:
             raise ValueError("Cannot take len() of infinite range")
 
     def toNumber(self):
-        # Returns a Python list containing Python ints, if possible
+        # Returns a Python list containing Python numbers (probably ints)
         if self._upper is not None:
-            return [int(item) for item in self]
+            return [item.toNumber() for item in self]
         else:
             # TBD: possibly return a generator instead? Check contexts where
             # this is used
@@ -542,7 +544,7 @@ class Block:
 
     def isExpr(self):
         return not self._statements
-
+    
     def __str__(self):
         return repr(self)
 
@@ -557,6 +559,9 @@ class Block:
         return (self._statements == rhs._statements
                 and self._returnExpr == rhs._returnExpr)
 
+    def toNumber(self):
+        return 0
+    
     def __hash__(self):
         return hash(self._statements + [self._returnExpr])
 
@@ -589,6 +594,9 @@ class Nil:
     def __eq__(self, rhs):
         return self is rhs
 
+    def toNumber(self):
+        return 0
+    
     def __getitem__(self, index):
         return self
 

@@ -128,13 +128,15 @@ U/B/T = Unary/Binary/Ternary
 
 <code>C  U</code> Convert ASCII value/Unicode point to character
 
+<code>CB B</code> List of all combinations from iterable of n elements
+
 <code>CG B</code> Coordinate grid of i rows by j columns
 
 <code>CG U</code> Coordinate grid of i rows by i columns
 
-<code>CP B</code> Cartesian product of two iterables
-
 <code>CO U</code> Cosine
+
+<code>CP B</code> Cartesian product of two iterables
 
 <code>CP U</code> Cartesian product of a List of iterables
 
@@ -180,6 +182,8 @@ U/B/T = Unary/Binary/Ternary
 
 <code>MN U</code> Min of iterable using numeric comparison
 
+<code>MS B</code> Map Block to iterable and sum results
+
 <code>MX U</code> Max of iterable using numeric comparison
 
 <code>N  B</code> In (returns count of occurrences or 0 if none)
@@ -195,6 +199,8 @@ U/B/T = Unary/Binary/Ternary
 <code>PB B</code> Push item to back of iterable (modifying argument in-place)
 
 <code>PE B</code> List with prepended element
+
+<code>PM U</code> List of all permutations of iterable
 
 <code>PO U</code> Pop item from front of iterable (modifying argument in-place)
 
@@ -229,6 +235,8 @@ U/B/T = Unary/Binary/Ternary
 <code>SG U</code> Sign of number (-1, 0, or 1)
 
 <code>SI U</code> Sine
+
+<code>SK B</code> Sort iterable using Block as key function
 
 <code>SN U</code> Sort iterable using numeric comparison
 
