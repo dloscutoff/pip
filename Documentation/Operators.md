@@ -84,7 +84,11 @@ U/B/T = Unary/Binary/Ternary
 
 <code>@< B</code> Slice of iterable left of index
 
+<code>@< U</code> Leftmost item of iterable
+
 <code>@> B</code> Slice of iterable right of index
+
+<code>@> B</code> Rightmost item of iterable
 
 <code>@? B</code> Find
 

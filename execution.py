@@ -118,12 +118,6 @@ class ProgramState:
         # If none of the above were true, then we're dealing with a parse tree
         # in the form of a list: [operator, arg1, arg2, ...]
         operator, *args = expression
-        fnName = operator.function
-        if fnName not in dir(self):
-            self.err.die("Implementation error, op function not found:",
-                         fnName)
-        #!print("evaluating", fnName)
-        opFunction = getattr(self, fnName)
         
         if operator.assign:
             # This is a compute-and-assign operator like +:
@@ -133,6 +127,12 @@ class ProgramState:
             normalOp.assign = False
             result = self.evaluate([normalOp] + args)
             result = self.ASSIGN(lval, result)
+        elif operator.map:
+            # This is a unary map-each operator like !*
+            normalOp = operator.copy()
+            normalOp.map = False
+            result = List(self.evaluate([normalOp, item])
+                          for item in self.getRval(args[0]))
         elif operator.fold:
             # A binary operator being used in a unary fold operation
             result = self.FOLD(operator, args[0])
@@ -174,17 +174,25 @@ class ProgramState:
                     newReturnExpr = [operator] + args
                     return Block(statements, newReturnExpr)
                 else:
-                    # More than one--they can't have any statements
-                    args = [arg.getReturnExpr() if type(arg) is Block else arg
-                            for arg in args]
-                    newReturnExpr = [operator] + args
-                    return Block([], newReturnExpr)
+                    # More than one
+                    # Any statements are included in the order of the operands
+                    #args = [arg.getReturnExpr() if type(arg) is Block else arg
+                    #        for arg in args]
+                    #newReturnExpr = [operator] + args
+                    newStatements = []
+                    newReturnExpr = [operator]
+                    for arg in args:
+                        if type(arg) is Block:
+                            newStatements.extend(arg.getStatements())
+                            newReturnExpr.append(arg.getReturnExpr())
+                        else:
+                            newReturnExpr.append(arg)
+                    return Block(newStatements, newReturnExpr)
             try:
                 if argsToExpand and len(args) == 1:
                     # Single argument to unary op needs expansion
                     result = List(self.evaluate([operator, item])
                                   for item in args[0])
-                    #result = List(opFunction(item) for item in args[0])
                 elif argsToExpand and len(args) == 2:
                     if len(argsToExpand) == 2:
                         # Both arguments to binary op need expansion
@@ -209,6 +217,11 @@ class ProgramState:
                                       for rhs in args[1])
                 else:
                     # No List or Range args need expansion--simple calculation
+                    fnName = operator.function
+                    if fnName not in dir(self):
+                        self.err.die("Implementation error, op function "
+                                     "not found:", fnName)
+                    opFunction = getattr(self, fnName)
                     result = opFunction(*args)
             except TypeError as e:
                 # Probably the wrong number of args
@@ -1105,14 +1118,19 @@ class ProgramState:
                               type(iterable), "and", type(sep))
             return nil
         
-    def LEFTOF(self, lhs, rhs):
-        # TBD: allow Range or List (of Scalars) as rhs? What would the
-        # semantics be?
+    def LEFTOF(self, lhs, rhs=None):
+        if rhs is None:
+            # The unary version gives the leftmost character
+            rhs = scalarOne
         if type(rhs) is Lval:
             rhs = self.getRval(rhs)
         if type(lhs) is Lval and type(rhs) is Scalar:
             index = slice(None, int(rhs))
             return Lval(lhs, index)
+        elif type(rhs) in (List, Range):
+            if type(lhs) is Lval:
+                lhs = self.getRval(lhs)
+            return List(self.LEFTOF(lhs, index) for index in rhs)
         elif type(lhs) in (Scalar, List, Range) and type(rhs) is Scalar:
             # Use the lhs's __getitem__ with a slice argument
             return lhs[:int(rhs)]
@@ -1954,14 +1972,19 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for REVERSE:", type(rhs))
             return nil
 
-    def RIGHTOF(self, lhs, rhs):
-        # TBD: allow Range or List (of Scalars) as rhs? What would the
-        # semantics be?
+    def RIGHTOF(self, lhs, rhs=None):
+        if rhs is None:
+            # The unary version gives the rightmost character
+            rhs = Scalar(-1)
         if type(rhs) is Lval:
             rhs = self.getRval(rhs)
         if type(lhs) is Lval and type(rhs) is Scalar:
             index = slice(int(rhs), None)
             return Lval(lhs, index)
+        elif type(rhs) in (List, Range):
+            if type(lhs) is Lval:
+                lhs = self.getRval(lhs)
+            return List(self.RIGHTOF(lhs, index) for index in rhs)
         elif type(lhs) in (Scalar, List, Range) and type(rhs) is Scalar:
             # Use the lhs's __getitem__ with a slice argument
             return lhs[int(rhs):]

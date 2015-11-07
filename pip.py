@@ -1,9 +1,7 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Bug: Yt;-y*y parses as ((Yt)-y)*y instead of (Yt);(-(y*y))
 #  Operators: Replace At, Star Map, TRanslate
-#  \ map meta-operator
 #  More regex operations and looping constructs
 #  Special variables for regex capturing groups
 #  Rework ugly hacks in definition of Range class
@@ -19,9 +17,11 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.15.11.03"
+VERSION = "0.15.11.06"
 
-def pip(interactive=True):
+def pip(code=None, interactive=True):
+    if code:
+        interactive = False
     if interactive:
         sys.argv = sys.argv[:1]
         print("=== Welcome to Pip, version {} ===".format(VERSION))
@@ -120,7 +120,7 @@ def pip(interactive=True):
                   "n" if options.newline else
                   "l" if options.lines else
                   None)
-    if not (options.execute or options.file or options.stdin):
+    if not (code or options.execute or options.file or options.stdin):
         if interactive:
             options.stdin = True
             print("Enter your program, terminated by Ctrl-D or Ctrl-Z:")
@@ -130,7 +130,10 @@ def pip(interactive=True):
         else:
             print("Type {} -h for usage information.".format(sys.argv[0]))
             return
-    if options.execute:
+    if code:
+        # Code is passed into function
+        program = code + "\n"
+    elif options.execute:
         # Code is given as command-line argument
         program = options.execute + "\n"
     elif options.file:

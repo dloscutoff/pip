@@ -108,7 +108,7 @@ def isExpr(tree):
     else:
         return False
     
-def parseExpr(tokenList, minPrecedence = 0):
+def parseExpr(tokenList, minPrecedence=-1):
     """Parse an expression from the beginning of the token list."""
     expression = parseOperand(tokenList)
     while type(tokenList[0]) is tokens.Operator:
@@ -156,7 +156,7 @@ def parseExpr(tokenList, minPrecedence = 0):
         activeTree.append(parseOperand(tokenList))
 
     # ; is an optional statement terminator
-    if minPrecedence == 0 and tokenList[0] == ";":
+    if minPrecedence == -1 and tokenList[0] == ";":
         tokenList.pop(0)
     return expression
 
@@ -249,13 +249,30 @@ def parseOperand(tokenList):
         # Parse a code block
         statements = parseBlock(tokenList)
         return [operators.block, statements]
-    elif tokenList[0] in operators.opsByArity[1]:
+    elif (tokenList[0] in operators.opsByArity[1]
+          or tokenList[0] == "$"):
         # Parse a unary operator followed by its operand
         token = tokenList.pop(0)
-        op = operators.opsByArity[1][token]
-        # Check whether the next token is the : meta-operator
+        if token == "$":
+            # The fold meta-operator is modifying a subsequent binary operator
+            if tokenList[0] in operators.opsByArity[2]:
+                token = tokenList.pop(0)
+                op = operators.opsByArity[2][token]
+                op = op.copy()
+                op.fold = True
+            else:
+                err.die("Missing/wrong operator for $ meta-operator: got",
+                        tokenList[0], "instead")
+        else:
+            op = operators.opsByArity[1][token]
+        # Check for the * and : meta-operators
+        if tokenList[0] == "*":
+            # Turn this into a map-each operation
+            tokenList.pop(0)
+            op = op.copy()
+            op.map = True
         if tokenList[0] == ":":
-            # If so, turn this into a compute-and-assign operation
+            # Turn this into a compute-and-assign operation
             tokenList.pop(0)
             op = op.copy()
             op.assign = True
@@ -263,29 +280,7 @@ def parseOperand(tokenList):
             op.precedence = assignOp.precedence
         subOperand = parseExpr(tokenList, minPrecedence=op.precedence)
         return [op, subOperand]
-    elif tokenList[0] == "$":
-        # The fold meta-operator is modifying a subsequent binary operator
-        tokenList.pop(0)
-        if tokenList[0] in operators.opsByArity[2]:
-            token = tokenList.pop(0)
-            op = operators.opsByArity[2][token]
-            op = op.copy()
-            op.fold = True
-            # Check whether the next token is the : meta-operator
-            if tokenList[0] == ":":
-                # If so, turn this into a compute-and-assign operation
-                tokenList.pop(0)
-                op.assign = True
-                assignOp = operators.opsByArity[2][":"]
-                op.precedence = assignOp.precedence
-            subOperand = parseExpr(tokenList, minPrecedence=op.precedence)
-            return [op, subOperand]
-        else:
-            err.die("Missing operator for $ meta-operator? Got",
-                    tokenList[0], "instead")
             
-    # TODO: meta-operator \ is also unary
-    
     # If control reaches here, we've got a problem
     if tokenList[0] is None:
         err.die("Hit end of tokens while parsing expression")

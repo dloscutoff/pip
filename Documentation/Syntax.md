@@ -37,11 +37,11 @@ There are 6 data types in Pip:
  - **Block** represents a code block or function.
  - **Nil** is a singleton type, similar to `null` or `None` from other languages. Note that many situations that would cause a runtime error in other languages (such as dividing by zero) simply return nil in Pip (unless warnings are turned on using the -w or -d flags). Most operators, when given nil as an operand, return nil.
 
-Boolean expressions return `0` and `1`. The values `0` (and variants like `0.0`), `""`, `[]`, and nil are falsy; all others are truthy.
+Boolean expressions return `0` and `1`. The values `0` (and variants like `0.0`), `""`, <code>``</code>, `[]`, and nil are falsy; all others are truthy.
 
 Many operators, including arithmetic and most string operators, function memberwise on ranges and lists, similar to array-programming languages like APL. For example, `[1 2 3]+[6 5 4]` is `[7 7 7]`, and `"Hello".1,3` is `["Hello1" "Hello2"]`.
 
-Most operators can be used to construct lambda expressions from the identity function `_`. For instance, `3*_+1` is a function equivalent to `{3*a+1}`. This does not work with logic operators or operators that otherwise take functions as operands (such as `M`).
+Most operators can be used to construct lambda expressions from the identity function `_`. For instance, `3*_+1` is a function equivalent to `{3*a+1}`. This does not work with certain operators, particularly logic operators and operators that otherwise take functions as operands (such as `M` or `R`).
 
 ### Syntax
 
@@ -60,7 +60,9 @@ As in C, assignments are valid expressions that can be used anywhere an expressi
 
 Another meta-operator is `$`, fold. Prepended to a binary operator, it turns it into a unary fold operation on that operator: e.g., `$+[1 2 3 4]` gives 10. **Note**: the precedence of the compound operator is the same as that of the original binary operator, so `$.[1 2]+3` is interpreted as `$.([1 2]+3)` == `$.[4 5]` == 45. Folding respects the associativity of the operator: `$**[2 3 4]` is `2**(3**4)`, not `(2**3)**4`. Furthermore, folding on a chaining comparison operator results in a chaining comparison: `$>[9 8 7]` is `9>8>7` (true), not `(9>8)>7` (equiv to `1>7`, false).
 
-Meta-operators can be combined: `$+:x` sums over `x` and assigns the result back to `x`.
+When `*` is appended to a unary operator, it becomes a map meta-operator: `#[123 4567]` gives the length of the list, `2`, but `#*[123 4567]` gives `[3 4]`, the length of each item in the list.
+
+The `$` and `*` meta-operators leave the precedence of the operator unchanged, but `:` changes the precedence to the precedence of the assignment operator. Meta-operators can be combined: `$+*:x` sums over each item in `x` and assigns the resulting list back to `x`. If `*` and `:` are both present, `*` must come first.
 
 As in C, loops and if statements use curly braces to mark off their blocks, and the curly braces can be dropped if the block is a single statement.
 

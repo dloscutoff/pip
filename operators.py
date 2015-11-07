@@ -25,6 +25,7 @@ class Operator(tokens.Token):
         self.associativity = associativity
         self.flags = flags
         self.assign = False  # Turns + into +: for instance
+        self.map = False  # Turns ! into !* for instance
         self.fold = False  # Turns + into $+ for instance
 
         # The default argument represents the value when folding an empty list
@@ -45,6 +46,7 @@ class Operator(tokens.Token):
     def __str__(self):
         return (("$" if self.fold else "")
                 + self._text
+                + ("*" if self.map else "")
                 + (":" if self.assign else ""))
 
     def __repr__(self):
@@ -55,7 +57,7 @@ class Operator(tokens.Token):
                                                  self.associativity)
 
     def copy(self):
-        cpy = Operator(self,
+        cpy = Operator(self._text,
                        self.function,
                        self.arity,
                        self.precedence,
@@ -64,15 +66,13 @@ class Operator(tokens.Token):
                        self.flags)
         cpy.assign = self.assign
         cpy.fold = self.fold
+        cpy.map = self.map
         return cpy
 
 cmdTable = [
     ("F", "FOR", ["NAME", "EXPR", "CODE"]),
     ("I", "IF", ["EXPR", "CODE", "ELSE"]),
     ("L", "LOOP", ["EXPR", "CODE"]),
-    #("O", "OUTPUT", ["EXPR"]),
-    #("P", "PRINT", ["EXPR"]),
-    #("Q", "QUERY", ["EXPR"]),
     ("S", "SWAP", ["EXPR", "EXPR"]),
     ("T", "TILL", ["EXPR", "CODE"]),
     ("U", "UNIFY", ["NAMES", "WITH"]),
@@ -185,7 +185,7 @@ precedenceTable = [
      ("DQ", "DEQUEUE", "L", None, VALS | IN_LAMBDA),
      ],
     [2,
-     ("^", "SPLIT", "L", [], RVALS | IN_LAMBDA | LIST_EACH),
+     ("^", "SPLIT", "L", [], RVALS | IN_LAMBDA | LIST_EACH | RANGE_EACH),
      ("^@", "SPLITAT", "L", [], RVALS | IN_LAMBDA),
      ("@?", "FIND", "L", None, RVALS | IN_LAMBDA),
      ("@*", "FINDALL", "L", [], RVALS | IN_LAMBDA),
@@ -199,7 +199,7 @@ precedenceTable = [
      ("ZG", "ZEROGRID", "L", None, RVALS | IN_LAMBDA),
      ],
     [1,
-     ("^", "SPLIT", "L", None, RVALS | IN_LAMBDA | LIST_EACH),
+     ("^", "SPLIT", "L", None, RVALS | IN_LAMBDA | LIST_EACH | RANGE_EACH),
      ("J", "JOIN", "L", None, RVALS | IN_LAMBDA),
      ("RV", "REVERSE", "L", None, RVALS | IN_LAMBDA),
      ("Z", "ZIP", "L", None, RVALS | IN_LAMBDA),
@@ -221,9 +221,9 @@ precedenceTable = [
      ("X", "STRMUL", "L", "", RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [2,
-     ("||", "STRIP", "L", "", RVALS | IN_LAMBDA),
-     ("|>", "LSTRIP", "L", "", RVALS | IN_LAMBDA),
-     ("<|", "RSTRIP", "L", "", RVALS | IN_LAMBDA),
+     ("||", "STRIP", "L", "", RVALS | IN_LAMBDA | LIST_EACH),
+     ("|>", "LSTRIP", "L", "", RVALS | IN_LAMBDA | LIST_EACH),
+     ("<|", "RSTRIP", "L", "", RVALS | IN_LAMBDA | LIST_EACH),
      ("TM", "TRIM", "L", "", RVALS | IN_LAMBDA | LIST_EACH),
      ],
     [1,
@@ -235,13 +235,13 @@ precedenceTable = [
      ("UC", "UPPERCASE", "L", None, RVALS | IN_LAMBDA | LIST_EACH),
      ],
     [2,
-     (",", "RANGE", "L", None, RVALS | IN_LAMBDA),
-     ("RR", "RANDRANGE", "L", 0, RVALS | IN_LAMBDA),
+     (",", "RANGE", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("RR", "RANDRANGE", "L", 0, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ("TB", "TOBASE", "L", 0, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [1,
-     (",", "RANGETO", "L", None, RVALS | IN_LAMBDA),
-     ("RR", "RANDRANGETO", "L", None, RVALS | IN_LAMBDA),
+     (",", "RANGETO", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("RR", "RANDRANGETO", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ("TB", "TOBASE", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      # Unary mnemonic: ToBinary
      ],
@@ -297,6 +297,8 @@ precedenceTable = [
      ("@>", "RIGHTOF", "L", None, VALS | IN_LAMBDA),
      ],
     [1,
+     ("@<", "LEFTOF", "L", None, VALS | IN_LAMBDA),
+     ("@>", "RIGHTOF", "L", None, VALS | IN_LAMBDA),
      ("++", "INC", "L", None, VALS | IN_LAMBDA),
      ("--", "DEC", "L", None, VALS | IN_LAMBDA),
      ("#", "LEN", "L", None, RVALS | IN_LAMBDA),

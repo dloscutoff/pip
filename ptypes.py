@@ -6,6 +6,7 @@ from copy import deepcopy
 
 zeroRgx = re.compile(r"^(0+(\.0*)?|0*\.0+)$")
 floatRgx = re.compile(r"-?\d+\.\d*|\.\d+")
+properFloatRgx = re.compile(r"-?\d+\.\d+")
 intRgx = re.compile(r"-?\d+")
 
 # Store the <generator> type in a variable, since it apparently doesn't have
@@ -32,7 +33,7 @@ class Scalar:
         return self._value
 
     def __repr__(self):
-        m = floatRgx.match(self._value) or intRgx.match(self._value)
+        m = properFloatRgx.match(self._value) or intRgx.match(self._value)
         if m and m.end() == len(self._value):
             # Numbers can be displayed without quotes
             return self._value
