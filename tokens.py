@@ -2,16 +2,9 @@
 """Various str wrapper classes for different kinds of tokens."""
 
 class Token:
-    """Stores a token with line & char number metadata."""
-    def __init__(self, token, line = None, char = None):
+    "Represents a token from scanning."
+    def __init__(self, token):
         self._text = str(token)
-        if type(token) is Token:
-            # Copy constructor--take metadata from the previous token unless
-            # overridden here
-            line = line if line is not None else token.line
-            char = char if char is not None else token.char
-        self.line = line
-        self.char = char
 
     def __str__(self):
         return self._text
@@ -30,10 +23,7 @@ class Token:
         className = str(type(self))[8:-2]
         if className[:7] == "tokens.":
             className = className[7:]
-        return "{}({},{},{})".format(className,
-                                       self._text,
-                                       self.line,
-                                       self.char)
+        return "{}({})".format(className, self._text)
 
 class Command(Token):
     pass
@@ -54,6 +44,9 @@ class Pattern(Token):
     pass
 
 class Char(Token):
+    pass
+
+class EscapedString(Token):
     pass
 
 class Name(Token):

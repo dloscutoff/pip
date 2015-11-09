@@ -11,7 +11,7 @@ from errors import ErrorReporter
 err = ErrorReporter(warnings=True)  # TODO: get this setting from the args?
 
 def parse(tokenList):
-    """Parses a list of tokens as a collection of statements."""
+    "Parses a list of tokens as a collection of statements."
     statements = []
     # The last "token" is None, signalling end of program; or, we might meet
     # a closing curly brace at the end of a block
@@ -21,15 +21,12 @@ def parse(tokenList):
     return statements
     
 def parseStatement(tokenList):
-    """Parse a statement from the beginning of the token list."""
+    "Parse a statement from the beginning of the token list."
     if tokenList[0] is None:
         err.die("Hit end of tokens while parsing statement")
     elif type(tokenList[0]) is tokens.Command:
         token = tokenList.pop(0)
         command = operators.commands[token]
-        # Copy Token metadata over
-        command.line = token.line
-        command.char = token.char
         statement = [command]
         #!print(command, command.argtypes)
         for argtype in command.argtypes:
@@ -80,7 +77,7 @@ def parseStatement(tokenList):
     return statement
 
 def parseBlock(tokenList):
-    """Parse either a single statement or a series of statements in {}."""
+    "Parse either a single statement or a series of statements in {}."
     if tokenList[0] == "{":
         # Match the curly brace and parse statements until the
         # closing curly brace
@@ -100,7 +97,7 @@ def parseBlock(tokenList):
     return block
 
 def isExpr(tree):
-    """Tests whether the given parse tree is an expression or not."""
+    "Tests whether the given parse tree is an expression or not."
     if type(tree) is list and type(tree[0]) is operators.Operator:
         return True
     elif type(tree) in (tokens.Name, ptypes.Scalar, ptypes.Pattern):
@@ -109,7 +106,7 @@ def isExpr(tree):
         return False
     
 def parseExpr(tokenList, minPrecedence=-1):
-    """Parse an expression from the beginning of the token list."""
+    "Parse an expression from the beginning of the token list."
     expression = parseOperand(tokenList)
     while type(tokenList[0]) is tokens.Operator:
         op = tokenList[0]
@@ -162,7 +159,7 @@ def parseExpr(tokenList, minPrecedence=-1):
 
 
 def bubble(exprTree):
-    """Moves the root operator down to its proper position, given precedence."""
+    "Moves the root operator down to its proper position, given precedence."
     # There is no right operand yet
     op = exprTree[0]
     left = exprTree[1]
@@ -196,12 +193,12 @@ def bubble(exprTree):
 
 
 def parseOperand(tokenList):
-    """Parse a Scalar, a unary expression, or a parenthesized expression."""
+    "Parse a name, literal, unary expression, or parenthesized expression."
     if type(tokenList[0]) is tokens.Name:
         # For a Name token, just return it
         return tokenList.pop(0)
     elif type(tokenList[0]) is tokens.String:
-        # Strip the double-quotes off a literal string (TODO: backslash escapes)
+        # Strip the double-quotes off a literal string
         return ptypes.Scalar(tokenList.pop(0)[1:-1])
     elif type(tokenList[0]) is tokens.Pattern:
         # Strip off backticks and simplify \` inside
@@ -211,6 +208,28 @@ def parseOperand(tokenList):
     elif type(tokenList[0]) is tokens.Char:
         # Single-quoted character
         return ptypes.Scalar(tokenList.pop(0)[1])
+    elif type(tokenList[0]) is tokens.EscapedString:
+        # \"String\" that allows for double quotes and limited interpolation
+        # Strip off \" delimiters
+        rawText = tokenList.pop(0)[2:-2]
+        # Parse any interpolation sequences (for now, just names)
+        litOrInterpolation = re.split(r"\\([a-z_]|[A-Z]{1,2})", rawText)
+        if len(litOrInterpolation) == 1:
+            # No interpolations--just return a Scalar
+            return ptypes.Scalar(rawText.replace(r"\\", "\\"))
+        else:
+            # Translate the interpolations into a parse tree
+            expression = [operators.enlist]
+            literal = litOrInterpolation.pop(0)
+            expression.append(ptypes.Scalar(literal.replace(r"\\", "\\")))
+            while litOrInterpolation:
+                interpolation = litOrInterpolation.pop(0)
+                strOp = operators.opsByArity[1]["ST"]
+                expression.append([strOp, tokens.Name(interpolation)])
+                literal = litOrInterpolation.pop(0)
+                expression.append(ptypes.Scalar(literal.replace(r"\\", "\\")))
+            joinOp = operators.opsByArity[1]["J"]
+            return [operators.paren, [joinOp, expression]]
     elif type(tokenList[0]) is tokens.Number:
         return ptypes.Scalar(tokenList.pop(0))
     elif tokenList[0] == "(":

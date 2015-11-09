@@ -39,7 +39,12 @@ class Scalar:
             return self._value
         else:
             # Non-numbers must have quotes
-            return '"{}"'.format(self._value)
+            if '"' in self._value:
+                # Use escaped-string format
+                return r'\"{}\"'.format(self._value.replace("\\", r"\\"))
+            else:
+                # Use normal string format
+                return '"{}"'.format(self._value)
 
     def __int__(self):
         m = intRgx.match(self._value)
@@ -368,11 +373,16 @@ class Range:
         return self._upper
 
     def __str__(self):
-        return repr(self)
+        if self._upper is not None:
+            # Treat non-infinite Ranges like lists
+            return str(List(self))
+        else:
+            # Infinite ranges have to use the repr
+            return repr(self)
 
     def __repr__(self):
-        lower = self._lower if self._lower is not None else "NIL"
-        upper = self._upper if self._upper is not None else "NIL"
+        lower = self._lower if self._lower is not None else "()"
+        upper = self._upper if self._upper is not None else "()"
         return "(%s,%s)" % (lower, upper)
 
     def __list__(self):

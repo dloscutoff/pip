@@ -11,6 +11,7 @@ nameRgx = re.compile(r'[A-Z]+|[a-z_]')
 stringRgx = re.compile(r'"[^"]*"')
 patternRgx = re.compile(r'`(\\`|\\\\|[^`])*`')
 charRgx = re.compile(r"'(.|\n)")
+escStringRgx = re.compile(r'\\"(\\[^"]|[^\\])*\\"')
 numberRgx = re.compile(r'[0-9]+(\.[0-9]+)?')
 symbolsRgx = re.compile(r'[][(){};$E]')
 
@@ -26,6 +27,7 @@ tokenRgx = re.compile("|".join(rgx.pattern for rgx in [nameRgx,
                                                        stringRgx,
                                                        patternRgx,
                                                        charRgx,
+                                                       escStringRgx,
                                                        numberRgx,
                                                        symbolsRgx,
                                                        operRgx]))
@@ -39,25 +41,27 @@ whitespaceRgx = re.compile(r'\s+')
 
 
 def newToken(text, *args, **kwargs):
-    """Returns an instance of the correct Token subclass."""
+    "Returns an instance of the correct Token subclass."
     if text in operators.operators:
-        return tokens.Operator(text, *args, **kwargs)
+        return tokens.Operator(text)
     elif text in operators.commands:
-        return tokens.Command(text, *args, **kwargs)
+        return tokens.Command(text)
     elif text[0] == "'":
-        return tokens.Char(text, *args, **kwargs)
+        return tokens.Char(text)
     elif text[0] == '"':
-        return tokens.String(text, *args, **kwargs)
+        return tokens.String(text)
+    elif text[:2] == '\\"':
+        return tokens.EscapedString(text)
     elif text[0] == '`':
-        return tokens.Pattern(text, *args, **kwargs)
+        return tokens.Pattern(text)
     elif symbolsRgx.match(text) and (text[0] != "E" or text == "E"):
         # (The above special-casing is to prevent potential names starting with
         # E from scanning as symbols and choking the parser)
-        return tokens.Symbol(text, *args, **kwargs)
+        return tokens.Symbol(text)
     elif nameRgx.match(text):
-        return tokens.Name(text, *args, **kwargs)
+        return tokens.Name(text)
     elif numberRgx.match(text):
-        return tokens.Number(text, *args, **kwargs)
+        return tokens.Number(text)
     # Others as needed
     else:
         return None
@@ -99,7 +103,7 @@ def tokenize(code):
                     index -= 1
                 tokenList.append(newToken(text))
                 code = code[index:]
-            elif code[0] in '"`\'':
+            elif code[0] in '"`\'' or code[:2] == '\\"':
                 err.die("Unterminated string or pattern literal:",
                         code.strip())
             else:

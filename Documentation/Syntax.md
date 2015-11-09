@@ -7,8 +7,9 @@ The syntax of Pip is generally C-like with strong influence from Python, Perl/PH
 Any of the following is a token in Pip:
 
  - Number (consecutive digits, optionally followed by a period and more consecutive digits)
- - String literal (between "double quotes"--no escapes yet, though they are planned)
+ - String literal (between "double quotes")
  - Single-character string literal (a ' single quote followed by any character--no escapes)
+ - Escaped string literal (between \"escaped quotes\"--allows literal double quotes as well as variable interpolation)
  - Pattern literal (between \`backticks\`--backslash escapes for backtick & backslash)
  - Operator (one or more symbols or uppercase letters)
  - Lowercase identifier (a single lowercase letter; runs of lowercase letters become multiple identifiers)
@@ -17,6 +18,8 @@ Any of the following is a token in Pip:
  - Delimiters (parens, square braces, curly braces, semicolon)
 
 Because uppercase identifiers and operators are limited to two characters, the scanner breaks a longer run of them into multiple tokens. For example, `LCAZ` is equivalent to `LC AZ`. If the run contains an odd number of characters, it is interpreted as having a single-character token at the beginning: `PLCAZ` is `P LC AZ`.
+
+Escaped string literals warrant further explanation. The delimiter is `\"`, and therefore literal double quotes can be placed inside the string without escaping them (`\"like "this"\"`). Backslashes do need to be escaped with a second backslash (unlike in regular string literals). A backslash followed by an identifier is a variable interpolation: for example, `\"Value is \v.\"` This usage is syntactic sugar for `(J["Value is ";STv;"."])`. Expressions cannot be interpolated at present.
 
 Comments come in two types: lines that start with a (possibly indented) semicolon, and anything at the end of a line if preceded by two or more spaces.
 
