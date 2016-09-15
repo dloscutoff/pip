@@ -22,11 +22,19 @@ Usage: `Xs`
 
 Converts a Scalar to a Pattern, escaping special characters. Given a List or Range, converts to a Pattern that will match any of the items.
 
-### Set flags: `-` `+` `,` `A`
+### Repetition/grouping: `K` `+` `C`
+
+Usage: `Kx`
+
+`K` and `+` modify a Pattern with `*` or `+`, respectively. `C` wraps a pattern in a capturing group.
+
+NOTE: `K` also works on Scalars and Ranges, converting them to Patterns first. `+` and `C` only work on Patterns.
+
+### Set flags: `-` `.` `,` `A`
 
 Usage: `-x`
 
-The unary operators `-` `+` `,` `A` set the case-insensitive, dotall, multiline, and ASCII-only regex flags, respectively. See the Python 3 `re` docs for more information.
+The unary operators `-` `.` `,` `A` set the case-insensitive, dotall, multiline, and ASCII-only regex flags, respectively. See the Python 3 `re` docs for more information.
  
 ## Pip regex operations
 
@@ -60,10 +68,10 @@ Usage: `xNs`
 
 Usage: `sRxp`
 
-Replace each match of Pattern `x` in Scalar `s` with replacement (Pattern or Scalar) `p`.
+Replace each match of Pattern `x` in Scalar `s` with replacement (Pattern, Scalar or callback function) `p`. The arguments passed to a callback function are the entire match (parameter `a`) followed by capture groups (parameters `b` through `e`).
 
 ### Split: `^`
 
 Usage: `s^x`
 
-Split Scalar `s` on occurrences of Pattern `x`. If `x` contains matching groups, they are included in the resulting List.
+Split Scalar `s` on occurrences of Pattern `x`. If `x` contains capture groups, they are included in the resulting List.

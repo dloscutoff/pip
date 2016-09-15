@@ -524,10 +524,13 @@ class ProgramState:
                         foldValue = self.evaluate([normalOp, val, foldValue])
                 elif operator.associativity == "C":
                     # Chaining fold for chaining operators
-                    chainExpr = [ops.chain, iterable[0]]
-                    for val in iterable[1:]:
-                        chainExpr.extend((normalOp, val))
-                    foldValue = self.evaluate(chainExpr)
+                    if len(iterable) == 1:
+                        foldValue = scalarOne
+                    else:
+                        chainExpr = [ops.chain, iterable[0]]
+                        for val in iterable[1:]:
+                            chainExpr.extend((normalOp, val))
+                        foldValue = self.evaluate(chainExpr)
                 else:
                     self.err.die("Implementation error: unknown associativity",
                                  operator.associativity, "in FOLD")
@@ -785,6 +788,10 @@ class ProgramState:
         if type(rhs) is Scalar:
             result = chr(int(rhs))
             return Scalar(result)
+        elif type(rhs) is Pattern:
+            # C operator on Pattern wraps the regex in a capturing group
+            result = "(%s)" % str(rhs)
+            return Pattern(result)
         else:
             self.err.warn("Unimplemented argtype for CHR:", type(rhs))
             return nil
@@ -905,6 +912,16 @@ class ProgramState:
             self.err.warn("Unimplemented argtypes for DIV:",
                           type(lhs), "and", type(rhs))
             return nil
+
+    def DOT(self, rhs):
+        if type(rhs) is Pattern:
+            # . operator on Pattern makes . match newlines
+            result = "(?s)" + str(rhs)
+            return Pattern(result)
+        else:
+            # For Scalars etc., pass through unchanged
+            # TBD: is unary . useful for something for those types?
+            return rhs
 
     def ENUMERATE(self, iterable):
         if type(iterable) in (List, Range, Scalar):
@@ -1116,6 +1133,23 @@ class ProgramState:
             else:
                 self.err.warn("Unimplemented argtypes for JOIN:",
                               type(iterable), "and", type(sep))
+            return nil
+
+    def KLEENESTAR(self, rhs):
+        if type(rhs) is Scalar:
+            regex = re.escape(str(rhs))
+            if len(rhs) > 1:
+                regex = "(?:%s)" % regex
+            return Pattern(regex + "*")
+        elif type(rhs) is Range:
+            return Pattern("(?:"
+                           + "|".join(str(item) for item in rhs)
+                           + ")*")
+        elif type(rhs) is Pattern:
+            result = "(?:%s)*" % str(rhs)
+            return Pattern(result)
+        else:
+            self.err.warn("Unimplemented argtype for KLEENESTAR:", type(rhs))
             return nil
         
     def LEFTOF(self, lhs, rhs=None):
@@ -1697,8 +1731,8 @@ class ProgramState:
         elif type(rhs) is Range:
             return rhs
         elif type(rhs) is Pattern:
-            # + operator on Pattern makes . match newlines
-            result = "(?s)" + str(rhs)
+            # + operator on Pattern applies regex + to the whole thing
+            result = "(?:%s)+" % str(rhs)
             return Pattern(result)
         else:
             self.err.warn("Unimplemented argtype for POS:", type(rhs))
@@ -1846,7 +1880,7 @@ class ProgramState:
             return nil
 
     def REGEX(self, rhs):
-        "Converts a Scalar to a properly-escaped Pattern."
+        "Converts a Scalar, List, or Range to a properly-escaped Pattern."
         if type(rhs) is Scalar:
             regex = re.escape(str(rhs))
             if len(rhs) > 1:

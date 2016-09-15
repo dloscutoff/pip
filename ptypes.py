@@ -597,7 +597,7 @@ class Nil:
         return ""
 
     def __repr__(self):
-        return "NIL"
+        return "()"
 
     def __bool__(self):
         return False
