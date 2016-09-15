@@ -40,7 +40,7 @@ There are 6 data types in Pip:
  - **Block** represents a code block or function.
  - **Nil** is a singleton type, similar to `null` or `None` from other languages. Note that many situations that would cause a runtime error in other languages (such as dividing by zero) simply return nil in Pip (unless warnings are turned on using the -w or -d flags). Most operators, when given nil as an operand, return nil.
 
-Boolean expressions return `0` and `1`. The values `0` (and variants like `0.0`), `""`, <code>``</code>, `[]`, and nil are falsy; all others are truthy.
+Boolean expressions return `0` and `1`. The values `0` (and variants like `0.0`), `""`, `[]`, the empty Pattern, and nil are falsy; all others are truthy.
 
 Many operators, including arithmetic and most string operators, function memberwise on ranges and lists, similar to array-programming languages like APL. For example, `[1 2 3]+[6 5 4]` is `[7 7 7]`, and `"Hello".1,3` is `["Hello1" "Hello2"]`.
 
@@ -57,7 +57,7 @@ Expressions use infix operators; precedence/associativity may be coerced using p
  - Ternary operators do not have a symbol between their second and third arguments: `a?"Yes""No"`
  - Increment `++` and decrement `--` are pre- only (i.e. you can do `++x` but not `x++`)
 
-Lists are constructed via square braces: `[1 2 3]`. No separator is necessary, except in cases of ambiguity in scanning or parsing: `[-1 2 3]` works as expected, but `[1 -2 3]` is actually `[-1 3]` because the `-` is treated as a binary operator if possible. Here, the expression terminator `;` can be used to eliminate the ambiguity: `[1;-2 3]`. (`;` can also be useful with ternary operators: `a?1;-1`.) The format in which lists are printed depends on command-line flags; see that documentation page for details.
+Lists are constructed via square braces: `[1 2 3]`. No separator is necessary, except in cases of ambiguity in scanning or parsing: `[-1 2 3]` works as expected, but `[1 -2 3]` is actually `[-1 3]` because the `-` is treated as a binary operator if possible. Here, the expression terminator `;` can be used to eliminate the ambiguity: `[1;-2 3]`. (`;` can also be useful with ternary operators: `a?1;-1`.) By default, all elements are concatenated together when a list is printed, but there are several [Command-line flags](https://github.com/dloscutoff/pip/blob/master/Documentation/Command-line%20flags.md) that provide different formats.
 
 As in C, assignments are valid expressions that can be used anywhere an expression can be used: in a loop test, for example. Appending a colon to any operator turns it into a compound assignment operator: `x+:5` is equivalent to `x:x+5`. This also works with unary and ternary operators: `-:x` flips the sign of the variable.
 
