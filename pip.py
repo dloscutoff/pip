@@ -3,6 +3,7 @@
 # Priorities TODO:
 #  Operators: Replace At, Star Map, TRanslate
 #  Fix ++ (& maybe others) applied to Lists
+#  Fix: ++ increments twice in the following: l@++i +: 1
 #  More regex operations and looping constructs
 #  Special variables for regex capturing groups
 #  Rework ugly hacks in definition of Range class
@@ -18,7 +19,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.16.09.14"
+VERSION = "0.16.09.17"
 
 def pip(code=None, interactive=True):
     if code:

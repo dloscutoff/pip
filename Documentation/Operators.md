@@ -6,7 +6,9 @@ U/B/T = Unary/Binary/Ternary
 
 `$` Fold: occurs before a binary operator; the resulting compound operator is unary, with the same precedence as the original binary operator
 
-`:` Modify-assign: occurs after a binary *or* unary operator, assigning the result of the calculation back to the lhs
+`*` Map: occurs after a unary operator; arity and precedence remain the same
+
+`:` Modify-assign: occurs after a unary, binary, or ternary operator; the resulting compound operator has the same arity but has the precedence of `:`
 
 ### Symbolic operators
 
@@ -172,6 +174,8 @@ U/B/T = Unary/Binary/Ternary
 
 <code>J  U</code> Join iterable on empty string
 
+<code>K  U</code> Applies Kleene star (repeat 0 or more times) to a Pattern
+
 <code>LC U</code> Convert to lowercase
 
 <code>LT B</code> String less than
@@ -189,6 +193,8 @@ U/B/T = Unary/Binary/Ternary
 <code>MS B</code> Map Block to iterable and sum results
 
 <code>MX U</code> Max of iterable using numeric comparison
+
+<code>MZ T</code> Map Block to two iterables, passing corresponding pairs of elements as arguments; returns List
 
 <code>N  B</code> In (returns count of occurrences or 0 if none)
 

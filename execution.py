@@ -937,7 +937,6 @@ class ProgramState:
             return nil
 
     def EVAL(self, code, argList=None):
-        # TODO: Scalars evaluated as code
         if type(code) is Scalar:
             # Scan, parse, and convert to Block first
             try:
@@ -959,10 +958,10 @@ class ProgramState:
         else:
             if argList is None:
                 self.err.warn("Unimplemented argtype for EVAL:",
-                              type(function))
+                              type(code))
             else:
                 self.err.warn("Unimplemented argtypes for EVAL:",
-                              type(function), "and", type(argList))
+                              type(code), "and", type(argList))
             return nil
 
     def FILTER(self, function, iterable):
@@ -1154,8 +1153,8 @@ class ProgramState:
         
     def LEFTOF(self, lhs, rhs=None):
         if rhs is None:
-            # The unary version gives the leftmost character
-            rhs = scalarOne
+            # The unary version gives all but the rightmost character
+            rhs = Scalar(-1)
         if type(rhs) is Lval:
             rhs = self.getRval(rhs)
         if type(lhs) is Lval and type(rhs) is Scalar:
@@ -1307,6 +1306,21 @@ class ProgramState:
         for item in self.MAP(function, iterable):
             result = self.evaluate([plus, result, item])
         return result
+
+    def MAPZIP(self, lhs, iterable1, iterable2):
+        "Maps function over the items of two iterables in parallel."
+        if type(iterable1) is Block and type(lhs) in (Scalar, List, Range):
+            # The arguments are reversible to enable things like lMZ:fm
+            lhs, iterable1 = iterable1, lhs
+        if type(iterable1) in (Scalar, List, Range) \
+           and type(iterable2) in (Scalar, List, Range) \
+           and type(lhs) is Block:
+            return List(self.functionCall(lhs, [item1, item2])
+                        for item1, item2 in zip(iterable1, iterable2))
+        else:
+            self.err.warn("Unimplemented argtypes for MAPZIP:",
+                          type(lhs), type(iterable1), "and", type(iterable2))
+            return nil
 
     def MAX(self, iterable):
         "Numeric maximum of iterable."
@@ -2008,8 +2022,8 @@ class ProgramState:
 
     def RIGHTOF(self, lhs, rhs=None):
         if rhs is None:
-            # The unary version gives the rightmost character
-            rhs = Scalar(-1)
+            # The unary version gives all but the leftmost character
+            rhs = scalarOne
         if type(rhs) is Lval:
             rhs = self.getRval(rhs)
         if type(lhs) is Lval and type(rhs) is Scalar:
