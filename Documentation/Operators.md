@@ -174,6 +174,8 @@ U/B/T = Unary/Binary/Ternary
 
 <code>J  U</code> Join iterable on empty string
 
+<code>JW B</code> Join iterable on separator and wrap result in separator as well
+
 <code>K  U</code> Applies Kleene star (repeat 0 or more times) to a Pattern
 
 <code>LC U</code> Convert to lowercase
@@ -271,6 +273,8 @@ U/B/T = Unary/Binary/Ternary
 <code>V  B</code> Call Block as function with arglist (fVl is equivalent to f(*l) in Python)
 
 <code>V  U</code> Evaluate Block in current context, returning value of final expression or Nil if there isn't one
+
+<code>WR B</code> Wrap Scalar or Pattern with a delimiter (or List of two delimiters)
 
 <code>X  B</code> Repeat Scalar given number of times
 

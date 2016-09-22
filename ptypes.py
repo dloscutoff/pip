@@ -84,21 +84,44 @@ class Scalar:
     def __getitem__(self, index):
         if type(index) is List:
             return List(self[i] for i in index)
-        elif type(index) in (Scalar, int):
+        elif type(index) is Scalar:
+            index = int(index)
+        
+        if type(index) is int:
             if self._value == "":
                 raise IndexError("Cannot index into empty string.")
             else:
-                index = int(index) % len(self._value)
-                # TODO: warn if index < -len or len >= index
-        
-        if type(index) in (int, slice):
-            return Scalar(self._value.__getitem__(index))
+                index %= len(self._value)
+                return Scalar(self._value[index])
+        elif type(index) is slice:
+            if self._value == "":
+                # Slicing the empty string gives empty string
+                return self
+            length = len(self._value)
+            repString = self._value
+            start = index.start if index.start is not None else 0
+            stop = index.stop if index.stop is not None else length
+            if start < 0:
+                start += length
+            if stop < 0:
+                stop += length
+            if start >= stop:
+                return Scalar("")
+            while start < 0:
+                repString = self._value + repString
+                start += length
+                stop += length
+            while stop > len(repString):
+                repString += self._value
+            return Scalar(repString[start:stop])
         else:
             print("Cannot use", type(index), "to index Scalar")
             return nil
 
     def __setitem__(self, index, item):
         # Behold! Mutable strings!
+        if type(index) is int:
+            index %= len(self._value)
         value = list(self._value)
         value.__setitem__(index, str(item))
         self._value = ''.join(value)
@@ -291,22 +314,43 @@ class List:
     def __getitem__(self, index):
         if type(index) is List:
             return List(self[i] for i in index)
-        elif type(index) in (Scalar, int):
+        elif type(index) is Scalar:
+            index = int(index)
+        
+        if type(index) is int:
             if self._value == []:
                 raise IndexError("Cannot index into empty list.")
             else:
-                index = int(index) % len(self._value)
-                # TODO: warn if index < -len or len >= index
-        
-        if type(index) is int:
-            return self._value.__getitem__(index)
+                index %= len(self._value)
+                return self._value[index]
         elif type(index) is slice:
-            return List(self._value.__getitem__(index))
+            if self._value == []:
+                # Slicing the empty list gives empty list
+                return self
+            length = len(self._value)
+            repList = self._value[:]  # Shallow copy so as not to change _value
+            start = index.start if index.start is not None else 0
+            stop = index.stop if index.stop is not None else length
+            if start < 0:
+                start += length
+            if stop < 0:
+                stop += length
+            if start >= stop:
+                return List([])
+            while start < 0:
+                repList = self._value + repList
+                start += length
+                stop += length
+            while stop > len(repList):
+                repList += self._value
+            return List(repList[start:stop])
         else:
-            print("Cannot use", type(index), "to index Scalar")
+            print("Cannot use", type(index), "to index List")
             return nil
 
     def __setitem__(self, index, item):
+        if type(index) is int:
+            index %= len(self._value)
         self._value.__setitem__(index, item)
 
     def __iter__(self):
@@ -405,7 +449,7 @@ class Range:
             # A Range with no upper bound has an infinite length
             # Because of Python's requirements on len(), the only way to mark
             # this condition is by raising an error:
-            raise ValueError("Cannot take len() of infinite range")
+            raise ValueError("Cannot take len() of infinite Range")
 
     def toNumber(self):
         # Returns a Python list containing Python numbers (probably ints)
@@ -435,14 +479,13 @@ class Range:
             # Can't return an infinite range
             return None
         else:
+            # Treat lower value of None as 0
             lower = self._lower or 0
             return range(lower, self._upper)
 
     def __iter__(self):
         if self._upper is not None:
-            # Treat lower value of None as 0
-            lower = self._lower or 0
-            for i in range(lower, self._upper):
+            for i in self.toRange():
                 yield Scalar(i)
         else:
             # Null upper value results in an infinite iterator
@@ -451,7 +494,7 @@ class Range:
             # TODO: actual error--this just refuses to iterate
             # TODO: error message
             print("Attempting to iterate over an infinite Range")
-            return iter([])
+            return
 
     def __hash__(self):
         # Since Range is not straightforwardly convertible to Python's range,
@@ -459,38 +502,49 @@ class Range:
         return hash((self._lower, self._upper))
 
     def __getitem__(self, index):
-        if type(index) in (Scalar, int):
-            if self._upper:
-                size = len(self)
-                if size == 0:
-                    raise IndexError("Cannot index into empty range.")
-                else:
-                    index = int(index) % size
-                    # TODO: warn if index < -size or size >= index
-            else:
-                index = int(index)
+        if type(index) is List:
+            return List(self[i] for i in index)
+        elif type(index) is Scalar:
+            index = int(index)
         elif type(index) is Range:
             index = index.toSlice()
         
-        r = self.toRange()
-        if r is not None:
-            result = r[index]
-            if type(result) is int:
-                return Scalar(result)
-            elif type(result) is range:
-                return Range(result)
-        else:
-            # Couldn't convert to Python range (because the upper value
-            # is nil), so calculate the __getitem__ manually
-            lower = self._lower or 0
-            if type(index) is int:
+        lower = self._lower or 0
+        if type(index) is int:
+            if self._upper:
+                length = len(self)
+                if length == 0:
+                    raise IndexError("Cannot index into empty range.")
+                else:
+                    index %= length
+                r = self.toRange()
+                return Scalar(r[index])
+            else:
+                # Without an upper bound, can't convert to a Python range
                 if index < 0:
                     # Can't count from the end of an infinite Range
                     return nil
                 else:
                     return Scalar(lower + index)
-            elif type(index) is slice:
-                start, stop = index.start, index.stop
+        elif type(index) is slice:
+            start, stop = index.start, index.stop
+            if self._upper:
+                length = len(self)
+                if length == 0:
+                    # Can't slice an empty Range or one where upper < lower
+                    return self
+                start = start if start is not None else 0
+                stop = stop if stop is not None else length
+                if start >= -length and stop <= length:
+                    # Just do a regular range slice
+                    r = self.toRange()
+                    return Range(r[index])
+                else:
+                    # One or both slice bounds are outside the size of the Range
+                    # Convert to a List to do extended slicing
+                    result = List(self)
+                    return result[start:stop]
+            else:
                 if start is stop is None:
                     return self
                 elif None is not start < 0 or None is not stop < 0:

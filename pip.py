@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Operators: Replace At, Star Map, TRanslate
+#  Operators: Replace At, Star Map, TRanslate, WeaVe
 #  Fix ++ (& maybe others) applied to Lists
-#  Fix: ++ increments twice in the following: l@++i +: 1
+#  Fix: ++ increments twice in lvalues of compute-and-assign operators
 #  More regex operations and looping constructs
 #  Special variables for regex capturing groups
 #  Rework ugly hacks in definition of Range class
@@ -19,7 +19,7 @@ from execution import ProgramState
 from errors import FatalError
 import sys, argparse
 
-VERSION = "0.16.09.17"
+VERSION = "0.16.09.21"
 
 def pip(code=None, interactive=True):
     if code:

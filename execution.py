@@ -298,7 +298,8 @@ class ProgramState:
         if name in self.specialVars:
             # This is a special variable--execute its "set" method
             if lval.sliceList:
-                self.err.warn("Cannot assign to slice of special var", name)
+                self.err.warn("Cannot assign to index/slice of special var",
+                              name)
                 return
             elif "set" not in self.specialVars[name]:
                 self.err.warn("Special var %s does not implement 'set'" % name)
@@ -638,12 +639,13 @@ class ProgramState:
     def ASSIGN(self, lhs, rhs):
         if type(lhs) is not Lval:
             self.err.warn("Attempting to assign to non-lvalue", lhs)
+            return rhs  # Gives correct result of 7 for 4+:3
         else:
             # If the rhs is an lval, get its rval
             if type(rhs) is Lval:
                 rhs = self.getRval(rhs)
             self.assign(lhs, rhs)
-        return lhs
+            return lhs
 
     def AT(self, lhs, rhs):
         if type(rhs) is Lval:
@@ -674,9 +676,14 @@ class ProgramState:
         elif type(rhs) is Pattern and type(lhs) in (List, Range):
             return List(self.AT(sub, rhs) for sub in lhs)
         elif type(lhs) in (Scalar, List, Range):
-            if len(lhs) == 0:
-                self.err.warn("Indexing into empty string/list/range")
-                return nil
+            try:
+                if len(lhs) == 0:
+                    self.err.warn("Indexing into empty string/list/range")
+                    return nil
+            except ValueError:
+                # This happens when trying to take the len of an infinite Range
+                # Clearly the length is not zero, so just continue
+                pass
             try:
                 return lhs[index]
             except IndexError:
@@ -1105,8 +1112,9 @@ class ProgramState:
             return nil
 
     def JOIN(self, iterable, sep=None):
-        if sep is not None and type(sep) not in (Scalar, Pattern):
-            # TBD: does a list as separator give a list of results?
+        if type(sep) in (List, Range):
+            return List(self.JOIN(iterable, item) for item in sep)
+        elif sep is not None and type(sep) not in (Scalar, Pattern):
             self.err.warn("Can't join on", type(sep))
             return nil
 
@@ -1132,6 +1140,26 @@ class ProgramState:
             else:
                 self.err.warn("Unimplemented argtypes for JOIN:",
                               type(iterable), "and", type(sep))
+            return nil
+
+    def JOINWRAP(self, iterable, sep):
+        if type(sep) in (List, Range):
+            return List(self.JOINWRAP(iterable, item) for item in sep)
+        elif type(sep) not in (Scalar, Pattern):
+            self.err.warn("Can't join on", type(sep))
+            return nil
+
+        if type(iterable) in (Scalar, List, Range):
+            result = sep
+            for item in iterable:
+                if type(item) in (List, Range):
+                    item = self.JOIN(item, sep)
+                result = self.CAT(result, item)
+                result = self.CAT(result, sep)
+            return result
+        else:
+            self.err.warn("Unimplemented argtypes for JOINWRAP:",
+                          type(iterable), "and", type(sep))
             return nil
 
     def KLEENESTAR(self, rhs):
@@ -1225,9 +1253,8 @@ class ProgramState:
     def LSTRIP(self, string, extra=None):
         if extra is nil:
             return string
-        elif type(extra) in (Scalar, Pattern, List, Range) or extra is None:
-            pass
-        else:
+        elif type(extra) not in (Scalar, Pattern, List, Range) \
+             and extra is not None:
             self.err.warn("Unimplemented argtype for rhs of LSTRIP:",
                           type(extra))
             return nil
@@ -2537,8 +2564,35 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for UPPERCASE:", type(rhs))
             return nil
 
+    def WRAP(self, string, outer):
+        "Prepends and appends characters around string."
+        if type(string) in (Range, List):
+            return List(self.WRAP(item, outer) for item in string)
+        elif type(string) in (Scalar, Pattern):
+            if type(outer) in (Scalar, Pattern):
+                result = self.CAT(outer, string)
+                return self.CAT(result, outer)
+            elif type(outer) in (List, Range):
+                if len(outer) == 1:
+                    return self.WRAP(string, outer[0])
+                elif len(outer) == 2:
+                    result = self.CAT(outer[0], string)
+                    return self.CAT(result, outer[1])
+                else:
+                    self.err.warn("Second argument to WRAP cannot have length",
+                                  len(outer))
+                    return nil
+            else:
+                self.err.warn("Unimplemented right argument type for WRAP:",
+                              type(rhs))
+                return nil
+        else:
+            self.err.warn("Unimplemented left argument type for WRAP:",
+                          type(lhs))
+            return nil
+
     def YANK(self, rhs):
-        # Assigns rhs to the y variable
+        "Assigns rhs to the y variable."
         lhs = Lval("y")
         self.assign(lhs, rhs)
         return lhs
