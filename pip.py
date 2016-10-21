@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Operators: Replace At, Star Map, TRanslate, WeaVe
-#  Fix ++ (& maybe others) applied to Lists
+#  Operators: TRanslate
 #  Fix: ++ increments twice in lvalues of compute-and-assign operators
+#  Flag equivalent to Perl's -p
 #  More regex operations and looping constructs
 #  Special variables for regex capturing groups
+#  Make RA behave as expected for multiple, size-changing replacements
 #  Rework ugly hacks in definition of Range class
-#  Do loop
+#  Do loop?
 #  Figure out how to get correct warning/error reporting in ptypes classes
 #  Reconstitute code from parse tree and return that for functions' str and
 #    repr
@@ -17,9 +18,10 @@ from scanning import scan, addSpaces
 from parsing import parse
 from execution import ProgramState
 from errors import FatalError
-import sys, argparse
+import sys
+import argparse
 
-VERSION = "0.16.09.21"
+VERSION = "0.16.10.21"
 
 def pip(code=None, interactive=True):
     if code:
@@ -71,8 +73,8 @@ def pip(code=None, interactive=True):
                              action="store_true")
     listFormats.add_argument("-l",
                              "--lines",
-                             help="output list items on separate lines, " +
-                                  "concatenated",
+                             help=("output list items on separate lines, "
+                                   "concatenated"),
                              action="store_true")
     listFormats.add_argument("-n",
                              "--newline",
@@ -84,8 +86,8 @@ def pip(code=None, interactive=True):
                              action="store_true")
     listFormats.add_argument("-P",
                              "--reprlines",
-                             help="output list items on separate lines, " +
-                                  "repr'd",
+                             help=("output list items on separate lines, "
+                                   "repr'd"),
                              action="store_true")
     argparser.add_argument("-r",
                            "--readlines",
@@ -97,8 +99,8 @@ def pip(code=None, interactive=True):
                              action="store_true")
     listFormats.add_argument("-S",
                              "--spacelines",
-                             help="output list items on separate lines, " +
-                                  "space-concatenated",
+                             help=("output list items on separate lines, "
+                                   "space-concatenated"),
                              action="store_true")
     argparser.add_argument("-v",
                            "--verbose",
@@ -159,14 +161,16 @@ def pip(code=None, interactive=True):
     try:
         tkns = scan(program)
     except FatalError:
-        print("Fatal error while scanning, execution aborted.", file=sys.stderr)
+        print("Fatal error while scanning, execution aborted.",
+              file=sys.stderr)
         return
     if options.verbose:
         print(addSpaces(tkns))
     try:
         tree = parse(tkns)
     except FatalError:
-        print("Fatal error while parsing, execution aborted.", file=sys.stderr)
+        print("Fatal error while parsing, execution aborted.",
+              file=sys.stderr)
         return
     if options.verbose:
         print(tree)

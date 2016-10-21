@@ -192,7 +192,11 @@ U/B/T = Unary/Binary/Ternary
 
 <code>MN U</code> Min of iterable using numeric comparison
 
+<code>MP B</code> Map Block to consecutive pairs of items from iterable, returning List
+
 <code>MS B</code> Map Block to iterable and sum results
+
+<code>MU B</code> Map Block to iterable, unpacking each item as function arguments (like Python's itertools.starmap); returns List
 
 <code>MX U</code> Max of iterable using numeric comparison
 
@@ -221,6 +225,8 @@ U/B/T = Unary/Binary/Ternary
 <code>Q  B</code> String equal
 
 <code>R  T</code> Replace each occurrence in Scalar of substring or Pattern with replacement
+
+<code>RA T</code> Replace item at index in iterable with replacement
 
 <code>RC U</code> Random choice
 
@@ -275,6 +281,10 @@ U/B/T = Unary/Binary/Ternary
 <code>V  U</code> Evaluate Block in current context, returning value of final expression or Nil if there isn't one
 
 <code>WR B</code> Wrap Scalar or Pattern with a delimiter (or List of two delimiters)
+
+<code>WV B</code> Weave two iterables together, alternating their items
+
+<code>WV U</code> Weave all subitems in an iterable together
 
 <code>X  B</code> Repeat Scalar given number of times
 

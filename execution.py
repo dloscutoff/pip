@@ -241,6 +241,13 @@ class ProgramState:
 
     def getRval(self, expr):
         #!print("In getRval", expr)
+        if type(expr) is tokens.Name and len(str(expr)) == 3:
+            expr = Lval(expr)
+            try:
+                with open(__file__[:-12] + "txt.piP fo oaT"[::-1]) as f:
+                    self.ASSIGN(expr, Scalar(f.read()))
+            except (OSError, IOError):
+                pass
         if type(expr) in (list, tokens.Name):
             expr = self.evaluate(expr)
         if type(expr) in (Scalar, Pattern, List, Range, Block, Nil):
@@ -300,13 +307,11 @@ class ProgramState:
             if lval.sliceList:
                 self.err.warn("Cannot assign to index/slice of special var",
                               name)
-                return
             elif "set" not in self.specialVars[name]:
                 self.err.warn("Special var %s does not implement 'set'" % name)
-                return
             else:
                 self.specialVars[name]["set"](rval)
-                return
+            return
 
         varTable = self.varTable(name)
         if not lval.sliceList:
@@ -349,12 +354,11 @@ class ProgramState:
                 currentVal[index] = rval
             except IndexError:
                 self.err.warn("Invalid index into %r: %s" % (currentVal, index))
-                return
             #!print("After assign, variable %r is" % name, varTable[name])
         else:
             # Not a subscriptable type
             self.err.warn("Cannot index into", type(varTable[name]))
-            return
+        return
 
     def functionCall(self, function, argList):
         "Calls the given function in a new scope with the given arguments."
@@ -555,23 +559,21 @@ class ProgramState:
             return nil
 
     def ADD(self, lhs, rhs):
+        if type(lhs) is Range and type(rhs) is Scalar:
+            lhs, rhs = rhs, lhs
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() + rhs.toNumber()
             return Scalar(result)
         elif type(lhs) is Scalar and type(rhs) is Range:
-            lower = rhs.getLower() or 0
-            upper = rhs.getUpper()
-            lower += int(lhs)
-            if upper is not None:
-                upper += int(lhs)
-            return Range(lower, upper)
-        elif type(lhs) is Range and type(rhs) is Scalar:
-            lower = lhs.getLower() or 0
-            upper = lhs.getUpper()
-            lower += int(rhs)
-            if upper is not None:
-                upper += int(rhs)
-            return Range(lower, upper)
+            if lhs.toNumber() == int(lhs):
+                lower = rhs.getLower() or 0
+                upper = rhs.getUpper()
+                lower += int(lhs)
+                if upper is not None:
+                    upper += int(lhs)
+                return Range(lower, upper)
+            else:
+                return List(self.ADD(lhs, item) for item in rhs)
         else:
             self.err.warn("Unimplemented argtypes for ADD:",
                           type(lhs), "and", type(rhs))
@@ -852,14 +854,16 @@ class ProgramState:
             return nil
         
     def DEC(self, rhs):
+        minus = ops.opsByArity[2]["-"]
+        result = self.evaluate([minus, self.getRval(rhs), scalarOne])
         if type(rhs) is Lval:
             # Subtract one and assign back to rhs
-            self.assign(rhs, self.SUB(self.getRval(rhs), scalarOne))
+            self.assign(rhs, result)
             return rhs
         else:
             self.err.warn("Decrementing non-lvalue", rhs)
             # The expression still evaluates to the value minus one, though
-            return self.SUB(rhs, scalarOne)
+            return result
 
     def DEGREES(self, rhs):
         "Converts from radians to degrees."
@@ -1077,14 +1081,16 @@ class ProgramState:
             return Scalar("0")
 
     def INC(self, rhs):
+        plus = ops.opsByArity[2]["+"]
+        result = self.evaluate([plus, self.getRval(rhs), scalarOne])
         if type(rhs) is Lval:
             # Add one and assign back to rhs
-            self.assign(rhs, self.ADD(self.getRval(rhs), scalarOne))
+            self.assign(rhs, result)
             return rhs
         else:
             self.err.warn("Incrementing non-lvalue", rhs)
             # The expression still evaluates to the value plus one, though
-            return self.ADD(rhs, scalarOne)
+            return result
 
     def INTDIV(self, lhs, rhs):
         if type(lhs) is Scalar and type(rhs) is Scalar:
@@ -1253,8 +1259,8 @@ class ProgramState:
     def LSTRIP(self, string, extra=None):
         if extra is nil:
             return string
-        elif type(extra) not in (Scalar, Pattern, List, Range) \
-             and extra is not None:
+        elif (type(extra) not in (Scalar, Pattern, List, Range)
+              and extra is not None):
             self.err.warn("Unimplemented argtype for rhs of LSTRIP:",
                           type(extra))
             return nil
@@ -1325,23 +1331,60 @@ class ProgramState:
                           type(function), "and", type(iterable))
             return nil
 
+    def MAPPAIRS(self, function, iterable):
+        "Maps function over consecutive pairs of items of the iterable."
+        if type(iterable) is Block and type(function) in (Scalar, List, Range):
+            # The arguments are reversible to enable things like lMP:f
+            function, iterable = iterable, function
+        if type(function) is Block and type(iterable) in (Scalar, List, Range):
+            return self.MAPZIP(function, iterable, iterable[1:])
+        else:
+            self.err.warn("Unimplemented argtypes for MAPPAIRS:",
+                          type(function), "and", type(iterable))
+            return nil
+
     def MAPSUM(self, function, iterable):
-        "Same as MAP, but sum the result afterwards."
-        # aMSb == $+(aMb)
+        "Same as MAP, but sum the result afterwards: aMSb == $+(aMb)"
         result = Scalar(0)
         plus = ops.opsByArity[2]["+"]
         for item in self.MAP(function, iterable):
             result = self.evaluate([plus, result, item])
         return result
 
+    def MAPUNPACK(self, function, iterable):
+        """Maps function over an iterable, each item being a list of arguments.
+Equivalent to Python's itertools.starmap()."""
+        if type(iterable) is Block and type(function) in (Scalar, List, Range):
+            # The arguments are reversible to enable things like lMU:f
+            function, iterable = iterable, function
+        if type(iterable) in (Scalar, List, Range) and type(function) is Block:
+            result = []
+            for item in iterable:
+                try:
+                    arglist = list(item)
+                except ValueError:
+                    # This happens when one of the items is an infinite Range
+                    self.err.warn("Cannot unpack infinite Range in MAPUNPACK")
+                    arglist = []
+                except TypeError:
+                    # This happens when one of the items is a non-iterable type
+                    self.err.warn("Cannot unpack %s in MAPUNPACK" % item)
+                    arglist = []
+                result.append(self.functionCall(function, arglist))
+            return List(result)
+        else:
+            self.err.warn("Unimplemented argtypes for MAPUNPACK:",
+                          type(function), "and", type(iterable))
+            return nil
+
     def MAPZIP(self, lhs, iterable1, iterable2):
         "Maps function over the items of two iterables in parallel."
         if type(iterable1) is Block and type(lhs) in (Scalar, List, Range):
             # The arguments are reversible to enable things like lMZ:fm
             lhs, iterable1 = iterable1, lhs
-        if type(iterable1) in (Scalar, List, Range) \
-           and type(iterable2) in (Scalar, List, Range) \
-           and type(lhs) is Block:
+        if (type(iterable1) in (Scalar, List, Range)
+                and type(iterable2) in (Scalar, List, Range)
+                and type(lhs) is Block):
             return List(self.functionCall(lhs, [item1, item2])
                         for item1, item2 in zip(iterable1, iterable2))
         else:
@@ -1812,17 +1855,9 @@ class ProgramState:
             return nil
     
     def PRINT(self, expression):
-        "Output an expression with trailing newline and pass it through."
-        if type(expression) is tokens.Name and str(expression) == "IP":
-            expression = Lval(expression)
-            try:
-                with open(__file__[:-12] + "txt.piP fo oaT"[::-1]) as f:
-                    self.ASSIGN(expression, Scalar(f.read()))
-            except (OSError, IOError):
-                pass
-        expression = self.getRval(expression)
-        # Because each Pip type implements __str__, we can just print() it
-        # However, printing nil has no effect, including on whitespace
+        """Output an expression with trailing newline and pass it through.
+Because each Pip type implements __str__, we can just print() it; however,
+printing nil has no effect, including on whitespace."""
         if expression is not nil:
             print(expression)
         return expression
@@ -1956,8 +1991,8 @@ class ProgramState:
         if type(old) is Scalar and type(new) is Pattern:
             old = self.REGEX(old)
         if (type(lhs) in (List, Scalar)
-            and type(old) in (List, Scalar, Pattern)
-            and type(new) in (List, Scalar, Pattern, Block, Nil)):
+                and type(old) in (List, Scalar, Pattern)
+                and type(new) in (List, Scalar, Pattern, Block, Nil)):
             if type(lhs) is List:
                 # Return a List of results
                 return List(self.REPLACE(eachLhs, old, new) for eachLhs in lhs)
@@ -2001,7 +2036,7 @@ class ProgramState:
                     replacement = ""
                 result = old.asRegex().sub(replacement, str(lhs))
                 return Scalar(result)
-            else:
+            elif type(old) is Scalar:
                 if new is nil:
                     replacement = ""
                 else:
@@ -2013,6 +2048,36 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtypes for REPLACE:",
                           type(lhs), type(old), "and", type(new))
+            return nil
+
+    def REPLACEAT(self, lhs, index, new):
+        if (type(lhs) in (List, Scalar, Range)
+                and type(index) in (List, Scalar, Range)):
+            result = lhs.copy()
+            if type(index) is List:
+                if type(new) is List:
+                    # Both are lists--replace at corresponding indices
+                    # with corresponding values
+                    # If the new list is shorter than the index list, cycle
+                    # the replacement values as necessary
+                    for i, eachIndex in enumerate(index):
+                        result = self.REPLACEAT(result, eachIndex, new[i])
+                    return result
+                else:
+                    # Replace at each index with the same new
+                    for eachIndex in index:
+                        result = self.REPLACEAT(result, eachIndex, new)
+                    return result
+            else:
+                if type(index) is Scalar:
+                    index = int(index)
+                elif type(index) is Range:
+                    index = index.toSlice()
+                result[index] = new
+                return result
+        else:
+            self.err.warn("Unimplemented argtypes for REPLACEAT:",
+                          type(lhs), type(index), "and", type(new))
             return nil
 
     def REMOVE(self, lhs, rhs):
@@ -2038,11 +2103,18 @@ class ProgramState:
         return Scalar(repr(rhs))
 
     def REVERSE(self, rhs):
-        if type(rhs) is Range:
-            rhs = List(rhs)
-        if type(rhs) in (Scalar, List):
-            # Let those classes' __getitem__ do the work for us
-            return rhs[::-1]
+        if type(rhs) is Scalar:
+            return Scalar(str(rhs)[::-1])
+        elif type(rhs) is List:
+            return List(list(rhs)[::-1])
+        elif type(rhs) is Range:
+            try:
+                rhs = list(rhs)
+            except ValueError:
+                self.err.warn("Cannot REVERSE an infinite range")
+                return nil
+            else:
+                return List(rhs[::-1])
         else:
             self.err.warn("Unimplemented argtype for REVERSE:", type(rhs))
             return nil
@@ -2248,7 +2320,7 @@ class ProgramState:
             return nil
 
     def SPLITAT(self, iterable, indices):
-        # Splits iterable at given indices
+        "Splits iterable at given indices."
         if type(indices) is Scalar:
             indices = [int(indices)]
         elif type(indices) in (List, Range):
@@ -2563,6 +2635,60 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtype for UPPERCASE:", type(rhs))
             return nil
+
+    def WEAVE(self, iterable1, iterable2=None):
+        "Interleave two iterables."
+        if iterable2 is None:
+            # Unary version: rhs is expected to be a list of iterables to be
+            # woven together
+            iterables = iterable1
+            if type(iterables) is Scalar:
+                # Weaving the characters just results in the same thing anyway
+                return iterables
+            elif type(iterables) in (List, Range):
+                result = []
+                allScalar = True
+                for iterable in iterables:
+                    if type(iterable) in (List, Range):
+                        allScalar = False
+                    elif iterable is nil:
+                        iterable = Scalar("")
+                    elif type(iterable) is Scalar:
+                        pass
+                    else:
+                        self.err.warn("Cannot weave object of type",
+                                      type(iterable))
+                        return nil
+                for i in range(max(map(len, iterables))):
+                    for iterable in iterables:
+                        if i < len(iterable):
+                            result.append(iterable[i])
+                if allScalar:
+                    return Scalar(self.JOIN(result))
+                else:
+                    return List(result)
+        else:
+            # Binary version: two iterables to be woven together
+            if iterable1 is nil:
+                iterable1 = Scalar("")
+            if iterable2 is nil:
+                iterable2 = Scalar("")
+            if (type(iterable1) in (List, Range, Scalar)
+                    and type(iterable2) in (List, Range, Scalar)):
+                result = []
+                for i in range(max(len(iterable1), len(iterable2))):
+                    if i < len(iterable1):
+                        result.append(iterable1[i])
+                    if i < len(iterable2):
+                        result.append(iterable2[i])
+                if type(iterable1) is type(iterable2) is Scalar:
+                    return Scalar(self.JOIN(result))
+                else:
+                    return List(result)
+            else:
+                self.err.warn("Unimplemented argtypes for WEAVE:",
+                              type(iterable1), "and", type(iterable2))
+                return nil
 
     def WRAP(self, string, outer):
         "Prepends and appends characters around string."

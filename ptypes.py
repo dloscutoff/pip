@@ -1,8 +1,8 @@
 
 """Classes for Pip data types."""
 
-import re, itertools
-from copy import deepcopy
+import re
+import itertools
 
 zeroRgx = re.compile(r"^(0+(\.0*)?|0*\.0+)$")
 floatRgx = re.compile(r"-?\d+\.\d*|\.\d+")
@@ -243,6 +243,7 @@ class List:
     outFormat = None
 
     def __init__(self, value=None):
+        # TODO: make this more robust to handle infinite Range or range
         if type(value) in (Range,
                            tuple,
                            set,
@@ -252,10 +253,13 @@ class List:
             self._value = list(value)
         elif type(value) in (List, list):
             self._value = [item.copy() for item in value]
+        elif type(value) is range:
+            self._value = [Scalar(item) for item in value]
         elif value is None:
             self._value = []
         else:
             print("In List constructor:", value, type(value))
+            self._value = []
 
     def copy(self):
         return List(item.copy() for item in self._value)
@@ -291,9 +295,6 @@ class List:
 
     def __repr__(self):
         return "[" + ";".join(repr(i) for i in self._value) + "]"
-
-    def __list__(self):
-        return deepcopy(self._value)
 
     def __bool__(self):
         return self._value != []
@@ -368,7 +369,8 @@ class List:
         self._value.append(item)
 
     def extend(self, iterable):
-        # This assumes that iterable is either a Python type or a List/Range
+        # This assumes that iterable is either a Python list of Pip objects or
+        # a List/Range--unpredictable behavior otherwise
         self._value.extend(list(iterable))
 
     def index(self, searchItem, startIndex=0):
@@ -429,9 +431,6 @@ class Range:
         upper = self._upper if self._upper is not None else "()"
         return "(%s,%s)" % (lower, upper)
 
-    def __list__(self):
-        return list(iter(self))
-
     def __bool__(self):
         # TBD: can this ever return false?
         return True
@@ -447,8 +446,6 @@ class Range:
             return max(0, self._upper - lower)
         else:
             # A Range with no upper bound has an infinite length
-            # Because of Python's requirements on len(), the only way to mark
-            # this condition is by raising an error:
             raise ValueError("Cannot take len() of infinite Range")
 
     def toNumber(self):
@@ -489,12 +486,12 @@ class Range:
                 yield Scalar(i)
         else:
             # Null upper value results in an infinite iterator
-            # TBD: should this be a fatal error (as now) or just a warning and
-            # infinite loop?
-            # TODO: actual error--this just refuses to iterate
-            # TODO: error message
-            print("Attempting to iterate over an infinite Range")
-            return
+            # TODO: use warning mechanism instead of print()
+            print("Iterating over an infinite Range")
+            i = self._lower
+            while True:
+                yield Scalar(i)
+                i += 1
 
     def __hash__(self):
         # Since Range is not straightforwardly convertible to Python's range,
@@ -540,8 +537,8 @@ class Range:
                     r = self.toRange()
                     return Range(r[index])
                 else:
-                    # One or both slice bounds are outside the size of the Range
-                    # Convert to a List to do extended slicing
+                    # One or both slice bounds are outside the size of the
+                    # Range; convert to a List to do extended slicing
                     result = List(self)
                     return result[start:stop]
             else:
@@ -656,6 +653,9 @@ class Nil:
     def __bool__(self):
         return False
 
+    def __iter__(self):
+        return iter([])
+
     def __eq__(self, rhs):
         return self is rhs
 
@@ -670,4 +670,4 @@ class Nil:
 
 nil = Nil()
 
-# Pattern TODO
+

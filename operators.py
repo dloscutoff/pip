@@ -123,6 +123,8 @@ precedenceTable = [
      ("MM", "MAPMAP", "R", [], RVALS),
      ("MJ", "MAPJOIN", "R", "", RVALS),
      ("MS", "MAPSUM", "R", 0, RVALS),
+     ("MU", "MAPUNPACK", "R", [], RVALS),
+     ("MP", "MAPPAIRS", "R", [], RVALS),
      ("FI", "FILTER", "R", [], RVALS),
      ("SK", "SORTKEYED", "R", [], RVALS),
      ("V", "EVAL", "R", None, RVALS),
@@ -197,9 +199,14 @@ precedenceTable = [
      ("RL", "REPEATLIST", "L", [], RVALS | IN_LAMBDA),
      ("Z", "ZIP", "L", [], RVALS | IN_LAMBDA),
      ("ZD", "ZIPDEFAULT", "L", [], RVALS | IN_LAMBDA),
+     ("WV", "WEAVE", "L", [], RVALS | IN_LAMBDA),
      ("CP", "CARTESIANPRODUCT", "L", [], RVALS | IN_LAMBDA),
-     ("CG", "COORDINATEGRID", "L", None, RVALS | IN_LAMBDA | LIST_EACH | RANGE_EACH),
+     ("CG", "COORDINATEGRID", "L", None,
+      RVALS | IN_LAMBDA | LIST_EACH | RANGE_EACH),
      ("ZG", "ZEROGRID", "L", None, RVALS | IN_LAMBDA | LIST_EACH | RANGE_EACH),
+     ],
+    [3,
+     ("RA", "REPLACEAT", "L", None, RVALS | IN_LAMBDA),
      ],
     [1,
      ("^", "SPLIT", "L", None, RVALS | IN_LAMBDA | LIST_EACH | RANGE_EACH),
@@ -208,8 +215,10 @@ precedenceTable = [
      ("RV", "REVERSE", "L", None, RVALS | IN_LAMBDA),
      ("Z", "ZIP", "L", None, RVALS | IN_LAMBDA),
      ("ZD", "ZIPDEFAULT", "L", None, RVALS | IN_LAMBDA),
+     ("WV", "WEAVE", "L", None, RVALS | IN_LAMBDA),
      ("CP", "CARTESIANPRODUCT", "L", None, RVALS | IN_LAMBDA),
-     ("CG", "COORDINATEGRID", "L", None, RVALS | IN_LAMBDA | LIST_EACH | RANGE_EACH),
+     ("CG", "COORDINATEGRID", "L", None,
+      RVALS | IN_LAMBDA | LIST_EACH | RANGE_EACH),
      ("ZG", "ZEROGRID", "L", None, RVALS | IN_LAMBDA | LIST_EACH | RANGE_EACH),
      ],
     [3,
@@ -252,7 +261,8 @@ precedenceTable = [
      ],
     [1,
      (",", "RANGETO", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
-     ("RR", "RANDRANGETO", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("RR", "RANDRANGETO", "L", None,
+      RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ("TB", "TOBASE", "L", None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      # Unary mnemonic: ToBinary
      ],
@@ -262,7 +272,8 @@ precedenceTable = [
      ("BX", "BITWISEXOR", "L", 0, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [1,
-     ("BN", "BITWISENOT", "L",None, RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
+     ("BN", "BITWISENOT", "L",None,
+      RVALS | IN_LAMBDA | RANGE_EACH | LIST_EACH),
      ],
     [2,
      ("<=>", "NUMCMP", "L", 0, RVALS | IN_LAMBDA),
@@ -331,7 +342,8 @@ operators = set()
 # Some convenience operators for parsing that don't have straightforward
 # equivalents in the syntax:
 highestPrecedence = len(precedenceTable)
-paren = Operator("PAREN", "PARENTHESIZE", 1, highestPrecedence, "L", None, VALS)
+paren = Operator("PAREN", "PARENTHESIZE", 1,
+                 highestPrecedence, "L", None, VALS)
 enlist = Operator("LIST", "LIST", 1, highestPrecedence, "L", None, RVALS)
 block = Operator("BLOCK", "BLOCK", 1, highestPrecedence, "L", None)
 send = Operator("SEND", "SEND", 1, highestPrecedence, "L", None, VALS)
@@ -351,14 +363,15 @@ for precedence, (arity, *entries) in enumerate(precedenceTable):
             flags = 0
         if arity > 2 and flags & (LIST_EACH | RANGE_EACH):
             # TODO: proper implementation error message
-            msg = "Current implementation cannot handle LIST_EACH or RANGE_EACH"
-            msg += "\nfor operators of arity greater than 2 (like %s)" % text
+            msg = ("Current implementation cannot handle LIST_EACH or "
+                   "RANGE_EACH for operators\n of arity greater than 2 "
+                   "(like %s)" % text)
             print(msg)
             flags = flags & ~LIST_EACH & ~RANGE_EACH
         if flags & IN_LAMBDA and not flags & (VALS | RVALS):
             # TODO: proper implementation error message
             msg = "IN_LAMBDA may not be set for operators that do not also"
-            msg += "\nset VALS or RVALS (%s)" % test
+            msg += "set VALS or RVALS\n (%s)" % text
             print(msg)
             flags = flags & ~IN_LAMBDA
         op = Operator(text,

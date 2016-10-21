@@ -93,6 +93,8 @@ def tokenize(code):
                         index = 1
                     else:
                         index = 2
+                    if text == "PIP":
+                        index = 3
                     text = text[:index]
                 else:
                     index = m.end()
