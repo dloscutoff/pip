@@ -10,11 +10,17 @@ Regex operations in Pip use the Pattern data type. Patterns are delimited by <co
 
 The following operators can be used to build regexes:
 
-### Concatenate/repeat: `.` `X`
+### Concatenate/repeat (low level): `.` `X`
 
 Usage: `x.s` `xXn`
 
-Both binary operators work the same as with Scalars. Concatenating a Scalar and a Pattern coerces the result to Pattern.
+Both binary operators work the same as with Scalars. They consider only the text of the Pattern, whether it is a regex, a fragment of a regex, or a replacement. Concatenating a Scalar and a Pattern coerces the result to Pattern.
+
+### Concatenate/alternate/repeat (high level): `+` `,` `*`
+
+Usage: `x+y` `x,y` `x*n`
+
+`+` and `,` assume both operands are valid regexes, wrap each in a non-capturing group, and concatenate them, with `,` placing a `|` in between. `*` assumes the first operand is a valid regex, wraps it in a non-capturing group, and appends a repetition construct like `{n}`.
 
 ### Convert to regex: `X`
 

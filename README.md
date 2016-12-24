@@ -4,7 +4,7 @@ Pip is an interpreted, imperative code-golf language. For more on the syntax and
 
 ### Usage
 
-*You can now run Pip code online at http://pip.tryitonline.net/! Thanks, [Dennis](http://codegolf.stackexchange.com/users/12012/dennis)!*
+*You can now run Pip code online at [Try It Online!](https://tio.run/nexus/pip#@5/ulf3//3@P1Jyc/P/h@UU5KYoA) Thanks, [Dennis](http://codegolf.stackexchange.com/users/12012/dennis)!*
 
 Pip is implemented in Python3. The main interpreter is the pip.py file. It should run on most systems with Py3 installed simply by invoking `pip.py` in the directory where you put it (for *nix systems, use `./pip.py`). You may also wish to modify the `PATH` environment variable to include the path to Pip, so that you can invoke it from anywhere. Typical invocation patterns:
 
