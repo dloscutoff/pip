@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Operators: TRanslate
+#  Operators: TRanslate, ~= regex fullmatch
+#  Regex capability for RM
 #  Fix: ++ increments twice in lvalues of compute-and-assign operators
 #  Flag equivalent to Perl's -p
 #  More regex operations and looping constructs
@@ -21,39 +22,46 @@ from errors import FatalError
 import sys
 import argparse
 
-VERSION = "0.16.10.21"
+VERSION = "0.16.12.23"
 
-def pip(code=None, interactive=True):
-    if code:
+def pip(code=None, args=None, interactive=True):
+    if code or args:
         interactive = False
     if interactive:
         sys.argv = sys.argv[:1]
         print("=== Welcome to Pip, version {} ===".format(VERSION))
         print("Enter command-line args, terminated by newline (-h for help):")
-        args = input() + " "
-        # Parse the fake command-line input, simplistically accepting single-
-        # and double-quoted strings (with no escapes or shell expansion)
-        quote = None
-        buffer = None
-        for char in args:
-            if char in "'\"":
-                if quote is None:
-                    # Open quote
-                    quote = char
-                    buffer = buffer or ""
-                elif quote == char:
-                    # Close quote
-                    quote = None
+        args = input()
+    if args is not None:
+        # Artificial command-line input was provided
+        if type(args) is list:
+            # Add list of args to sys.argv, making sure they're all strings
+            sys.argv.extend(map(str, args))
+        elif type(args) is str:
+            # Parse the fake command-line input, simplistically accepting
+            # single- and double-quoted strings (with no escapes or shell
+            # expansion)
+            quote = None
+            buffer = None
+            for char in args + " ":
+                if char in "'\"":
+                    if quote is None:
+                        # Open quote
+                        quote = char
+                        buffer = buffer or ""
+                    elif quote == char:
+                        # Close quote
+                        quote = None
+                    else:
+                        # Already inside the other type of quote
+                        buffer += char
+                elif char == " " and quote is None:
+                    if buffer is not None:
+                        sys.argv.append(buffer)
+                    buffer = None
                 else:
-                    # Already inside the other type of quote
+                    buffer = buffer or ""
                     buffer += char
-            elif char == " " and quote is None:
-                if buffer is not None:
-                    sys.argv.append(buffer)
-                buffer = None
-            else:
-                buffer = buffer or ""
-                buffer += char
     argparser = argparse.ArgumentParser()
     codeSources = argparser.add_mutually_exclusive_group()
     listFormats = argparser.add_mutually_exclusive_group()

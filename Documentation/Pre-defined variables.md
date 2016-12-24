@@ -28,7 +28,7 @@ For the most up-to-date catalogue, see list near the top of `execution.py`. The 
 
 `v` -1
 
-`w` Pattern matching 1 or more whitespace characters (<code>`\s+`</code>)
+`w` Pattern matching one or more whitespace characters (<code>`\s+`</code>)
 
 `x` Empty string
 
@@ -43,3 +43,15 @@ For the most up-to-date catalogue, see list near the top of `execution.py`. The 
 `PA` All **P**rintable **A**SCII characters, 32 through 126
 
 `PI` Pi
+
+`XA` Pattern matching one (ASCII) letter (<code>`[A-Za-z]`</code>)
+
+`XD` Pattern matching one digit (<code>`\d`</code>)
+
+`XL` Pattern matching one lowercase (ASCII) letter (<code>`[a-z]`</code>)
+
+`XU` Pattern matching one uppercase (ASCII) letter (<code>`[A-Z]`</code>)
+
+`XW` Pattern matching one word character--letter, number, or underscore (<code>`\w`</code>)
+
+`XX` Pattern matching any one character (<code>`.`</code>)

@@ -1,6 +1,4 @@
-**Note**: operators are listed in ASCII/alphabetical order. For up-to-date precedence and associativity information, your best bet is to read the code: there's a reasonably human-readable precedence table in `operators.py`.
-
-U/B/T = Unary/Binary/Ternary
+**Note**: operators are listed in ASCII order. For up-to-date precedence and associativity information, your best bet is to read the code: there's a reasonably human-readable precedence table in `operators.py`.
 
 ### Meta-operators
 
@@ -10,7 +8,9 @@ U/B/T = Unary/Binary/Ternary
 
 `:` Modify-assign: occurs after a unary, binary, or ternary operator; the resulting compound operator has the same arity but has the precedence of `:`
 
-### Symbolic operators
+### Operators
+
+U/B/T = Unary/Binary/Ternary
 
 <code>!  U</code> Logical not
 
@@ -28,17 +28,17 @@ U/B/T = Unary/Binary/Ternary
 
 <code>&  B</code> Logical and (short-circuiting)
 
-<code>*  B</code> Multiplication
+<code>*  B</code> Multiplication; regex repetition
 
 <code>** B</code> Exponentiation
 
-<code>+  B</code> Addition
+<code>+  B</code> Addition; regex concatenation
 
 <code>+  U</code> Cast value as number; set dotall flag on Pattern
 
 <code>++ U</code> Pre-increment (always comes before operand)
 
-<code>,  B</code> Range
+<code>,  B</code> Range; regex alternation
 
 <code>,  U</code> Range from 0 up to; set multiline flag on Pattern
 
@@ -61,8 +61,6 @@ U/B/T = Unary/Binary/Ternary
 <code><  B</code> Numeric less than
 
 <code><= B</code> Numeric less than or equal
-
-<code><=>B</code> Numeric cmp (-1 if less, 0 if equal, 1 if greater)
 
 <code><> B</code> Group iterable into sections of given length
 
@@ -94,24 +92,6 @@ U/B/T = Unary/Binary/Ternary
 
 <code>@? B</code> Find
 
-<code>^  B</code> Split Scalar on separator
-
-<code>^  U</code> Split Scalar into List of characters
-
-<code>^@ B</code> Split iterable at index or List of indices
-
-<code>|  B</code> Logical or (short-circuiting)
-
-<code>|> B</code> Strip from left
-
-<code>|> U</code> Strip whitespace from left
-
-<code>|| B</code> Strip
-
-<code>|| U</code> Strip whitespace
-
-### Alphabetic operators
-
 <code>A  U</code> Convert (first) char to ASCII value (or Unicode point); set ASCII-only flag on Pattern
 
 <code>AB U</code> Absolute value of number
@@ -120,7 +100,7 @@ U/B/T = Unary/Binary/Ternary
 
 <code>AL B</code> List with appended List
 
-<code>AT B</code> Arctangent (operands are y and x)
+<code>AT B</code> Arctan2 (operand order is y, x)
 
 <code>AT U</code> Arctangent
 
@@ -140,6 +120,8 @@ U/B/T = Unary/Binary/Ternary
 
 <code>CG U</code> Coordinate grid of i rows by i columns
 
+<code>CM B</code> Numeric cmp (-1 if less, 0 if equal, 1 if greater)
+
 <code>CO U</code> Cosine
 
 <code>CP B</code> Cartesian product of two iterables
@@ -157,6 +139,8 @@ U/B/T = Unary/Binary/Ternary
 <code>EN U</code> Enumerate an iterable (gives List of `[index item]` Lists)
 
 <code>EQ B</code> Alias for binary Q, kept for backwards compatibility
+
+<code>EY U</code> Identity matrix (abbreviation from Matlab's eye() function)
 
 <code>FB B</code> Convert number from given base to decimal integer
 
@@ -185,6 +169,8 @@ U/B/T = Unary/Binary/Ternary
 <code>LE B</code> String less than or equal
 
 <code>M  B</code> Map Block to iterable, returning List
+
+<code>MC B</code> Map Block to each x,y in square grid of coordinate pairs (hMCi == {(h a@0 a@1)} MM CGi)
 
 <code>MJ B</code> Map Block to iterable and join results into Scalar
 
@@ -303,3 +289,19 @@ U/B/T = Unary/Binary/Ternary
 <code>ZG B</code> Grid of zeros (i rows by j columns)
 
 <code>ZG U</code> Grid of zeros (i rows by i columns)
+
+<code>^  B</code> Split Scalar on separator
+
+<code>^  U</code> Split Scalar into List of characters
+
+<code>^@ B</code> Split iterable at index or List of indices
+
+<code>|  B</code> Logical or (short-circuiting)
+
+<code>|> B</code> Strip from left
+
+<code>|> U</code> Strip whitespace from left
+
+<code>|| B</code> Strip
+
+<code>|| U</code> Strip whitespace

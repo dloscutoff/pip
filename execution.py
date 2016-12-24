@@ -51,6 +51,12 @@ class ProgramState:
             "AZ": Scalar("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
             "PA": Scalar("".join(chr(i) for i in range(32, 127))),
             "PI": Scalar(math.pi),
+            "XA": Pattern(r"[A-Za-z]"),
+            "XD": Pattern(r"\d"),
+            "XL": Pattern(r"[a-z]"),
+            "XU": Pattern(r"[A-Z]"),
+            "XW": Pattern(r"\w"),
+            "XX": Pattern("."),
             }
         # Special "variables" which do something different when you get or
         # set them
@@ -574,6 +580,11 @@ class ProgramState:
                 return Range(lower, upper)
             else:
                 return List(self.ADD(lhs, item) for item in rhs)
+        elif type(lhs) is Pattern and type(rhs) is Pattern:
+            # + with two Patterns returns a new Pattern that matches one,
+            # then the other
+            result = "(?:%s)(?:%s)" % (lhs, rhs)
+            return Pattern(result)
         else:
             self.err.warn("Unimplemented argtypes for ADD:",
                           type(lhs), "and", type(rhs))
@@ -1062,6 +1073,18 @@ class ProgramState:
                           type(iterable), "and", type(rhs))
             return nil
 
+    def IDENTITYMATRIX(self, rhs):
+        if type(rhs) is Scalar:
+            result = []
+            for row in range(int(rhs)):
+                subresult = [scalarOne if row == col else Scalar(0)
+                             for col in range(int(rhs))]
+                result.append(List(subresult))
+            return List(result)
+        else:
+            self.err.warn("Unimplemented argtype for IDENTITYMATRIX:",
+                          type(rhs))
+
     def IFTE(self, test, trueBranch, falseBranch):
         # Ternary if-then-else operator
         test = self.getRval(test)
@@ -1313,18 +1336,38 @@ class ProgramState:
                           type(lhs), "and", type(iterable))
             return nil
 
-    def MAPJOIN(self, function, iterable):
+    def MAPCOORDS(self, lhs, size):
+        "Maps function over grid of coordinate pairs."
+        if type(size) is Scalar:
+            result = []
+            for row in range(int(size)):
+                subresult = []
+                for col in range(int(size)):
+                    if type(lhs) is Block:
+                        subresult.append(self.functionCall(lhs,
+                                                           [Scalar(row),
+                                                            Scalar(col)]))
+                    else:
+                        # If lhs isn't a function, just return a grid of it
+                        subresult.append(lhs)
+                result.append(List(subresult))
+            return List(result)
+        else:
+            self.err.warn("Unimplemented argtypes for MAPCOORDS:",
+                          type(lhs), "and", type(size))
+
+    def MAPJOIN(self, lhs, iterable):
         "Same as MAP, but join the result into a string afterwards."
         # aMJb == J(aMb)
-        return self.JOIN(self.MAP(function, iterable))
+        return self.JOIN(self.MAP(lhs, iterable))
 
-    def MAPMAP(self, function, iterable):
+    def MAPMAP(self, lhs, iterable):
         "Maps function over the items of the items of iterable."
-        if type(iterable) is Block and type(function) in (Scalar, List, Range):
+        if type(iterable) is Block and type(lhs) in (Scalar, List, Range):
             # The arguments are reversible to enable things like lMM:f
-            function, iterable = iterable, function
-        if type(function) is Block and type(iterable) in (Scalar, List, Range):
-            result = (self.MAP(function, item) for item in iterable)
+            lhs, iterable = iterable, lhs
+        if type(iterable) in (Scalar, List, Range):
+            result = (self.MAP(lhs, item) for item in iterable)
             return List(result)
         else:
             self.err.warn("Unimplemented argtypes for MAPMAP:",
@@ -1446,9 +1489,16 @@ Equivalent to Python's itertools.starmap()."""
             return nil
 
     def MUL(self, lhs, rhs):
+        if type(lhs) is Scalar and type(rhs) is Pattern:
+            lhs, rhs = rhs, lhs
         if type(lhs) is Scalar and type(rhs) is Scalar:
             result = lhs.toNumber() * rhs.toNumber()
             return Scalar(result)
+        elif type(lhs) is Pattern and type(rhs) is Scalar:
+            # * with a Pattern and a Scalar returns a new Pattern that matches
+            # the original regex repeated rhs times
+            result = "(?:%s){%s}" % (lhs, int(rhs))
+            return Pattern(result)
         else:
             self.err.warn("Unimplemented argtypes for MUL:",
                           type(lhs), "and", type(rhs))
@@ -1816,7 +1866,7 @@ Equivalent to Python's itertools.starmap()."""
             return rhs
         elif type(rhs) is Pattern:
             # + operator on Pattern applies regex + to the whole thing
-            result = "(?:%s)+" % str(rhs)
+            result = "(?:%s)+" % rhs
             return Pattern(result)
         else:
             self.err.warn("Unimplemented argtype for POS:", type(rhs))
@@ -1938,6 +1988,11 @@ printing nil has no effect, including on whitespace."""
     def RANGE(self, lhs, rhs):
         if type(lhs) in (Scalar, Nil) and type(rhs) in (Scalar, Nil):
             return Range(lhs, rhs)
+        elif type(lhs) is Pattern and type(rhs) is Pattern:
+            # , with two Patterns returns a new Pattern that matches one OR
+            # the other
+            result = "(?:%s)|(?:%s)" % (lhs, rhs)
+            return Pattern(result)
         else:
             self.err.warn("Unimplemented argtypes for RANGE:",
                           type(lhs), "and", type(rhs))
@@ -1948,7 +2003,8 @@ printing nil has no effect, including on whitespace."""
         if type(rhs) in (Scalar, Nil):
             return Range(nil, rhs)
         elif type(rhs) is Pattern:
-            # , operator on a Pattern makes ^ and $ match fronts & ends of lines
+            # , operator on a Pattern makes ^ and $ match fronts & ends of
+            # lines
             result = "(?m)" + str(rhs)
             return Pattern(result)
         else:
