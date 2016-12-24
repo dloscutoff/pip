@@ -16,7 +16,7 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>#a</code> Length
 
-<code>a#<b</code> Length less than
+<code>a#&lt;b</code> Length less than
 
 <code>a#=b</code> Length equal
 
@@ -58,15 +58,15 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>a:b</code> Assignment
 
-<code>a<b</code> Numeric less than
+<code>a&lt;b</code> Numeric less than
 
-<code>a<=b</code> Numeric less than or equal
+<code>a&lt;=b</code> Numeric less than or equal
 
-<code>a<>b</code> Group iterable `a` into sections of length `b`
+<code>a&lt;>b</code> Group iterable `a` into sections of length `b`
 
-<code>a<|b</code> Strip characters in `b` from right of `a`
+<code>a&lt;|b</code> Strip characters in `b` from right of `a`
 
-<code><|a</code> Strip whitespace from right of `a`
+<code>&lt;|a</code> Strip whitespace from right of `a`
 
 <code>a=b</code> Numeric equal
 
@@ -82,9 +82,9 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>a@*b</code> Find all indices of item in iterable, substring or regex match in Scalar
 
-<code>a@<b</code> Slice of iterable left of index
+<code>a@&lt;b</code> Slice of iterable left of index
 
-<code>@<a</code> Leftmost item of iterable
+<code>@&lt;a</code> Leftmost item of iterable
 
 <code>a@>b</code> Slice of iterable right of index
 
@@ -144,7 +144,7 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>aFBb</code> Convert number from given base to decimal integer
 
-<code>FBa/code> Convert number from binary to decimal integer
+<code>FBa</code> Convert number from binary to decimal integer
 
 <code>aFIb</code> Filter (1st arg is Block, 2nd is List)
 
