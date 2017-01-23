@@ -1115,6 +1115,28 @@ class ProgramState:
             # The expression still evaluates to the value plus one, though
             return result
 
+    def INCLRANGE(self, lhs, rhs):
+        "Like RANGE, but includes upper bound."
+        if type(lhs) in (Scalar, Nil) and type(lhs) in (Scalar, Nil):
+            if type(rhs) is Scalar:
+                return Range(lhs, rhs.toNumber() + 1)
+            elif rhs is nil:
+                return Range(lhs, rhs)
+        else:
+            self.err.warn("Unimplemented argtypes for INCLRANGE:",
+                          type(lhs), "and", type(rhs))
+            return nil
+
+    def INCLRANGETO(self, rhs):
+        "Like RANGETO, but from 1 and includes upper bound."
+        if rhs is nil:
+            return Range(1, rhs)
+        elif type(rhs) is Scalar:
+            return Range(1, rhs.toNumber() + 1)
+        else:
+            self.err.warn("Unimplemented argtype for INCLRANGETO:", type(rhs))
+            return nil
+
     def INTDIV(self, lhs, rhs):
         if type(lhs) is Scalar and type(rhs) is Scalar:
             try:

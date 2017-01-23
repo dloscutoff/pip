@@ -290,6 +290,10 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>ZGa</code> Grid of zeros (`a` rows by `a` columns)
 
+<code>a\,b</code> Inclusive range
+
+<code>\,a</code> Inclusive range from 1
+
 <code>a^b</code> Split Scalar `a` on separator `b`
 
 <code>^a</code> Split Scalar `a` into List of characters

@@ -268,11 +268,13 @@ precedenceTable = [
      ],
     [2, "L",
      (",", "RANGE", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     (r"\,", "INCLRANGE", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("RR", "RANDRANGE", 0, RVALS | IN_LAMBDA | RANGE_EACH),
      ("TB", "TOBASE", 0, RVALS | IN_LAMBDA | RANGE_EACH),
      ],
     [1, None,
      (",", "RANGETO", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     (r"\,", "INCLRANGETO", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("RR", "RANDRANGETO", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("TB", "TOBASE", None, RVALS | IN_LAMBDA | RANGE_EACH),
      # Unary mnemonic: ToBinary

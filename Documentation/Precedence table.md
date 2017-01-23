@@ -33,8 +33,8 @@ Remove | Binary | Left | `RM` | Remove | `""` | No | Yes
 String repetition | Binary | Left | `X` | Strmul | `""` | Both | Yes
 Strip and trim | Binary | Left | `||` <br> `|>` <br> `<|` <br> `TM` | Strip <br> Lstrip <br> Rstrip <br> Trim | `""` <br> `""` <br> `""` <br> `""` | List <br> List <br> List <br> List | Yes <br> Yes <br> Yes <br> Yes
 Strip and trim | Unary | – | `||` <br> `|>` <br> `<|` <br> `TM` <br> `LC` <br> `UC` | Strip <br> Lstrip <br> Rstrip <br> Trim <br> Lowercase <br> Uppercase | None <br> None <br> None <br> None <br> None <br> None | List <br> List <br> List <br> List <br> List <br> List | Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes
-Range and to-base | Binary | Left | `,` <br> `RR` <br> `TB` | Range <br> Randrange <br> Tobase | None <br> `0` <br> `0` | Both <br> Both <br> Both | Yes <br> Yes <br> Yes
-Range and to-base | Unary | – | `,` <br> `RR` <br> `TB` | Rangeto <br> Randrangeto <br> Tobase | None <br> None <br> None | Both <br> Both <br> Both | Yes <br> Yes <br> Yes
+Range and to-base | Binary | Left | `,` <br> `\,` <br> `RR` <br> `TB` | Range <br> Inclrange <br> Randrange <br> Tobase | None <br> None <br> `0` <br> `0` | Both <br> Both <br> Both <br> Both | Yes <br> Yes <br> Yes <br> Yes
+Range and to-base | Unary | – | `,` <br> `\,` <br> `RR` <br> `TB` | Rangeto <br> Inclrangeto <br> Randrangeto <br> Tobase | None <br> None <br> None <br> None | Both <br> Both <br> Both <br> Both | Yes <br> Yes <br> Yes <br> Yes
 Low-precedence numeric operators | Binary | Left | `BA` <br> `BO` <br> `BX` <br> `AT` <br> `CM` | Bitwiseand <br> Bitwiseor <br> Bitwisexor <br> Arctan <br> Numcmp | `-1` <br> `0` <br> `0` <br> None <br> `0` | Both <br> Both <br> Both <br> Both <br> No | Yes <br> Yes <br> Yes <br> Yes <br> Yes
 Low-precedence numeric operators | Unary | – | `BN` | Bitwisenot | None | Both | Yes
 Addition and subtraction | Binary | Left | `+` <br> `-` | Add <br> Sub | `0` <br> `0` | List <br> List | Yes <br> Yes

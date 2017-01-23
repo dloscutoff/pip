@@ -22,18 +22,20 @@ from errors import FatalError
 import sys
 import argparse
 
-VERSION = "0.16.12.23"
+VERSION = "0.17.01.23"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:
         interactive = False
     if interactive:
-        sys.argv = sys.argv[:1]
-        print("=== Welcome to Pip, version {} ===".format(VERSION))
+        print("=== Welcome to Pip, version %s ===" % VERSION)
         print("Enter command-line args, terminated by newline (-h for help):")
         args = input()
     if args is not None:
         # Artificial command-line input was provided
+        sys.argv = sys.argv[:1]
+        if type(args) is int:
+            args = str(args)
         if type(args) is list:
             # Add list of args to sys.argv, making sure they're all strings
             sys.argv.extend(map(str, args))
@@ -114,6 +116,10 @@ def pip(code=None, args=None, interactive=True):
                            "--verbose",
                            help="show extra messages",
                            action="store_true")
+    argparser.add_argument("-V",
+                           "--version",
+                           help="display version info and quit",
+                           action="store_true")
     argparser.add_argument("-w",
                            "--warnings",
                            help="show nonfatal warning messages",
@@ -123,6 +129,10 @@ def pip(code=None, args=None, interactive=True):
                            nargs="*")
     options = argparser.parse_args()
     #!print(options)
+    if options.version:
+        print("Pip %s" % VERSION)
+        return
+    
     if options.debug:
         options.warnings = options.verbose = options.repr = True
     listFormat = ("p" if options.repr else
