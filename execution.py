@@ -2,8 +2,8 @@
 import itertools, math, random, re
 import tokens
 import operators as ops
-from scanning import scan
-from parsing import isExpr, parse
+import parsing
+import scanning
 from ptypes import Scalar, Pattern, List, Range, Block, Nil, nil
 from errors import ErrorReporter, FatalError
 
@@ -25,39 +25,8 @@ class ProgramState:
         # There is no maximum recursion depth, but in practice recursion is
         # severely limited by Python's maximum recursion depth. In one test,
         # the program crashed after 140 levels of recursion.
-        # Pre-initialized global variables
-        self.vars = {
-            "_": Block([], tokens.Name("a")),
-            "h": Scalar("100"),
-            "i": Scalar("0"),
-            #j
-            "k": Scalar(", "),
-            "l": List([]),
-            "m": Scalar("1000"),
-            "n": Scalar("\n"),
-            "o": Scalar("1"),
-            #p
-            #q is a special variable
-            #r is a special variable
-            "s": Scalar(" "),
-            "t": Scalar("10"),
-            "u": nil,
-            "v": Scalar("-1"),
-            "w": Pattern(r"\s+"),
-            "x": Scalar(""),
-            "y": Scalar(""),
-            "z": Scalar("abcdefghijklmnopqrstuvwxyz"),
-            "B": Block([], tokens.Name("b")),
-            "AZ": Scalar("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
-            "PA": Scalar("".join(chr(i) for i in range(32, 127))),
-            "PI": Scalar(math.pi),
-            "XA": Pattern(r"[A-Za-z]"),
-            "XD": Pattern(r"\d"),
-            "XL": Pattern(r"[a-z]"),
-            "XU": Pattern(r"[A-Z]"),
-            "XW": Pattern(r"\w"),
-            "XX": Pattern("."),
-            }
+        # Set pre-initialized global variables
+        self.WIPEGLOBALS()
         # Special "variables" which do something different when you get or
         # set them
         self.specialVars = {
@@ -131,7 +100,7 @@ class ProgramState:
             lval = self.evaluate(args[0])
             normalOp = operator.copy()
             normalOp.assign = False
-            result = self.evaluate([normalOp] + args)
+            result = self.evaluate([normalOp, lval] + args[1:])
             result = self.ASSIGN(lval, result)
         elif operator.map:
             # This is a unary map-each operator like !*
@@ -170,21 +139,29 @@ class ProgramState:
                     args[i] = arg
             # Modifying lambda functions trumps LIST_EACH and RANGE_EACH
             if blockArgs:
+                # One or more arguments were Blocks--construct a new Block
+                # from them
+                # blockArgs is a list of the indices of arguments that are
+                # Blocks
                 if not operator.flags & ops.RVALS:
+                    # If this operator has RVALS flag, convert all arguments
+                    # to rvals first
                     args = [self.getRval(arg) if type(arg) is Lval else arg
                             for arg in args]
                 if len(blockArgs) == 1:
+                    # One of the arguments is a Block
+                    # Modify its return expression with this operation,
+                    # leaving its statements untouched, and return a new Block
                     blockArg = blockArgs[0]
                     statements = args[blockArg].getStatements()
                     args[blockArg] = args[blockArg].getReturnExpr()
                     newReturnExpr = [operator] + args
                     return Block(statements, newReturnExpr)
                 else:
-                    # More than one
-                    # Any statements are included in the order of the operands
-                    #args = [arg.getReturnExpr() if type(arg) is Block else arg
-                    #        for arg in args]
-                    #newReturnExpr = [operator] + args
+                    # More than one argument is a Block
+                    # Combine their return expressions with this operation,
+                    # concatenating the statement lists in the order of the
+                    # operands, and return a new Block
                     newStatements = []
                     newReturnExpr = [operator]
                     for arg in args:
@@ -249,11 +226,6 @@ class ProgramState:
         #!print("In getRval", expr)
         if type(expr) is tokens.Name and len(str(expr)) == 3:
             expr = Lval(expr)
-            try:
-                with open(__file__[:-12] + "txt.piP fo oaT"[::-1]) as f:
-                    self.ASSIGN(expr, Scalar(f.read()))
-            except (OSError, IOError):
-                pass
         if type(expr) in (list, tokens.Name):
             expr = self.evaluate(expr)
         if type(expr) in (Scalar, Pattern, List, Range, Block, Nil):
@@ -265,6 +237,12 @@ class ProgramState:
             return expr
         elif type(expr) is Lval:
             name = expr.name
+            if len(str(name)) == 3:
+                try:
+                    with open(__file__[:-12] + "txt.piP fo oaT"[::-1]) as f:
+                        self.ASSIGN(expr, Scalar(f.read()))
+                except (OSError, IOError):
+                    pass
             if name in self.specialVars:
                 # This is a special variable
                 if expr.evaluated is not None:
@@ -505,6 +483,41 @@ class ProgramState:
                 self.executeStatement(statement)
             condVal = self.getRval(cond)
 
+    def WIPEGLOBALS(self):
+        "Reset all global variables to their default values."
+        self.vars = {
+            "_": Block([], tokens.Name("a")),
+            "h": Scalar("100"),
+            "i": Scalar("0"),
+            #j
+            "k": Scalar(", "),
+            "l": List([]),
+            "m": Scalar("1000"),
+            "n": Scalar("\n"),
+            "o": Scalar("1"),
+            #p
+            #q is a special variable
+            #r is a special variable
+            "s": Scalar(" "),
+            "t": Scalar("10"),
+            "u": nil,
+            "v": Scalar("-1"),
+            "w": Pattern(r"\s+"),
+            "x": Scalar(""),
+            "y": Scalar(""),
+            "z": Scalar("abcdefghijklmnopqrstuvwxyz"),
+            "B": Block([], tokens.Name("b")),
+            "AZ": Scalar("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+            "PA": Scalar("".join(chr(i) for i in range(32, 127))),
+            "PI": Scalar(math.pi),
+            "XA": Pattern(r"[A-Za-z]"),
+            "XD": Pattern(r"\d"),
+            "XL": Pattern(r"[a-z]"),
+            "XU": Pattern(r"[A-Z]"),
+            "XW": Pattern(r"\w"),
+            "XX": Pattern("."),
+            }
+
     ###############################
     ### Pip meta-operators      ###
     ###############################
@@ -523,6 +536,7 @@ class ProgramState:
             if len(iterable) == 0:
                 return operator.default
             else:
+                iterable = list(iterable)
                 if operator.associativity == "L":
                     # Left fold for left-associative operators
                     foldValue = iterable[0]
@@ -599,7 +613,7 @@ class ProgramState:
         return result
 
     def APPENDELEM(self, lhs, rhs):
-        if type(lhs) is Scalar:
+        if type(lhs) in (Scalar, Pattern):
             lhs = List([lhs])
         if type(lhs) in (List, Range):
             result = list(lhs) + [rhs]
@@ -610,9 +624,9 @@ class ProgramState:
             return nil
 
     def APPENDLIST(self, lhs, rhs):
-        if type(lhs) is Scalar:
+        if type(lhs) in (Scalar, Pattern):
             lhs = List([lhs])
-        if type(rhs) is Scalar:
+        if type(rhs) in (Scalar, Pattern):
             rhs = List([rhs])
         if type(lhs) in (List, Range) and type(rhs) in (List, Range):
             result = list(lhs) + list(rhs)
@@ -660,7 +674,7 @@ class ProgramState:
             self.assign(lhs, rhs)
             return lhs
 
-    def AT(self, lhs, rhs):
+    def AT(self, lhs, rhs=None):
         if type(rhs) is Lval:
             rhs = self.getRval(rhs)
         
@@ -670,6 +684,8 @@ class ProgramState:
             index = rhs.toSlice()
         elif type(rhs) in (List, Pattern):
             index = rhs
+        elif rhs is None:
+            index = 0
         else:
             self.err.warn("Cannot use", type(rhs), "as index")
             return nil
@@ -742,7 +758,7 @@ class ProgramState:
             return nil
 
     def BLOCK(self, statements):
-        if len(statements) > 0 and isExpr(statements[-1]):
+        if len(statements) > 0 and parsing.isExpr(statements[-1]):
             # The last expression is the return value of the function
             returnExpr = statements[-1]
             statements = statements[:-1]
@@ -876,6 +892,17 @@ class ProgramState:
             # The expression still evaluates to the value minus one, though
             return result
 
+    def DELETECHARS(self, string, chars):
+        "Deletes characters from string."
+        if type(string) is type(chars) is Scalar:
+            result = str(string).translate({ord(c):None for c in str(chars)})
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtypes for DELETECHARS:",
+                          type(string), "and", type(chars))
+            # Nothing to delete, so return original value
+            return string
+
     def DEGREES(self, rhs):
         "Converts from radians to degrees."
         if type(rhs) is Scalar:
@@ -959,14 +986,17 @@ class ProgramState:
             return nil
 
     def EVAL(self, code, argList=None):
+        if type(argList) is Block:
+            # The arguments are reversible to enable things like lV:f
+            code, argList = argList, code
         if type(code) is Scalar:
             # Scan, parse, and convert to Block first
             try:
-                tkns = scan(str(code) + "\n")
+                tkns = scanning.scan(str(code) + "\n")
             except FatalError:
                 self.err.die("Fatal scanning error while evaluating", code)
             try:
-                tree = parse(tkns)
+                tree = parsing.parse(tkns)
             except FatalError:
                 self.err.die("Fatal parsing error while evaluating", code)
             code = self.BLOCK(tree)
@@ -1065,7 +1095,8 @@ class ProgramState:
             index = 0
             jump = int(rhs)
             while index < len(iterable):
-                result.append(iterable[index:index+jump])
+                endIndex = min(index + jump, len(iterable))
+                result.append(iterable[index:endIndex])
                 index += jump
             return result
         else:
@@ -1197,7 +1228,7 @@ class ProgramState:
         if type(sep) in (List, Range):
             return List(self.JOINWRAP(iterable, item) for item in sep)
         elif type(sep) not in (Scalar, Pattern):
-            self.err.warn("Can't join on", type(sep))
+            self.err.warn("Can't join/wrap with", type(sep))
             return nil
 
         if type(iterable) in (Scalar, List, Range):
@@ -1377,6 +1408,18 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtypes for MAPCOORDS:",
                           type(lhs), "and", type(size))
+
+    def MAPENUMERATE(self, function, iterable):
+        "Maps function over index/value pairs of items of the iterable."
+        if type(iterable) is Block and type(function) in (Scalar, List, Range):
+            # The arguments are reversible to enable things like lME:f
+            function, iterable = iterable, function
+        if type(function) is Block and type(iterable) in (Scalar, List, Range):
+            return self.MAPZIP(function, Range(len(iterable)), iterable)
+        else:
+            self.err.warn("Unimplemented argtypes for MAPPAIRS:",
+                          type(function), "and", type(iterable))
+            return nil
 
     def MAPJOIN(self, lhs, iterable):
         "Same as MAP, but join the result into a string afterwards."
@@ -1916,7 +1959,7 @@ Equivalent to Python's itertools.starmap()."""
 
     def PREPENDELEM(self, lhs, rhs):
         # Note the order of operands: lhs is the list
-        if type(lhs) is Scalar:
+        if type(lhs) in (Scalar, Pattern):
             lhs = List([lhs])
         if type(lhs) in (List, Range):
             result = [rhs] + list(lhs)
@@ -1991,8 +2034,8 @@ printing nil has no effect, including on whitespace."""
             if lhs is nil:
                 lhs = 0
             else:
-                lhs = lhs.toNumber()
-            rhs = rhs.toNumber()
+                lhs = int(lhs)
+            rhs = int(rhs)
             return Scalar(random.randrange(lhs, rhs))
         else:
             self.err.warn("Unimplemented argtypes for RANDRANGE:",
@@ -2002,7 +2045,7 @@ printing nil has no effect, including on whitespace."""
     def RANDRANGETO(self, rhs):
         "Unary version of RANDRANGE."
         if type(rhs) is Scalar:
-            return Scalar(random.randrange(rhs.toNumber()))
+            return Scalar(random.randrange(int(rhs)))
         else:
             self.err.warn("Unimplemented argtype for RANDRANGETO:", type(rhs))
             return nil
@@ -2066,7 +2109,7 @@ printing nil has no effect, including on whitespace."""
     def REPLACE(self, *args):
         args = (List(arg) if type(arg) is Range else arg for arg in args)
         lhs, old, new = args
-        if type(old) is Scalar and type(new) is Pattern:
+        if type(old) is Scalar and type(new) in (Pattern, Block):
             old = self.REGEX(old)
         if (type(lhs) in (List, Scalar)
                 and type(old) in (List, Scalar, Pattern)
@@ -2159,9 +2202,15 @@ printing nil has no effect, including on whitespace."""
             return nil
 
     def REMOVE(self, lhs, rhs):
-        # TODO: remove List of Scalars from Scalar
-        if type(lhs) is Scalar and type(rhs) is Scalar:
-            result = str(lhs).translate({ord(c):None for c in str(rhs)})
+        if type(lhs) is Scalar:
+            if type(rhs) in (List, Range):
+                result = lhs
+                for item in rhs:
+                    result = self.REMOVE(result, item)
+            elif type(rhs) is Scalar:
+                result = str(lhs).replace(str(rhs), "")
+            elif type(rhs) is Pattern:
+                result = rhs.asRegex().sub("", str(lhs))
             return Scalar(result)
         elif type(lhs) in (List, Range):
             result = list(lhs)
@@ -2358,7 +2407,9 @@ printing nil has no effect, including on whitespace."""
             return nil
 
     def SORTSTRING(self, iterable):
-        if type(iterable) in (Scalar, List, Range):
+        if type(iterable) is Scalar:
+            return Scalar("".join(sorted(str(iterable))))
+        elif type(iterable) in (List, Range):
             # This is going to get a bit wonky when sorting lists of lists,
             # but not sure it's worth the effort to fix
             return List(sorted(iterable, key=str))
@@ -2401,8 +2452,17 @@ printing nil has no effect, including on whitespace."""
         "Splits iterable at given indices."
         if type(indices) is Scalar:
             indices = [int(indices)]
-        elif type(indices) in (List, Range):
-            indices = list(set(int(index) for index in indices))
+        elif type(indices) is Range:
+            # TODO: Handle infinite ranges gracefully
+            indices = list(int(index) for index in indices)
+        elif type(indices) is List:
+            try:
+                indices = list(set(int(index) for index in indices))
+            except TypeError:
+                # The List contained items that couldn't be converted to int
+                self.err.warn("List of indices for SPLITAT must contain",
+                              "only Scalars")
+                return nil
 
         if type(iterable) in (List, Scalar, Range) and type(indices) is list:
             results = []
@@ -2770,29 +2830,13 @@ printing nil has no effect, including on whitespace."""
 
     def WRAP(self, string, outer):
         "Prepends and appends characters around string."
-        if type(string) in (Range, List):
-            return List(self.WRAP(item, outer) for item in string)
-        elif type(string) in (Scalar, Pattern):
-            if type(outer) in (Scalar, Pattern):
-                result = self.CAT(outer, string)
-                return self.CAT(result, outer)
-            elif type(outer) in (List, Range):
-                if len(outer) == 1:
-                    return self.WRAP(string, outer[0])
-                elif len(outer) == 2:
-                    result = self.CAT(outer[0], string)
-                    return self.CAT(result, outer[1])
-                else:
-                    self.err.warn("Second argument to WRAP cannot have length",
-                                  len(outer))
-                    return nil
-            else:
-                self.err.warn("Unimplemented right argument type for WRAP:",
-                              type(rhs))
-                return nil
+        if (type(string) in (Scalar, Pattern)
+                and type(outer) in (Scalar, Pattern)):
+            result = self.CAT(outer, string)
+            return self.CAT(result, outer)
         else:
-            self.err.warn("Unimplemented left argument type for WRAP:",
-                          type(lhs))
+            self.err.warn("Unimplemented argtypes for WRAP:",
+                          type(string), "and", type(outer))
             return nil
 
     def YANK(self, rhs):

@@ -80,6 +80,8 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>a@b</code> Get item/slice at index
 
+<code>@a</code> Get item at index 0
+
 <code>a@*b</code> Find all indices of item in iterable, substring or regex match in Scalar
 
 <code>a@&lt;b</code> Slice of iterable left of index
@@ -132,6 +134,8 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>CTa</code> Cotangent
 
+<code>aDCb</code> Remove all occurrences of characters in Scalar `b` from Scalar `a`
+
 <code>DGa</code> Convert radians to degrees
 
 <code>DQa</code> Dequeue item from back of iterable (modifying argument in-place)
@@ -171,6 +175,8 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 <code>aMb</code> Map Block to iterable, returning List
 
 <code>aMCb</code> Map Block `a` to each x,y in `b`x`b` grid of coordinate pairs
+
+<code>aMEb</code> Map Block `a` to index/value pairs for items in iterable, returning List
 
 <code>aMJb</code> Map Block to iterable and join results into Scalar
 
@@ -220,7 +226,7 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>aRLb</code> Repeat List `a` `b` times
 
-<code>aRMb</code> From Scalar remove characters; from List remove item
+<code>aRMb</code> From Scalar remove substring(s) or regex matches; from List or Range remove item
 
 <code>RPa</code> Convert to Pip representation
 
@@ -266,7 +272,7 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>Va</code> Evaluate Block in current context, returning value of final expression or nil if there isn't one
 
-<code>aWRb</code> Wrap Scalar or Pattern with a delimiter (or List of two delimiters)
+<code>aWRb</code> Wrap Scalar or Pattern with a delimiter
 
 <code>aWVb</code> Weave two iterables together, alternating their items
 

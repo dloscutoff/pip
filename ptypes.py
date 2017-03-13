@@ -590,10 +590,10 @@ class Block:
 
     def __init__(self, statements, returnExpr):
         self._statements = statements
-        if returnExpr:
-            self._returnExpr = returnExpr
-        else:
+        if returnExpr is None:
             self._returnExpr = nil
+        else:
+            self._returnExpr = returnExpr
 
     def copy(self):
         return Block(self._statements, self._returnExpr)

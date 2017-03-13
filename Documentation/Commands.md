@@ -28,18 +28,6 @@ Since both the if and else branches may drop the curly braces if they contain si
 
 Like a for loop, but takes a number rather than an iterable, and does not assign to a loop variable. Equivalent of `{...}*10` in some languages.
 
-### Output statement
-
-See the `O` operator.
-
-### Print statement
-
-See the `P` operator.
-
-### Query statement
-
-**No longer available.** Use `q` special variable instead.
-
 ### Swap statement
 
 `Sab`
@@ -69,3 +57,9 @@ Read as "unify x, y, z with g." Like Python's tuple unpacking, but works even if
 `while(x < 10) {...}`
 
 Loop as long as the condition is true; stop when it becomes false.
+
+### Wipe globals
+
+`WG`
+
+Resets all global variables to their default values.

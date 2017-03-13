@@ -2,8 +2,7 @@
 
 # Priorities TODO:
 #  Operators: TRanslate, ~= regex fullmatch
-#  Regex capability for RM
-#  Fix: ++ increments twice in lvalues of compute-and-assign operators
+#  Fix: List of Ranges should work for right operand of @
 #  Flag equivalent to Perl's -p
 #  More regex operations and looping constructs
 #  Special variables for regex capturing groups
@@ -22,7 +21,7 @@ from errors import FatalError
 import sys
 import argparse
 
-VERSION = "0.17.01.23"
+VERSION = "0.17.03.12"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:
