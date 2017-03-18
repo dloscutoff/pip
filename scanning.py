@@ -7,7 +7,7 @@ from errors import ErrorReporter
 
 err = ErrorReporter(warnings=True)  # TODO: get this setting from the args?
 
-nameRgx = re.compile(r'[A-Z]+|[a-z_]')
+nameRgx = re.compile(r"[A-Z]+|[a-z_]|\$[][()$`'0-9]")
 stringRgx = re.compile(r'"[^"]*"')
 patternRgx = re.compile(r'`(\\`|\\\\|[^`])*`')
 charRgx = re.compile(r"'(.|\n)")
@@ -54,13 +54,11 @@ def newToken(text, *args, **kwargs):
         return tokens.EscapedString(text)
     elif text[0] == '`':
         return tokens.Pattern(text)
-    elif symbolsRgx.match(text) and (text[0] != "E" or text == "E"):
-        # (The above special-casing is to prevent potential names starting with
-        # E from scanning as symbols and choking the parser)
+    elif symbolsRgx.fullmatch(text):
         return tokens.Symbol(text)
-    elif nameRgx.match(text):
+    elif nameRgx.fullmatch(text):
         return tokens.Name(text)
-    elif numberRgx.match(text):
+    elif numberRgx.fullmatch(text):
         return tokens.Number(text)
     # Others as needed
     else:

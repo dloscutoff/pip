@@ -3,6 +3,7 @@
 
 import re
 import itertools
+import sys
 
 zeroRgx = re.compile(r"^(0+(\.0*)?|0*\.0+)$")
 floatRgx = re.compile(r"-?\d+\.\d*|\.\d+")
@@ -115,8 +116,7 @@ class Scalar:
                 repString += self._value
             return Scalar(repString[start:stop])
         else:
-            print("Cannot use", type(index), "to index Scalar")
-            return nil
+            raise TypeError("Cannot use %s to index Scalar" % type(index))
 
     def __setitem__(self, index, item):
         # Behold! Mutable strings!
@@ -163,7 +163,9 @@ class Pattern:
 
     def asRegex(self):
         if not self._compiled:
+            # Add an extra <all> capture group around the whole thing
             pyRegex = "(?P<all>%s)" % self._raw
+            # Increment the numbers of all back-references
             pyRegex = re.sub(r"(?<!\\)((?:\\{2})*)\\([1-9]\d?)",
                              lambda m: (m.group(1)
                                         + "\\"
@@ -179,7 +181,7 @@ class Pattern:
         return self._separator
 
     def asReplacement(self):
-        # Increment all back-references:
+        # Increment all back-references
         pyReplace = re.sub(r"(?<!\\)((?:\\{2})*)\\([1-9]\d?)",
                            lambda m: (m.group(1)
                                       + "\\"
@@ -248,6 +250,7 @@ class List:
                            tuple,
                            set,
                            generator,
+                           map,
                            zip,
                            itertools.starmap,):
             self._value = list(value)
@@ -258,8 +261,8 @@ class List:
         elif value is None:
             self._value = []
         else:
-            print("In List constructor:", value, type(value))
             self._value = []
+            raise TypeError("Cannot convert %s to List" % type(value))
 
     def copy(self):
         return List(item.copy() for item in self._value)
@@ -346,8 +349,7 @@ class List:
                 repList += self._value
             return List(repList[start:stop])
         else:
-            print("Cannot use", type(index), "to index List")
-            return nil
+            raise TypeError("Cannot use %s to index List" % type(index))
 
     def __setitem__(self, index, item):
         if type(index) is int:
@@ -406,7 +408,10 @@ class Range:
                 self._lower = value
                 self._upper = upperVal if upperVal is not nil else None
             else:
-                print("Cannot use", type(upperVal), "in Range")
+                raise TypeError("Cannot convert %s to Range" % type(upperVal))
+        else:
+            raise TypeError("Cannot convert %s to Range" % type(value))
+
 
     def copy(self):
         return Range(self._lower,
@@ -486,8 +491,8 @@ class Range:
                 yield Scalar(i)
         else:
             # Null upper value results in an infinite iterator
-            # TODO: use warning mechanism instead of print()
-            print("Iterating over an infinite Range")
+            # TODO: use warning mechanism instead of print()?
+            print("Iterating over an infinite Range", file=sys.stderr)
             i = self._lower
             while True:
                 yield Scalar(i)
@@ -670,4 +675,15 @@ class Nil:
 
 nil = Nil()
 
+def toPipType(pyObj):
+    if type(pyObj) in (str, int, float, bool):
+        return Scalar(pyObj)
+    elif type(pyObj) in (list, tuple, set, generator, map):
+        return List(pyObj)
+    elif type(pyObj) in (range, slice):
+        return Range(pyObj)
+    elif pyObj is None:
+        return nil
+    else:
+        raise TypeError("Cannot convert %s to Pip type" % type(pyObj))
 

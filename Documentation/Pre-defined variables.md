@@ -1,4 +1,4 @@
-For the most up-to-date catalogue, see list near the top of `execution.py`. The list here also includes the "special variables," which have different behavior when accessed and/or assigned. Eventually, every letter h-z should appear below.
+This list also includes the "special variables," which have different behavior when accessed and/or assigned. (For regex match variables, see [Regex operations](https://github.com/dloscutoff/pip/blob/master/Documentation/Regex%20operations.md).) Eventually, every letter h-z should appear below.
 
 `_` Identity function (== `{a}`)
 
@@ -42,7 +42,7 @@ For the most up-to-date catalogue, see list near the top of `execution.py`. The 
 
 `PA` All **P**rintable **A**SCII characters, 32 through 126
 
-`PI` Pi
+`PI` Pi (3.141592653589793)
 
 `XA` Pattern matching one (ASCII) letter (<code>`[A-Za-z]`</code>)
 

@@ -83,6 +83,7 @@ cmdTable = [
     ("F", "FOR", ["NAME", "EXPR", "CODE"]),
     ("I", "IF", ["EXPR", "CODE", "ELSE"]),
     ("L", "LOOP", ["EXPR", "CODE"]),
+    ("LR", "LOOPREGEX", ["EXPR", "EXPR", "CODE"]),
     ("S", "SWAP", ["EXPR", "EXPR"]),
     ("T", "TILL", ["EXPR", "CODE"]),
     ("U", "UNIFY", ["NAMES", "WITH"]),
@@ -145,6 +146,7 @@ precedenceTable = [
      ("V", "EVAL", None, RVALS),
      ],
     [3, "R",
+     ("MR", "MAPREGEX", [], RVALS),
      ("MZ", "MAPZIP", [], RVALS),
      ],
     [1, None,
@@ -167,6 +169,7 @@ precedenceTable = [
      ("#=", "LENEQUAL", 1, RVALS),
      ("#<", "LENLESS", 1, RVALS),
      ("#>", "LENGREATER", 1, RVALS),
+     ("~=", "FULLMATCH", 1, RVALS),
      ],
      # Note: comparison operators CAN also be used in lambdas, due to the
      # CHAIN pseudo-operator having the IN_LAMBDA flag (see below).
@@ -240,6 +243,7 @@ precedenceTable = [
      ],
     [2, "L",
      ("WR", "WRAP", "", RVALS | IN_LAMBDA | RANGE_EACH),
+     ("~", "FIRSTMATCH", "", RVALS | IN_LAMBDA | RANGE_EACH),
      ],
     [2, "L",
      (".", "CAT", "", RVALS | IN_LAMBDA | RANGE_EACH),

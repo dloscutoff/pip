@@ -1,17 +1,17 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Operators: TRanslate, ~= regex fullmatch
+#  Operators: TRanslate
 #  Fix: List of Ranges should work for right operand of @
+#  Fix: ()N123 should return (), not ""
+#  List N Scalar returns List of results??
 #  Flag equivalent to Perl's -p
-#  More regex operations and looping constructs
-#  Special variables for regex capturing groups
 #  Make RA behave as expected for multiple, size-changing replacements
 #  Rework ugly hacks in definition of Range class
 #  Do loop?
-#  Figure out how to get correct warning/error reporting in ptypes classes
 #  Reconstitute code from parse tree and return that for functions' str and
 #    repr
+#  Figure out how to get correct warning/error reporting in ptypes classes
 #  More operators!
 
 from scanning import scan, addSpaces
@@ -21,7 +21,7 @@ from errors import FatalError
 import sys
 import argparse
 
-VERSION = "0.17.03.12"
+VERSION = "0.17.03.18"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:

@@ -186,6 +186,8 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>aMPb</code> Map Block to consecutive pairs of items from iterable, returning List
 
+<code>aMRbc</code> Map Block to each match of regex b in Scalar c
+
 <code>aMSb</code> Map Block to iterable and sum results
 
 <code>aMUb</code> Map Block to iterable, unpacking each item as function arguments (like Python's `itertools.starmap`); returns List
@@ -315,3 +317,7 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 <code>a||b</code> Strip characters in `b` from `a`
 
 <code>||a</code> Strip whitespace from `a`
+
+<code>a~b</code> Find first match of Pattern `a` in Scalar `b` (reversible)
+
+<code>a~=b</code> Test if Pattern `a` fully matches Scalar `b` (reversible)

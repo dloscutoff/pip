@@ -5,6 +5,7 @@ import operators as ops
 import parsing
 import scanning
 from ptypes import Scalar, Pattern, List, Range, Block, Nil, nil
+import ptypes
 from errors import ErrorReporter, FatalError
 
 # Generate a Scalar constant 1 now to make (in|de)crements more efficient
@@ -368,6 +369,37 @@ class ProgramState:
         self.callDepth -= 1
         return returnVal
 
+    def assignRegexVars(self, matchObj):
+        "Sets regex match vars given a Python match object."
+        groups = list(map(ptypes.toPipType, matchObj.groups()))
+        # Assign list of all groups (except the full match) to $$
+        self.assign(Lval("$$"), List(groups[1:]))
+        # Assign specific groups to variables $0 through $9
+        for i in range(10):
+            matchVar = Lval("$%d" % i)
+            if i < len(groups):
+                self.assign(matchVar, groups[i])
+            else:
+                self.assign(matchVar, nil)
+        # Assign full match's start and end indices to $( and $)
+        self.assign(Lval("$("), Scalar(matchObj.start()))
+        self.assign(Lval("$)"), Scalar(matchObj.end()))
+        # Assign portion of string before match to $` and after to $'
+        self.assign(Lval("$`"), Scalar(matchObj.string[:matchObj.start()]))
+        self.assign(Lval("$'"), Scalar(matchObj.string[matchObj.end():]))
+        # Assign lists of groups' start and end indices to $[ and $]
+        # (not including the full match)
+        if len(matchObj.regs) > 2:
+            startIndices, endIndices = zip(*matchObj.regs[2:])
+            startIndices = List(map(Scalar, startIndices))
+            endIndices = List(map(Scalar, endIndices))
+        else:
+            startIndices = List()
+            endIndices = List()
+        self.assign(Lval("$["), startIndices)
+        self.assign(Lval("$]"), endIndices)
+        return groups
+
 
     ################################
     ### Fns for special vars     ###
@@ -425,19 +457,26 @@ class ProgramState:
         for i in range(count):
             for statement in code:
                 self.executeStatement(statement)
-
-# DEPRECATED: Use special variable q or -r flag instead
-##    def QUERY(self, lval):
-##        """Get a line from stdin and store it in lval."""
-##        lval = self.evaluate(lval)
-##        if type(lval) is not Lval:
-##            self.err.warn("Attempting to store query input into non-lvalue")
-##            return
-##        try:
-##            line = Scalar(input())
-##        except EOFError:
-##            line = nil
-##        self.assign(lval, line)
+    
+    def LOOPREGEX(self, regex, string, code):
+        "Execute code for each match of regex in string."
+        regex = self.getRval(regex)
+        string = self.getRval(string)
+        if type(regex) is Scalar and type(string) is Pattern:
+            regex, string = string, regex
+        elif type(regex) is Scalar:
+            regex = self.REGEX(regex)
+        if type(regex) is Pattern and type(string) is Scalar:
+            # TBD: behavior for other types, such as type(string) is List?
+            matches = regex.asRegex().finditer(str(string))
+            for matchObj in matches:
+                self.assignRegexVars(matchObj)
+                # Then execute the loop body
+                for statement in code:
+                    self.executeStatement(statement)
+        else:
+            self.err.warn("Unimplemented argtypes for LOOPREGEX:",
+                          type(regex), "and", type(string))
 
     def SWAP(self, lval1, lval2):
         "Exchange the values of two variables (or lvals, in general)."
@@ -613,7 +652,7 @@ class ProgramState:
         return result
 
     def APPENDELEM(self, lhs, rhs):
-        if type(lhs) in (Scalar, Pattern):
+        if type(lhs) in (Scalar, Pattern, Nil):
             lhs = List([lhs])
         if type(lhs) in (List, Range):
             result = list(lhs) + [rhs]
@@ -624,9 +663,9 @@ class ProgramState:
             return nil
 
     def APPENDLIST(self, lhs, rhs):
-        if type(lhs) in (Scalar, Pattern):
+        if type(lhs) in (Scalar, Pattern, Nil):
             lhs = List([lhs])
-        if type(rhs) in (Scalar, Pattern):
+        if type(rhs) in (Scalar, Pattern, Nil):
             rhs = List([rhs])
         if type(lhs) in (List, Range) and type(rhs) in (List, Range):
             result = list(lhs) + list(rhs)
@@ -700,8 +739,12 @@ class ProgramState:
                 lhs = self.getRval(lhs)
         
         if type(rhs) is Pattern and type(lhs) is Scalar:
-            matchIter = rhs.asRegex().finditer(str(lhs))
-            return List(Scalar(match.group(0)) for match in matchIter)
+            matches = rhs.asRegex().finditer(str(lhs))
+            result = []
+            for matchObj in matches:
+                groups = self.assignRegexVars(matchObj)
+                result.append(groups[0])
+            return List(result)
         elif type(rhs) is Pattern and type(lhs) in (List, Range):
             return List(self.AT(sub, rhs) for sub in lhs)
         elif type(lhs) in (Scalar, List, Range):
@@ -776,9 +819,8 @@ class ProgramState:
                 return nil
         else:
             lists = [list1, list2]
-        noniterables = [item for item in lists if type(item) in (Nil,
-                                                                 Block,
-                                                                 Pattern)]
+        noniterables = [item for item in lists
+                        if type(item) in (Nil, Block, Pattern)]
         if noniterables:
             # There are some of the "lists" that are not iterable
             # TBD: maybe this can find a non-error meaning?
@@ -1032,9 +1074,10 @@ class ProgramState:
 
     def FIND(self, iterable, item):
         if type(item) is Pattern and type(iterable) is Scalar:
-            firstMatch = item.asRegex().search(str(iterable))
-            if firstMatch:
-                return Scalar(firstMatch.start())
+            matchObj = item.asRegex().search(str(iterable))
+            if matchObj:
+                self.assignRegexVars(matchObj)
+                return Scalar(matchObj.start())
             else:
                 return nil
         elif type(iterable) in (Scalar, List, Range):
@@ -1050,10 +1093,15 @@ class ProgramState:
         elif type(item) is Pattern and type(iterable) is Scalar:
             # Return indices of all regex matches in Scalar
             matches = item.asRegex().finditer(str(iterable))
-            return List(Scalar(match.start()) for match in matches)
+            result = []
+            for matchObj in matches:
+                self.assignRegexVars(matchObj)
+                result.append(Scalar(matchObj.start()))
+            return List(result)
         elif (type(item) in (Scalar, Range)
-              and type(iterable) in (Scalar, Range, List)
-              or type(item) in (List, Pattern) and type(iterable) is List):
+                  and type(iterable) in (Scalar, Range, List)
+              or type(item) in (List, Pattern, Nil)
+                  and type(iterable) is List):
             result = []
             lastIndex = iterable.index(item)
             while lastIndex is not nil:
@@ -1063,6 +1111,21 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtypes for FINDALL:",
                           type(iterable), "and", type(item))
+            return nil
+
+    def FIRSTMATCH(self, regex, string):
+        if type(string) is Pattern:
+            regex, string = string, regex
+        if type(regex) is Pattern and type(string) is Scalar:
+            matchObj = regex.asRegex().search(str(string))
+            if matchObj:
+                self.assignRegexVars(matchObj)
+                return Scalar(matchObj.group())
+            else:
+                return nil
+        else:
+            self.err.warn("Unimplemented argtypes for FIRSTMATCH:",
+                          type(regex), "and", type(string))
             return nil
 
     def FROMBASE(self, number, base=None):
@@ -1088,6 +1151,24 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for FROMBASE:",
                           type(number))
             return nil
+
+    def FULLMATCH(self, regex, string):
+        if type(string) is Pattern:
+            regex, string = string, regex
+        if type(regex) is Pattern and type(string) in (List, Range):
+            return Scalar(all(self.FULLMATCH(regex, item)
+                              for item in string))
+        elif type(regex) is Pattern and type(string) is Scalar:
+            matchObj = regex.asRegex().fullmatch(str(string))
+            if matchObj:
+                self.assignRegexVars(matchObj)
+                return scalarOne
+            else:
+                return Scalar("0")
+        else:
+            self.err.warn("Unimplemented argtypes for FULLMATCH:",
+                          type(regex), "and", type(string))
+            return Scalar("0")
 
     def GROUP(self, iterable, rhs):
         if type(iterable) in (Scalar, List, Range) and type(rhs) is Scalar:
@@ -1126,8 +1207,12 @@ class ProgramState:
 
     def IN(self, lhs, rhs):
         if type(lhs) is Pattern and type(rhs) is Scalar:
-            matches = lhs.asRegex().findall(str(rhs))
-            return Scalar(len(matches))
+            matches = lhs.asRegex().finditer(str(rhs))
+            count = 0
+            for matchObj in matches:
+                self.assignRegexVars(matchObj)
+                count += 1
+            return Scalar(count)
         elif type(rhs) in (Scalar, List, Range):
             return Scalar(rhs.count(lhs))
         else:
@@ -1449,6 +1534,27 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtypes for MAPPAIRS:",
                           type(function), "and", type(iterable))
+            return nil
+
+    def MAPREGEX(self, lhs, regex, string):
+        "Maps function over regex matches in string."
+        if type(string) is Block and type(lhs) is Scalar:
+            # The arguments are reversible to enable things like sMR:xf
+            lhs, string = string, lhs
+        elif type(string) is Pattern and type(regex) is Scalar:
+            regex, string = string, regex
+        if (type(lhs) is Block
+                and type(regex) is Pattern
+                and type(string) is Scalar):
+            matches = regex.asRegex().finditer(str(string))
+            result = []
+            for matchObj in matches:
+                groups = self.assignRegexVars(matchObj)
+                result.append(self.functionCall(lhs, groups))
+            return List(result)
+        else:
+            self.err.warn("Unimplemented argtypes for MAPREGEX:",
+                          type(lhs), type(regex), "and", type(string))
             return nil
 
     def MAPSUM(self, function, iterable):
@@ -1959,7 +2065,7 @@ Equivalent to Python's itertools.starmap()."""
 
     def PREPENDELEM(self, lhs, rhs):
         # Note the order of operands: lhs is the list
-        if type(lhs) in (Scalar, Pattern):
+        if type(lhs) in (Scalar, Pattern, Nil):
             lhs = List([lhs])
         if type(lhs) in (List, Range):
             result = [rhs] + list(lhs)
@@ -2106,9 +2212,10 @@ printing nil has no effect, including on whitespace."""
                           type(lhs), "and", type(rhs))
             return nil
 
-    def REPLACE(self, *args):
-        args = (List(arg) if type(arg) is Range else arg for arg in args)
-        lhs, old, new = args
+    def REPLACE(self, lhs, old, new):
+        lhs = List(lhs) if type(lhs) is Range else lhs
+        old = List(old) if type(old) is Range else old
+        new = List(new) if type(new) is Range else new
         if type(old) is Scalar and type(new) in (Pattern, Block):
             old = self.REGEX(old)
         if (type(lhs) in (List, Scalar)
@@ -2147,11 +2254,8 @@ printing nil has no effect, including on whitespace."""
                     # First we need to define a Python function that we can
                     # pass to re.sub()
                     def replacement(matchObj):
-                        # Helper function to convert str to Scalar, None to nil
-                        convert = lambda pyObj:(nil if pyObj is None
-                                                else Scalar(pyObj))
-                        groups = matchObj.groups()
-                        retVal = self.functionCall(new, map(convert, groups))
+                        groups = self.assignRegexVars(matchObj)
+                        retVal = self.functionCall(new, groups)
                         return str(retVal)
                 elif new is nil:
                     replacement = ""

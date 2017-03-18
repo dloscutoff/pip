@@ -5,6 +5,7 @@ Regex operations in Pip use the Pattern data type. Patterns are delimited by <co
 
  - Pip Patterns are used both as regexes and as regex replacement strings.
  - In addition to back-references (e.g. `\1`), Pip replacement Patterns can contain `&`, which corresponds to the entire match (as in sed et al.).
+ - Many Pip regex operations set special variables similar to the ones in Perl, rather than the Python strategy of returning a match object encapsulating that information.
 
 ## Regex-building operations
 
@@ -46,7 +47,13 @@ The unary operators `-` `.` `,` `A` set the case-insensitive, dotall, multiline,
 
 Pip currently supports the following regex operations (with more in the works):
 
-### Find all: `@`
+### First match: `~`
+
+Usage: `s~x`
+
+Returns the first match of Pattern `x` in Scalar `s`, or nil if no match was found. Can also be used as `x~s`.
+
+### All matches: `@`
 
 Usage: `s@x`
 
@@ -56,7 +63,7 @@ Returns a List of all non-overlapping matches of Pattern `x` in Scalar `s`.
 
 Usage: `s@?x`
 
-Returns the start index of the first match of Pattern `x` in Scalar `s`, or nil if Pattern was not found.
+Returns the start index of the first match of Pattern `x` in Scalar `s`, or nil if no match was found.
 
 ### Find all indices: `@*`
 
@@ -70,14 +77,58 @@ Usage: `xNs`
 
 `N` returns the number of non-overlapping matches of Pattern `x` in Scalar `s`. `NI` returns `1` if the Pattern was not found, `0` if it was.
 
+### Fullmatch: `~=`
+
+Usage: `x~=s`
+
+Returns `1` if Pattern `x` fully matches Scalar `s`, `0` otherwise. Can be chained with other comparison operators. Can also be used as `s~=x`.
+
 ### Replace: `R`
 
 Usage: `sRxp`
 
-Replace each match of Pattern `x` in Scalar `s` with replacement (Pattern, Scalar or callback function) `p`. The arguments passed to a callback function are the entire match (parameter `a`) followed by capture groups (parameters `b` through `e`).
+Replace each non-overlapping match of Pattern `x` in Scalar `s` with replacement (Pattern, Scalar or callback function) `p`. The arguments passed to a callback function are the entire match (parameter `a`) followed by capture groups (parameters `b` through `e`).
+
+### Remove: `RM`
+
+Usage: `sRMx`
+
+Remove each non-overlapping match of Pattern `x` from Scalar `s`.
+
+### Strip/lstrip/rstrip: `||` `|>` `<|`
+
+Usage: `s||x`
+
+Strip matches of Pattern `x` from the left, right, or both sides of Scalar `s`.
 
 ### Split: `^`
 
 Usage: `s^x`
 
 Split Scalar `s` on occurrences of Pattern `x`. If `x` contains capture groups, they are included in the resulting List.
+
+### Map: `MR`
+
+Usage: `fMRxs`
+
+Find all matches of Pattern `x` in Scalar `s` and map function `f` to them. The arguments passed to the function are the entire match (parameter `a`) followed by capture groups (parameters `b` through `e`). Can also be used as `sMRxf` or `fMRsx`.
+
+### Loop: `LR`
+
+Usage: `LRxs{...}`
+
+The command version of `MR`: loops over all matches of Pattern `x` in Scalar `s`. Use regex special variables to access match information inside the loop. Can also be used as `LRsx{...}`.
+
+## Match variables
+
+The following regex match variables are set every time a match is made by most regex operations--most usefully, `MR`, `LR`, and `R`:
+
+- `$0`: entire match
+- `$1`: capture group 1 (and similarly for 2-9)
+- `$$`: list of all capture group contents
+- `$(`: start index of match
+- `$)`: end index of match
+- `$[`: list of start indices of capture groups
+- `$]`: list of end indices of capture groups
+- <code>$`</code>: the part of the string before the match
+- `$'`: the part of the string after the match
