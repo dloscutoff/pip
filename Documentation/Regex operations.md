@@ -6,6 +6,20 @@ Regex operations in Pip use the Pattern data type. Patterns are delimited by <co
  - Pip Patterns are used both as regexes and as regex replacement strings.
  - In addition to back-references (e.g. `\1`), Pip replacement Patterns can contain `&`, which corresponds to the entire match (as in sed et al.).
  - Many Pip regex operations set special variables similar to the ones in Perl, rather than the Python strategy of returning a match object encapsulating that information.
+ 
+## Predefined Pattern variables
+
+Some common regexes are available as predefined variables:
+
+Variable | Value      | Mnemonic
+-------- | ---------- | -----------
+`w`      | `\s+`      | Whitespace
+`XA`     | `[A-Za-z]` | regeX-Alpha
+`XD`     | `\d`       | regeX-Digit
+`XL`     | `[a-z]`    | regeX-Lowercase
+`XU`     | `[A-Z]`    | regeX-Uppercase
+`XW`     | `\w`       | regeX-Word
+`XX`     | `.`        | regeX-anything
 
 ## Regex-building operations
 

@@ -28,7 +28,7 @@ This list also includes the "special variables," which have different behavior w
 
 `v` -1
 
-`w` Pattern matching one or more whitespace characters (<code>`\s+`</code>)
+`w` Pattern matching one or more whitespace characters (<code>\`\s+\`</code>)
 
 `x` Empty string
 
@@ -44,14 +44,14 @@ This list also includes the "special variables," which have different behavior w
 
 `PI` Pi (3.141592653589793)
 
-`XA` Pattern matching one (ASCII) letter (<code>`[A-Za-z]`</code>)
+`XA` Pattern matching one (ASCII) letter (<code>\`[A-Za-z]\`</code>)
 
-`XD` Pattern matching one digit (<code>`\d`</code>)
+`XD` Pattern matching one digit (<code>\`\d\`</code>)
 
-`XL` Pattern matching one lowercase (ASCII) letter (<code>`[a-z]`</code>)
+`XL` Pattern matching one lowercase (ASCII) letter (<code>\`[a-z]\`</code>)
 
-`XU` Pattern matching one uppercase (ASCII) letter (<code>`[A-Z]`</code>)
+`XU` Pattern matching one uppercase (ASCII) letter (<code>\`[A-Z]\`</code>)
 
-`XW` Pattern matching one word character--letter, number, or underscore (<code>`\w`</code>)
+`XW` Pattern matching one word character--letter, number, or underscore (<code>\`\w\`</code>)
 
-`XX` Pattern matching any one character (<code>`.`</code>)
+`XX` Pattern matching any one character (<code>\`.\`</code>)
