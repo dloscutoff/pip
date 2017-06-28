@@ -2,8 +2,9 @@
 
 # Priorities TODO:
 #  Operators: TRanslate
+#  Fix: operators with * metaop should work in lambdas
+#  Fix: $+ should have (slightly) higher precedence than binary +
 #  Fix: List of Ranges should work for right operand of @
-#  Fix: ()N123 should return (), not ""
 #  List N Scalar returns List of results??
 #  Flag equivalent to Perl's -p
 #  Make RA behave as expected for multiple, size-changing replacements
@@ -21,7 +22,7 @@ from errors import FatalError
 import sys
 import argparse
 
-VERSION = "0.17.03.18"
+VERSION = "0.17.06.28"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:

@@ -131,7 +131,7 @@ class Scalar:
             yield Scalar(char)
 
     def __hash__(self):
-        return hash(self._value)
+        return hash(repr(self))
 
     def count(self, substring):
         if type(substring) is Scalar:
@@ -225,9 +225,7 @@ class Pattern:
             yield Scalar(char)
 
     def __hash__(self):
-        # This hashes to the same thing as the equivalent Scalar, but hopefully
-        # that won't be much of a problem.
-        return hash(self._raw)
+        return hash(repr(self))
 
 
 class List:
@@ -360,7 +358,7 @@ class List:
         return iter(self._value)
 
     def __hash__(self):
-        return hash(self._value)
+        return hash(repr(self))
 
     def count(self, item):
         return self._value.count(item)
@@ -411,7 +409,6 @@ class Range:
                 raise TypeError("Cannot convert %s to Range" % type(upperVal))
         else:
             raise TypeError("Cannot convert %s to Range" % type(value))
-
 
     def copy(self):
         return Range(self._lower,
@@ -499,9 +496,7 @@ class Range:
                 i += 1
 
     def __hash__(self):
-        # Since Range is not straightforwardly convertible to Python's range,
-        # use a tuple of the two values instead
-        return hash((self._lower, self._upper))
+        return hash(repr(self))
 
     def __getitem__(self, index):
         if type(index) is List:
@@ -630,7 +625,7 @@ class Block:
         return 0
     
     def __hash__(self):
-        return hash(self._statements + [self._returnExpr])
+        return hash(repr(self))
 
 
 class Nil:
@@ -671,7 +666,7 @@ class Nil:
         return self
 
     def __hash__(self):
-        return hash(None)
+        return hash(repr(self))
 
 nil = Nil()
 

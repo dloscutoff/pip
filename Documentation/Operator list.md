@@ -270,6 +270,10 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>UQa</code> Keep only unique values from iterable
 
+<code>aUWb</code> Unweave iterable `a` into a List of `b` strands
+
+<code>UWa</code> Unweave iterable `a` into a List of two strands
+
 <code>aVb</code> Call Block as function with arglist (equivalent to `a(*b)` in Python)
 
 <code>Va</code> Evaluate Block in current context, returning value of final expression or nil if there isn't one
@@ -285,6 +289,8 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 <code>Xa</code> Covert Scalar or List/Range to equivalent regex Pattern (escaping special characters as necessary)
 
 <code>Ya</code> Yank value into the variable `y` (equivalent to `(y:a)`)
+
+<code>YPa</code> Print value, then yank it (equivalent to `(y:Pa)`)
 
 <code>aZb</code> Zip two Lists together (clipping to the shorter length)
 

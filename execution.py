@@ -1213,6 +1213,8 @@ class ProgramState:
                 self.assignRegexVars(matchObj)
                 count += 1
             return Scalar(count)
+        elif lhs is nil and type(rhs) in (Scalar, Range):
+            return nil
         elif type(rhs) in (Scalar, List, Range):
             return Scalar(rhs.count(lhs))
         else:
@@ -2791,7 +2793,7 @@ printing nil has no effect, including on whitespace."""
             return nil
 
     def TOBASE(self, number, base=None):
-        # Converts a decimal integer to a string in the specified base
+        "Converts a decimal integer to a string in the specified base."
         if base is None:
             base = 2
         elif type(base) is Scalar:
@@ -2853,20 +2855,67 @@ printing nil has no effect, including on whitespace."""
             return nil
 
     def UNIQUE(self, iterable):
-        # Removes duplicate values from iterable
-        if type(iterable) is List:
-            return List(set(iterable))
-        elif type(iterable) is Range:
+        "Removes duplicate values from iterable."
+        if type(iterable) is Range:
             # All values are already unique
             return iterable
-        elif type(iterable) is Scalar:
-            return Scalar("".join(set(str(iterable))))
         elif type(iterable) is Nil:
             # This is not a warning--removing duplicates from nil leaves nil
             return nil
+        elif type(iterable) is List or type(iterable) is Scalar:
+            result = []
+            previousItems = set()
+            for item in iterable:
+                # Check each item against a set of previous items; if it
+                # hasn't appeared yet, add it to the result
+                if item not in previousItems:
+                    result.append(item)
+                    previousItems.add(item)
+            if type(iterable) is List:
+                return List(result)
+            elif type(iterable) is Scalar:
+                return self.JOIN(result)
         else:
             self.err.warn("Unimplemented argtype for UNIQUE:",
                           type(iterable))
+            return nil
+
+    def UNWEAVE(self, iterable, strands=2):
+        "Reverse WEAVE operation: distributes items into multiple iterables."
+        if type(iterable) is Range:
+            try:
+                len(iterable)
+            except ValueError:
+                # Infinite Range, no can do
+                self.err.warn("Cannot UNWEAVE an infinite Range:", iterable)
+                return nil
+            else:
+                iterable = List(iterable)
+        if type(iterable) in (List, Scalar) and type(strands) in (int, Scalar):
+            # Unweave the items from iterable into given number of "strands"
+            # E.g. 123456789 UW 3 == [147 258 369]
+            if type(strands) is Scalar:
+                strands = int(strands)
+            if strands < 1:
+                self.err.warn("Cannot UNWEAVE into %d strands" % strands)
+                return nil
+            result = [[] for i in range(strands)]
+            for index, item in enumerate(iterable):
+                result[index%strands].append(item)
+            if type(iterable) is Scalar:
+                result = List(self.JOIN(item) for item in result)
+            elif type(iterable) is List:
+                result = List(List(item) for item in result)
+            return result
+        else:
+            if strands == 2:
+                # Unary version
+                self.err.warn("Unimplemented argtype for UNWEAVE:",
+                              type(iterable))
+            else:
+                # Binary version
+                self.err.warn("Unimplemented argtypes for UNWEAVE:",
+                              type(iterable), "and", type(strands))
             return nil
 
     def UPPERCASE(self, rhs):
@@ -2948,6 +2997,11 @@ printing nil has no effect, including on whitespace."""
         lhs = Lval("y")
         self.assign(lhs, rhs)
         return lhs
+
+    def YANKPRINT(self, rhs):
+        "PRINT and then YANK rhs."
+        self.PRINT(rhs)
+        return self.YANK(rhs)
 
     def ZEROGRID(self, rows, cols=None):
         if cols is None:
