@@ -1,9 +1,7 @@
 #!/usr/bin/python3
 
 # Priorities TODO:
-#  Operators: TRanslate
 #  Fix: operators with * metaop should work in lambdas
-#  Fix: $+ should have (slightly) higher precedence than binary +
 #  Fix: List of Ranges should work for right operand of @
 #  List N Scalar returns List of results??
 #  Flag equivalent to Perl's -p
@@ -22,7 +20,7 @@ from errors import FatalError
 import sys
 import argparse
 
-VERSION = "0.17.06.28"
+VERSION = "0.17.09.01"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:

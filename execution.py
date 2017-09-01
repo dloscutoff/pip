@@ -1,5 +1,9 @@
 
-import itertools, math, random, re
+import itertools
+import math
+import random
+import re
+
 import tokens
 import operators as ops
 import parsing
@@ -1058,6 +1062,16 @@ class ProgramState:
                               type(code), "and", type(argList))
             return nil
 
+    def EXPONENTIAL(self, number):
+        "Takes e to the power of number."
+        if type(number) is Scalar:
+            result = math.exp(number.toNumber())
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtype for EXPONENTIAL:",
+                          type(number))
+            return nil
+
     def FILTER(self, function, iterable):
         "Filters iterable by truth value of function applied to each item."
         if type(iterable) is Block and type(function) in (Scalar, List, Range):
@@ -1675,6 +1689,21 @@ Equivalent to Python's itertools.starmap()."""
         else:
             self.err.warn("Unimplemented argtypes for MUL:",
                           type(lhs), "and", type(rhs))
+            return nil
+
+    def NATURALLOG(self, number):
+        "Takes the natural logarithm of number."
+        if type(number) is Scalar:
+            if number.toNumber() > 0:
+                result = math.log(number.toNumber())
+                return Scalar(result)
+            else:
+                self.err.warn("Can't take logarithm of nonpositive number",
+                              number)
+                return nil
+        else:
+            self.err.warn("Unimplemented argtype for NATURALLOG:",
+                          type(number))
             return nil
 
     def NEG(self, rhs):
@@ -2822,6 +2851,65 @@ printing nil has no effect, including on whitespace."""
             return Scalar(sign + result)
         else:
             self.err.warn("Unimplemented argtype for TOBASE:", type(number))
+            return nil
+
+    def TRANSLITERATE(self, lhs, old, new):
+        "Expanded version of Python's str.translate."
+        # With Scalars, translates one letter to another; with Range or List
+        # of numbers, translates character codes
+        if type(lhs) in (List, Range):
+            return List(self.TRANSLITERATE(item, old, new) for item in lhs)
+        elif (type(lhs) is Scalar
+              and type(old) in (Scalar, List, Range)
+              and type(new) in (Scalar, List, Range)):
+            result = str(lhs)
+            infiniteRange = False
+            if type(old) is Scalar:
+                old = str(old)
+            elif type(old) is Range:
+                try:
+                    len(old)
+                except ValueError:
+                    infiniteRange = True
+                    # This isn't a problem yet, but if new is also an
+                    # infinite range, we're in trouble
+            if type(new) is Scalar:
+                new = str(new)
+            elif type(new) is Range:
+                try:
+                    len(new)
+                except ValueError:
+                    if infiniteRange:
+                        # They're both infinite
+                        self.err.warn("Cannot TRANSLITERATE one infinite",
+                                      "Range into another:", old, "->", new)
+                        return nil
+            mapping = {}
+            for oldChar, newChar in zip(old, new):
+                if type(oldChar) is str:
+                    oldChar = ord(oldChar)
+                elif type(oldChar) is Scalar:
+                    oldChar = oldChar.toNumber()
+                else:
+                    self.err.warn("Cannot TRANSLITERATE from", type(oldChar),
+                                  repr(oldChar))
+                    continue
+                if type(newChar) is str:
+                    newChar = ord(newChar)
+                elif type(newChar) is Scalar:
+                    newChar = newChar.toNumber()
+                elif newChar is nil:
+                    newChar = None
+                else:
+                    self.err.warn("Cannot TRANSLITERATE to", type(newChar),
+                                  repr(newChar))
+                    continue
+                mapping[oldChar] = newChar
+            result = result.translate(mapping)
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtypes for TRANSLITERATE:",
+                          type(lhs), type(old), "and", type(new))
             return nil
 
     def TRIM(self, string, extra=None):

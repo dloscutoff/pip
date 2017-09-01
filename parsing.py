@@ -7,7 +7,7 @@ import ptypes  # TBD: add another class or two to tokens and refactor this
                # be helpful for Blocks...?
 from errors import ErrorReporter
 
-
+assignOp = operators.opsByArity[2][":"]
 err = ErrorReporter(warnings=True)  # TODO: get this setting from the args?
 
 def parse(tokenList):
@@ -117,7 +117,12 @@ def parseExpr(tokenList, minPrecedence=-1):
         else:
             # Probably a unary operator beginning another expression
             break
-        if op.precedence < minPrecedence:
+        precedence = op.precedence
+        if tokenList[1] == ":":
+            # The next token is the : meta-operator, which lowers the
+            # precedence
+            precedence = assignOp.precedence
+        if precedence < minPrecedence:
             # Done parsing a higher-precedence subexpression--we'll get
             # this operator at an outer level of recursion
             break
@@ -129,7 +134,6 @@ def parseExpr(tokenList, minPrecedence=-1):
             tokenList.pop(0)
             op = op.copy()
             op.assign = True
-            assignOp = operators.opsByArity[2][":"]
             op.precedence = assignOp.precedence
             op.associativity = assignOp.associativity
         # Add operator as root of expression tree
@@ -295,9 +299,8 @@ def parseOperand(tokenList):
             tokenList.pop(0)
             op = op.copy()
             op.assign = True
-            assignOp = operators.opsByArity[2][":"]
             op.precedence = assignOp.precedence
-        subOperand = parseExpr(tokenList, minPrecedence=op.precedence)
+        subOperand = parseExpr(tokenList, minPrecedence=op.precedence+1)
         return [op, subOperand]
             
     # If control reaches here, we've got a problem

@@ -144,6 +144,8 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>aEQb</code> Alias for binary `Q`, kept for backwards compatibility
 
+<code>EXa</code> Exponential (base *e*)
+
 <code>EYa</code> Identity matrix (abbreviation from Matlab's eye() function)
 
 <code>aFBb</code> Convert number from given base to decimal integer
@@ -171,6 +173,8 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 <code>aLTb</code> String less than
 
 <code>aLEb</code> String less than or equal
+
+<code>LNa</code> Natural logarithm
 
 <code>aMb</code> Map Block to iterable, returning List
 
@@ -265,6 +269,8 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 <code>aTMb</code> Trim Scalar `a` by `b` characters from front and end (Scalar `b` trims same amt on both sides; Range `b` trims different amts)
 
 <code>TMa</code> Trim first and last characters from Scalar `a`
+
+<code>aTRbc</code> Transliterate `a` from characters in `b` to those in `c` (with `b` or `c` Scalar, transliterates one letter to another; with `b` or `c` Range or List of numbers, translates character codes)
 
 <code>UCa</code> Convert to UPPERCASE
 
