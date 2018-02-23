@@ -14,7 +14,15 @@ intRgx = re.compile(r"-?\d+")
 # a built-in name
 generator = type(i for i in [])
 
-class Scalar:
+
+class PipType:
+    """Base class for all Pip types."""
+    
+    def __hash__(self):
+        return hash(repr(self))
+
+
+class Scalar(PipType):
     """Represents a string or number."""
     
     def __init__(self, value=""):
@@ -87,6 +95,8 @@ class Scalar:
             return List(self[i] for i in index)
         elif type(index) is Scalar:
             index = int(index)
+        elif type(index) is Range:
+            index = index.toSlice()
         
         if type(index) is int:
             if self._value == "":
@@ -130,9 +140,6 @@ class Scalar:
         for char in self._value:
             yield Scalar(char)
 
-    def __hash__(self):
-        return hash(repr(self))
-
     def count(self, substring):
         if type(substring) is Scalar:
             return self._value.count(substring._value)
@@ -153,7 +160,7 @@ class Scalar:
             return nil
 
 
-class Pattern:
+class Pattern(PipType):
     """Represents a regular expression or substitution pattern."""
 
     def __init__(self, value=""):
@@ -171,7 +178,6 @@ class Pattern:
                                         + "\\"
                                         + str(int(m.group(2))+1)),
                              pyRegex)
-            #!print(pyRegex)
             self._compiled = re.compile(pyRegex)
         return self._compiled
 
@@ -192,7 +198,7 @@ class Pattern:
                            lambda m: m.group(1) + r"\g<all>",
                            pyReplace)
         # Turn escaped ampersands into literal ampersands
-        pyReplace = re.sub(r"\\&", "&", pyReplace)
+        pyReplace = pyReplace.replace("\\&", "&")
         return pyReplace
 
     def copy(self):
@@ -224,11 +230,8 @@ class Pattern:
         for char in self._raw:
             yield Scalar(char)
 
-    def __hash__(self):
-        return hash(repr(self))
 
-
-class List:
+class List(PipType):
     """Represents a list of objects."""
 
     # How to format a list when outputting it
@@ -251,7 +254,7 @@ class List:
                            map,
                            zip,
                            itertools.starmap,):
-            self._value = list(value)
+            self._value = [item for item in value]
         elif type(value) in (List, list):
             self._value = [item.copy() for item in value]
         elif type(value) is range:
@@ -318,6 +321,8 @@ class List:
             return List(self[i] for i in index)
         elif type(index) is Scalar:
             index = int(index)
+        elif type(index) is Range:
+            index = index.toSlice()
         
         if type(index) is int:
             if self._value == []:
@@ -357,9 +362,6 @@ class List:
     def __iter__(self):
         return iter(self._value)
 
-    def __hash__(self):
-        return hash(repr(self))
-
     def count(self, item):
         return self._value.count(item)
 
@@ -370,7 +372,7 @@ class List:
 
     def extend(self, iterable):
         # This assumes that iterable is either a Python list of Pip objects or
-        # a List/Range--unpredictable behavior otherwise
+        # a List/Range/Scalar--unpredictable behavior otherwise
         self._value.extend(list(iterable))
 
     def index(self, searchItem, startIndex=0):
@@ -380,8 +382,7 @@ class List:
             return nil
 
 
-
-class Range:
+class Range(PipType):
     """Represents a range of integer values."""
     # TODO: add a step parameter
 
@@ -495,9 +496,6 @@ class Range:
                 yield Scalar(i)
                 i += 1
 
-    def __hash__(self):
-        return hash(repr(self))
-
     def __getitem__(self, index):
         if type(index) is List:
             return List(self[i] for i in index)
@@ -585,7 +583,7 @@ class Range:
             return nil
 
             
-class Block:
+class Block(PipType):
     """Represents a Pip function object."""
 
     def __init__(self, statements, returnExpr):
@@ -623,12 +621,9 @@ class Block:
 
     def toNumber(self):
         return 0
-    
-    def __hash__(self):
-        return hash(repr(self))
 
 
-class Nil:
+class Nil(PipType):
     """Represents the nil object."""
     
     instance = None
@@ -665,10 +660,9 @@ class Nil:
     def __getitem__(self, index):
         return self
 
-    def __hash__(self):
-        return hash(repr(self))
 
 nil = Nil()
+
 
 def toPipType(pyObj):
     if type(pyObj) in (str, int, float, bool):
