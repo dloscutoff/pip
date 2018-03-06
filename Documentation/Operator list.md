@@ -216,6 +216,8 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>PMa</code> List of all permutations of iterable
 
+<code>aPKb</code> Pick out item from index `b` of iterable `a` (modifying `a` in-place)
+
 <code>POa</code> Pop item from front of iterable (modifying argument in-place)
 
 <code>aPUb</code> Push item to front of iterable (modifying argument in-place)
@@ -295,6 +297,8 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 <code>Xa</code> Covert Scalar or List/Range to equivalent regex Pattern (escaping special characters as necessary)
 
 <code>Ya</code> Yank value into the variable `y` (equivalent to `(y:a)`)
+
+<code>YOa</code> Output value, then yank it (equivalent to `(y:Oa)`)
 
 <code>YPa</code> Print value, then yank it (equivalent to `(y:Pa)`)
 

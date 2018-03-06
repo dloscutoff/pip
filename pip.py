@@ -2,8 +2,9 @@
 
 # Priorities TODO:
 #  Fix: operators with * metaop should work in lambdas
-#  Fix: List of Ranges should work for right operand of @
+#  Allow ; after For loop variable
 #  List N Scalar returns List of results??
+#  Unary R for reverse??
 #  Flag equivalent to Perl's -p
 #  Make RA behave as expected for multiple, size-changing replacements
 #  Rework ugly hacks in definition of Range class
@@ -13,14 +14,16 @@
 #  Figure out how to get correct warning/error reporting in ptypes classes
 #  More operators!
 
+import sys
+import argparse
+import pprint
+
 from scanning import scan, addSpaces
 from parsing import parse
 from execution import ProgramState
 from errors import FatalError
-import sys
-import argparse
 
-VERSION = "0.17.09.01"
+VERSION = "0.18.03.05"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:
@@ -182,6 +185,7 @@ def pip(code=None, args=None, interactive=True):
         return
     if options.verbose:
         print(addSpaces(tkns))
+        print()
     try:
         tree = parse(tkns)
     except FatalError:
@@ -189,7 +193,8 @@ def pip(code=None, args=None, interactive=True):
               file=sys.stderr)
         return
     if options.verbose:
-        print(tree)
+        pprint.pprint(tree)
+        print()
     state = ProgramState(listFormat, options.warnings)
     if options.readlines:
         args = []

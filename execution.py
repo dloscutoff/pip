@@ -684,7 +684,7 @@ class ProgramState:
             if type(lhs) is Scalar:
                 return Scalar(math.atan(lhs.toNumber()))
             else:
-                self.err.warn("Unimplemented argtype for ASC:", type(rhs))
+                self.err.warn("Unimplemented argtype for ARCTAN:", type(rhs))
                 return nil
         else:
             if type(lhs) is type(rhs) is Scalar:
@@ -696,8 +696,12 @@ class ProgramState:
 
     def ASC(self, rhs):
         if type(rhs) is Scalar:
-            result = ord(str(rhs)[0])
-            return Scalar(result)
+            if rhs:
+                result = ord(str(rhs)[0])
+                return Scalar(result)
+            else:
+                self.err.warn("Cannot take ASC of empty string")
+                return nil
         elif type(rhs) is Pattern:
             # A operator on a Pattern makes it ASCII-only
             result = "(?a)" + str(rhs)
@@ -1154,6 +1158,8 @@ class ProgramState:
             self.err.warn("Invalid base for conversion:", base)
             return nil
         if type(number) is Scalar:
+            if len(number) == 0:
+                number = 0
             try:
                 result = int(str(number), base)
                 return Scalar(result)
@@ -1479,6 +1485,9 @@ class ProgramState:
         if type(iterable) in (Scalar, List, Range):
             if type(lhs) is Block:
                 result = (self.functionCall(lhs, [item]) for item in iterable)
+            elif type(lhs) is List:
+                # Might be a list of functions; map each of them
+                result = (self.MAP(item, iterable) for item in lhs)
             else:
                 # If lhs isn't a function, just replace each item in iterable
                 # with it
@@ -2023,6 +2032,69 @@ Equivalent to Python's itertools.starmap()."""
                           type(iterable))
             return nil
 
+    def PICK(self, iterable, index):
+        index = self.getRval(index)
+        if type(index) is Scalar:
+            index = int(index)
+        else:
+            # TODO: Allow List and Range indices
+            self.err.warn("Unimplemented right argument type for PICK:",
+                          type(index))
+            return nil
+        iterVal = self.getRval(iterable)
+        if type(iterVal) is List:
+            if len(iterVal) > 0:
+                iterVal = list(iterVal)
+                index %= len(iterVal)
+                item = iterVal[index]
+                iterVal = List(iterVal[:index] + iterVal[index+1:])
+            else:
+                self.err.warn("Cannot pick from empty List")
+                return nil
+        elif type(iterVal) is Range:
+            lower = iterVal.getLower() or 0
+            try:
+                rangeLength = len(iterVal)
+            except ValueError:
+                # Infinite range raises this when you try to take the len()
+                if index == 0:
+                    item = iterVal[0]
+                    iterVal = Range(lower + 1, nil)
+                else:
+                    self.err.warn("Cannot pick from middle of infinite Range")
+                    return nil
+            else:
+                if rangeLength > 0:
+                    index %= rangeLength
+                    if index == 0:
+                        item = iterVal[0]
+                        iterVal = Range(lower + 1, iterVal.getUpper())
+                    else:
+                        iterVal = list(iterVal)
+                        item = iterVal[index]
+                        iterVal = List(iterVal[:index] + iterVal[index+1:])
+                else:
+                    self.err.warn("Cannot pick from empty Range")
+                    return nil
+        elif type(iterVal) is Scalar:
+            if len(iterVal) > 0:
+                item = iterVal[index]
+                iterVal = str(iterVal)
+                index %= len(iterVal)
+                iterVal = Scalar(iterVal[:index] + iterVal[index+1:])
+            else:
+                self.err.warn("Cannot pick from empty Scalar")
+                return nil
+        else:
+            self.err.warn("Unimplemented left argument type for PICK:",
+                          type(iterVal))
+            return nil
+        if type(iterable) is Lval:
+            self.assign(iterable, iterVal)
+        else:
+            self.err.warn("Picking from non-lvalue", iterable)
+        return item
+
     def POP(self, iterable):
         iterVal = self.getRval(iterable)
         if type(iterVal) is List:
@@ -2331,6 +2403,9 @@ printing nil has no effect, including on whitespace."""
                     index = index.toSlice()
                 result[index] = new
                 return result
+        elif index is nil:
+            # Replacing at nil index leaves lhs unchanged
+            return lhs
         else:
             self.err.warn("Unimplemented argtypes for REPLACEAT:",
                           type(lhs), type(index), "and", type(new))
@@ -3085,6 +3160,11 @@ printing nil has no effect, including on whitespace."""
         lhs = Lval("y")
         self.assign(lhs, rhs)
         return lhs
+
+    def YANKOUTPUT(self, rhs):
+        "OUTPUT and then YANK rhs."
+        self.OUTPUT(rhs)
+        return self.YANK(rhs)
 
     def YANKPRINT(self, rhs):
         "PRINT and then YANK rhs."

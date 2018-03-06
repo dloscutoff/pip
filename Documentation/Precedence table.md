@@ -5,7 +5,7 @@ For descriptions of each operator, see the [operator list](https://github.com/dl
 
 Category | Arity | Associativity | Symbol | Name | Fold default | Itemwise? | In lambda?
 -------- | ----- | ------------- | ------ | ---- | ------------ | --------- | ----------
-Output and yank operators | Unary | – | `O` <br> `P` <br> `Y` <br> `YP` | Output <br> Print <br> Yank <br> Yankprint | None <br> None <br> None <br> None | No <br> No <br> No <br> No | No <br> No <br> No <br> No
+Output and yank operators | Unary | – | `O` <br> `P` <br> `Y` <br> `YO` <br> `YP` | Output <br> Print <br> Yank <br> Yankoutput <br> Yankprint | None <br> None <br> None <br> None <br> None | No <br> No <br> No <br> No <br> No | No <br> No <br> No <br> No <br> No
 Assignment | Binary | Right | `:` | Assign | None | No | No
 If-then-else | Ternary | Right | `?` | Ifte | None | No | No
 Logical or | Binary | Left | `\|` | Or | `0` | No | No
@@ -20,7 +20,7 @@ In and not in | Binary | Left | `N` <br> `IN` <br> `NI` | In <br> In <br> Notin 
 String conversion | Unary | – | `RP` <br> `ST` | Repr <br> Str | None <br> None | No <br> No | No <br> No
 Low-precedence list operators | Binary | Left | `CB` | Combinations | `[]` | No | Yes
 Low-precedence list operators | Unary | – | `MX` <br> `MN` <br> `RC` <br> `SN` <br> `SS` <br> `UQ` <br> `EN` <br> `PM` | Max <br> Min <br> Randchoice <br> Sortnum <br> Sortstring <br> Unique <br> Enumerate <br> Permutations | None <br> None <br> None <br> None <br> None <br> None <br> None <br> None | No <br> No <br> No <br> No <br> No <br> No <br> No <br> No | Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes
-Append and push | Binary | Left | `AE` <br> `AL` <br> `PE` <br> `PU` <br> `PB` | Appendelem <br> Appendlist <br> Prependelem <br> Push <br> Pushback | `[]` <br> `[]` <br> `[]` <br> `[]` <br> `[]` | No <br> No <br> No <br> No <br> No | Yes <br> Yes <br> Yes <br> Yes <br> Yes
+Append and push | Binary | Left | `AE` <br> `AL` <br> `PE` <br> `PU` <br> `PB` <br> `PK` | Appendelem <br> Appendlist <br> Prependelem <br> Push <br> Pushback <br> Pick | `[]` <br> `[]` <br> `[]` <br> `[]` <br> `[]` <br> `[]` | No <br> No <br> No <br> No <br> No <br> No | Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes
 Pop and dequeue | Unary | – | `PO` <br> `DQ` | Pop <br> Dequeue | None <br> None | No <br> No | Yes <br> Yes
 High-precedence list operators | Binary | Left | `^` <br> `^@` <br> `@?` <br> `@*` <br> `<>` <br> `J` <br> `JW` <br> `RL` <br> `Z` <br> `ZD` <br> `WV` <br> `UW` <br> `CP` <br> `CG` <br> `ZG` | Split <br> Splitat <br> Find <br> Findall <br> Group <br> Join <br> Joinwrap <br> Repeatlist <br> Zip <br> Zipdefault <br> Weave <br> Unweave <br> Cartesianproduct <br> Coordinategrid <br> Zerogrid | `[]` <br> `[]` <br> None <br> `[]` <br> `[]` <br> `""` <br> None <br> `[]` <br> `[]` <br> `[]` <br> `[]` <br> `[]` <br> `[]` <br> None <br> None | Both <br> No <br> No <br> No <br> No <br> No <br> No <br> No <br> No <br> No <br> No <br> No <br> No <br> Both <br> Both | Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes <br> Yes
 Replace-like operators | Ternary | Left | `RA` <br> `TR` | Replaceat <br> Transliterate | None <br> None | No <br> No | Yes <br> Yes
