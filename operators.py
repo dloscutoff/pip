@@ -278,6 +278,7 @@ precedenceTable = [
      ("TM", "TRIM", None, RVALS | IN_LAMBDA | LIST_EACH),
      ("LC", "LOWERCASE", None, RVALS | IN_LAMBDA | LIST_EACH),
      ("UC", "UPPERCASE", None, RVALS | IN_LAMBDA | LIST_EACH),
+     ("SC", "SWAPCASE", None, RVALS | IN_LAMBDA | LIST_EACH),
      ],
     [2, "L",
      (",", "RANGE", None, RVALS | IN_LAMBDA | RANGE_EACH),

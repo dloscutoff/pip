@@ -2889,6 +2889,15 @@ printing nil has no effect, including on whitespace."""
                           type(lhs), "and", type(rhs))
             return nil
 
+    def SWAPCASE(self, rhs):
+        if type(rhs) is Scalar:
+            return Scalar(str(rhs).swapcase())
+        elif type(rhs) in (Range, Nil):
+            return rhs
+        else:
+            self.err.warn("Unimplemented argtype for SWAPCASE:", type(rhs))
+            return nil
+
     def TANGENT(self, rhs):
         if type(rhs) is Scalar:
             return Scalar(math.tan(rhs.toNumber()))

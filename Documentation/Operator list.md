@@ -248,6 +248,8 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>RVa</code> Reverse iterable
 
+<code>SCa</code> Swap case: `Hello, World!` becomes `hELLO, wORLD!`
+
 <code>SEa</code> Secant
 
 <code>SGa</code> Sign of number (-1, 0, or 1)
