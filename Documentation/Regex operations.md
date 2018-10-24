@@ -1,25 +1,30 @@
 
-Regex operations in Pip use the Pattern data type. Patterns are delimited by <code>`</code> (backticks); backticks within the Pattern can be escaped using backslash, as can literal backslashes. Regexes are basically Python flavor with a few add-ons. Any legal Python regex is a legal Pip regex (as long as backticks are escaped) and will behave the same way.
+Regex operations in Pip use the Pattern data type. Patterns are delimited by <code>`</code> (backticks); backticks within the Pattern can be escaped using backslash, as can literal backslashes. Regexes are basically Python flavor with a few add-ons. Any legal Python regex is a legal Pip regex (as long as backticks and `&` are escaped) and will behave the same way.
 
 ## Differences between Python and Pip
 
  - Pip Patterns are used both as regexes and as regex replacement strings.
  - In addition to back-references (e.g. `\1`), Pip replacement Patterns can contain `&`, which corresponds to the entire match (as in sed et al.).
  - Many Pip regex operations set special variables similar to the ones in Perl, rather than the Python strategy of returning a match object encapsulating that information.
- 
+
 ## Predefined Pattern variables
 
 Some common regexes are available as predefined variables:
 
-Variable | Value      | Mnemonic
--------- | ---------- | -----------
-`w`      | `\s+`      | Whitespace
-`XA`     | `[A-Za-z]` | regeX-Alpha
-`XD`     | `\d`       | regeX-Digit
-`XL`     | `[a-z]`    | regeX-Lowercase
-`XU`     | `[A-Z]`    | regeX-Uppercase
-`XW`     | `\w`       | regeX-Word
-`XX`     | `.`        | regeX-anything
+Variable | Value                     | Mnemonic
+-------- | ------------------------- | ----------------
+`w`      | `\s+`                     | Whitespace
+`XA`     | `[A-Za-z]`                | regeX Alpha
+`XC`     | `[bcdfghjklmnpqrstvwxyz]` | regeX Consonant
+`XD`     | `\d`                      | regeX Digit
+`XI`     | `-?\d+`                   | regeX Integer
+`XL`     | `[a-z]`                   | regeX Lowercase
+`XN`     | `-?\d+(?:\.\d+)?`         | regeX Number
+`XU`     | `[A-Z]`                   | regeX Uppercase
+`XV`     | `[aeiou]`                 | regeX Vowel
+`XW`     | `\w`                      | regeX Word
+`XX`     | `.`                       | regeX anything
+`XY`     | `[aeiouy]`                | regeX vowel-or-Y
 
 ## Regex-building operations
 

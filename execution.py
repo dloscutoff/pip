@@ -17,7 +17,7 @@ scalarOne = Scalar(1)
 
 
 class ProgramState:
-    "Represents the internal state of a program during execution."
+    """The internal state of a program during execution."""
     
     def __init__(self, listFormat=None, showWarnings=False):
         # The listFormat parameter determines how lists are formatted when
@@ -92,8 +92,8 @@ class ProgramState:
             return expression
         elif exprType is not list:
             # ?!
-            self.err.die("Implementation error:",
-                         "reached else branch of evaluate(%s)" % expression)
+            self.err.die("Implementation error: reached else branch of "
+                         "evaluate(%s)" % expression)
 
         # If none of the above were true, then we're dealing with a parse tree
         # in the form of a list: [operator, arg1, arg2, ...]
@@ -219,7 +219,7 @@ class ProgramState:
         return result
 
     def varTable(self, varName):
-        "Returns which table (local or global) a variable resides in."
+        """Return which table (local or global) a variable resides in."""
         if varName in "abcdefg":
             # Local variable
             return self.locals[self.callDepth]
@@ -288,7 +288,7 @@ class ProgramState:
                          type(expr), "in getRval()")
 
     def assign(self, lval, rval):
-        "Sets the value of lval to rval."
+        """Set the value of lval to rval."""
         #!print("In assign,", lval, rval)
         name = lval.name
         if name in self.specialVars:
@@ -350,7 +350,7 @@ class ProgramState:
         return
 
     def functionCall(self, function, argList):
-        "Calls the given function in a new scope with the given arguments."
+        """Call the function in a new scope with the given arguments."""
         argList = [self.getRval(arg) if type(arg) is Lval else arg
                    for arg in argList]
         # Open a new scope for the function's local variables
@@ -374,7 +374,7 @@ class ProgramState:
         return returnVal
 
     def assignRegexVars(self, matchObj):
-        "Sets regex match vars given a Python match object."
+        """Set regex match vars given a Python match object."""
         groups = list(map(ptypes.toPipType, matchObj.groups()))
         # Assign list of all groups (except the full match) to $$
         self.assign(Lval("$$"), List(groups[1:]))
@@ -427,7 +427,7 @@ class ProgramState:
     ################################
 
     def FOR(self, loopVar, iterable, code):
-        "Execute code for each item in iterable, assigned to loopVar."
+        """Execute code for each item in iterable, assigned to loopVar."""
         loopVar = Lval(loopVar)
         iterable = self.getRval(iterable)
         if type(iterable) in (List, Range, Scalar):
@@ -440,7 +440,7 @@ class ProgramState:
             pass
     
     def IF(self, cond, code, elseCode):
-        "Execute code if cond evaluates to true; otherwise, elseCode."
+        """Execute code if cond evaluates to true; otherwise, elseCode."""
         condVal = self.getRval(cond)
         if condVal:
             for statement in code:
@@ -450,7 +450,7 @@ class ProgramState:
                 self.executeStatement(statement)
 
     def LOOP(self, count, code):
-        "Execute code count times."
+        """Execute code count times."""
         count = self.getRval(count)
         if count is nil:
             return
@@ -463,7 +463,7 @@ class ProgramState:
                 self.executeStatement(statement)
     
     def LOOPREGEX(self, regex, string, code):
-        "Execute code for each match of regex in string."
+        """Execute code for each match of regex in string."""
         regex = self.getRval(regex)
         string = self.getRval(string)
         if type(regex) is Scalar and type(string) is Pattern:
@@ -483,7 +483,7 @@ class ProgramState:
                           type(regex), "and", type(string))
 
     def SWAP(self, lval1, lval2):
-        "Exchange the values of two variables (or lvals, in general)."
+        """Exchange the values of two variables (or lvals, in general)."""
         lval1 = self.evaluate(lval1)
         lval2 = self.evaluate(lval2)
         rval1 = self.getRval(lval1)
@@ -498,7 +498,7 @@ class ProgramState:
             self.err.warn("Attempting to swap non-lvalue", lval2)
 
     def TILL(self, cond, code):
-        "Loop, executing code, until cond evaluates to true."
+        """Loop, executing code, until cond evaluates to true."""
         condVal = self.getRval(cond)
         while not condVal:
             for statement in code:
@@ -506,7 +506,7 @@ class ProgramState:
             condVal = self.getRval(cond)
 
     def UNIFY(self, lvals, rval):
-        "Unify lvals with items of rval, like Python's tuple unpacking."
+        """Unify lvals with items of rval, like Python's tuple unpacking."""
         rval = self.getRval(rval)
         if type(rval) in (List, Scalar, Range):
             for i, lval in enumerate(lvals):
@@ -519,7 +519,7 @@ class ProgramState:
             # TBD: assign nil to all variables, or leave them unmodified?
 
     def WHILE(self, cond, code):
-        "Loop, executing code, while cond evaluates to true."
+        """Loop, executing code, while cond evaluates to true."""
         condVal = self.getRval(cond)
         while condVal:
             for statement in code:
@@ -527,7 +527,7 @@ class ProgramState:
             condVal = self.getRval(cond)
 
     def WIPEGLOBALS(self):
-        "Reset all global variables to their default values."
+        """Reset all global variables to their default values."""
         self.vars = {
             "_": Block([], tokens.Name("a")),
             "h": Scalar("100"),
@@ -551,14 +551,22 @@ class ProgramState:
             "z": Scalar("abcdefghijklmnopqrstuvwxyz"),
             "B": Block([], tokens.Name("b")),
             "AZ": Scalar("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+            "CZ": Scalar("bcdfghjklmnpqrstvwxyz"),
             "PA": Scalar("".join(chr(i) for i in range(32, 127))),
             "PI": Scalar(math.pi),
-            "XA": Pattern(r"[A-Za-z]"),
+            "VW": Scalar("aeiou"),
+            "VY": Scalar("aeiouy"),
+            "XA": Pattern("[A-Za-z]"),
+            "XC": Pattern("[bcdfghjklmnpqrstvwxyz]"),
             "XD": Pattern(r"\d"),
-            "XL": Pattern(r"[a-z]"),
-            "XU": Pattern(r"[A-Z]"),
+            "XI": Pattern(r"-?\d+"),
+            "XL": Pattern("[a-z]"),
+            "XN": Pattern(r"-?\d+(?:\.\d+)?"),
+            "XU": Pattern("[A-Z]"),
+            "XV": Pattern("[aeiou]"),
             "XW": Pattern(r"\w"),
             "XX": Pattern("."),
+            "XY": Pattern("[aeiouy]"),
             }
 
     ###############################
@@ -883,7 +891,7 @@ class ProgramState:
             return nil
 
     def COMBINATIONS(self, iterable, num):
-        "Returns List of all ways to choose num items from iterable."
+        """Return List of all ways to choose num items from iterable."""
         if type(iterable) in (List, Range, Scalar) and type(num) is Scalar:
             result = itertools.combinations(iterable, int(num))
             if type(iterable) is Scalar:
@@ -943,7 +951,7 @@ class ProgramState:
             return result
 
     def DELETECHARS(self, string, chars):
-        "Deletes characters from string."
+        """Delete characters from string."""
         if type(string) is type(chars) is Scalar:
             result = str(string).translate({ord(c):None for c in str(chars)})
             return Scalar(result)
@@ -954,7 +962,7 @@ class ProgramState:
             return string
 
     def DEGREES(self, rhs):
-        "Converts from radians to degrees."
+        """Convert from radians to degrees."""
         if type(rhs) is Scalar:
             result = rhs.toNumber() / math.pi * 180
             return Scalar(result)
@@ -1067,7 +1075,7 @@ class ProgramState:
             return nil
 
     def EXPONENTIAL(self, number):
-        "Takes e to the power of number."
+        """Take e to the power of number."""
         if type(number) is Scalar:
             result = math.exp(number.toNumber())
             return Scalar(result)
@@ -1077,7 +1085,7 @@ class ProgramState:
             return nil
 
     def FILTER(self, function, iterable):
-        "Filters iterable by truth value of function applied to each item."
+        """Filter iterable: keep items where function returns truthy."""
         if type(iterable) is Block and type(function) in (Scalar, List, Range):
             # The arguments are reversible to enable things like lFI:f
             function, iterable = iterable, function
@@ -1254,7 +1262,7 @@ class ProgramState:
             return result
 
     def INCLRANGE(self, lhs, rhs):
-        "Like RANGE, but includes upper bound."
+        """Like RANGE, but include upper bound."""
         if type(lhs) in (Scalar, Nil) and type(lhs) in (Scalar, Nil):
             if type(rhs) is Scalar:
                 return Range(lhs, rhs.toNumber() + 1)
@@ -1266,7 +1274,7 @@ class ProgramState:
             return nil
 
     def INCLRANGETO(self, rhs):
-        "Like RANGETO, but from 1 and includes upper bound."
+        """Like RANGETO, but start at 1 and include upper bound."""
         if rhs is nil:
             return Range(1, rhs)
         elif type(rhs) is Scalar:
@@ -1478,7 +1486,7 @@ class ProgramState:
             return nil
 
     def MAP(self, lhs, iterable):
-        "Maps function over the items of iterable."
+        """Map function over the items of iterable."""
         if type(iterable) is Block and type(lhs) in (Scalar, List, Range):
             # The arguments are reversible to enable things like lM:f
             lhs, iterable = iterable, lhs
@@ -1500,7 +1508,7 @@ class ProgramState:
             return nil
 
     def MAPCOORDS(self, lhs, size):
-        "Maps function over grid of coordinate pairs."
+        """Map function over grid of coordinate pairs."""
         if type(size) is Scalar:
             result = []
             for row in range(int(size)):
@@ -1520,7 +1528,7 @@ class ProgramState:
                           type(lhs), "and", type(size))
 
     def MAPENUMERATE(self, function, iterable):
-        "Maps function over index/value pairs of items of the iterable."
+        """Map function over index/value pairs of items of the iterable."""
         if type(iterable) is Block and type(function) in (Scalar, List, Range):
             # The arguments are reversible to enable things like lME:f
             function, iterable = iterable, function
@@ -1532,12 +1540,14 @@ class ProgramState:
             return nil
 
     def MAPJOIN(self, lhs, iterable):
-        "Same as MAP, but join the result into a string afterwards."
-        # aMJb == J(aMb)
+        """Same as MAP, but join the result into a string afterwards.
+
+        a MJ b == J(a M b)
+        """
         return self.JOIN(self.MAP(lhs, iterable))
 
     def MAPMAP(self, lhs, iterable):
-        "Maps function over the items of the items of iterable."
+        """Map function over the items of the items of iterable."""
         if type(iterable) is Block and type(lhs) in (Scalar, List, Range):
             # The arguments are reversible to enable things like lMM:f
             lhs, iterable = iterable, lhs
@@ -1550,7 +1560,7 @@ class ProgramState:
             return nil
 
     def MAPPAIRS(self, function, iterable):
-        "Maps function over consecutive pairs of items of the iterable."
+        """Map function over consecutive pairs of items of the iterable."""
         if type(iterable) is Block and type(function) in (Scalar, List, Range):
             # The arguments are reversible to enable things like lMP:f
             function, iterable = iterable, function
@@ -1562,7 +1572,7 @@ class ProgramState:
             return nil
 
     def MAPREGEX(self, lhs, regex, string):
-        "Maps function over regex matches in string."
+        """Map function over regex matches in string."""
         if type(string) is Block and type(lhs) is Scalar:
             # The arguments are reversible to enable things like sMR:xf
             lhs, string = string, lhs
@@ -1583,7 +1593,10 @@ class ProgramState:
             return nil
 
     def MAPSUM(self, function, iterable):
-        "Same as MAP, but sum the result afterwards: aMSb == $+(aMb)"
+        """Same as MAP, but sum the result afterwards.
+
+        a MS b == $+(a M b)
+        """
         result = Scalar(0)
         plus = ops.opsByArity[2]["+"]
         for item in self.MAP(function, iterable):
@@ -1591,8 +1604,10 @@ class ProgramState:
         return result
 
     def MAPUNPACK(self, function, iterable):
-        """Maps function over an iterable, each item being a list of arguments.
-Equivalent to Python's itertools.starmap()."""
+        """Map function over iterable, each item being a list of arguments.
+
+        Equivalent to Python's itertools.starmap().
+        """
         if type(iterable) is Block and type(function) in (Scalar, List, Range):
             # The arguments are reversible to enable things like lMU:f
             function, iterable = iterable, function
@@ -1617,7 +1632,7 @@ Equivalent to Python's itertools.starmap()."""
             return nil
 
     def MAPZIP(self, lhs, iterable1, iterable2):
-        "Maps function over the items of two iterables in parallel."
+        """Map function over the items of two iterables in parallel."""
         if type(iterable1) is Block and type(lhs) in (Scalar, List, Range):
             # The arguments are reversible to enable things like lMZ:fm
             lhs, iterable1 = iterable1, lhs
@@ -1632,7 +1647,7 @@ Equivalent to Python's itertools.starmap()."""
             return nil
 
     def MAX(self, iterable):
-        "Numeric maximum of iterable."
+        """Return numeric maximum of iterable."""
         if type(iterable) in (Scalar, List, Range):
             try:
                 return max(iterable, key=lambda x:x.toNumber())
@@ -1652,7 +1667,7 @@ Equivalent to Python's itertools.starmap()."""
             return nil
 
     def MIN(self, iterable):
-        "Numeric minimum of iterable."
+        """Return numeric minimum of iterable."""
         if type(iterable) in (Scalar, List, Range):
             try:
                 return min(iterable, key=lambda x:x.toNumber())
@@ -1701,7 +1716,7 @@ Equivalent to Python's itertools.starmap()."""
             return nil
 
     def NATURALLOG(self, number):
-        "Takes the natural logarithm of number."
+        """Take the natural logarithm of number."""
         if type(number) is Scalar:
             if number.toNumber() > 0:
                 result = math.log(number.toNumber())
@@ -2007,20 +2022,47 @@ Equivalent to Python's itertools.starmap()."""
         return result
     
     def OUTPUT(self, expression):
-        "Output an expression, NO trailing newline, and pass it through."
+        """Output an expression, NO trailing newline, and pass it through."""
         expression = self.getRval(expression)
         # Because each Pip type implements __str__, we can just print() it
         # However, printing nil has no effect, including on whitespace
         if expression is not nil:
             print(expression, end="")
         return expression
+
+    def PALINDROMIZE(self, rhs):
+        """Concatenate iterable with all but first element of its reverse.
+
+        Empty List/Range or Scalar results in empty List or Scalar.
+        """
+        if isinstance(rhs, (Range, List)):
+            try:
+                rhs = list(rhs)
+            except ValueError:
+                self.err.warn("Cannot PALINDROMIZE an infinite range")
+                return nil
+            else:
+                if rhs:
+                    return List(rhs + rhs[-2::-1])
+                else:
+                    return List()
+        elif type(rhs) is Scalar:
+            rhs = str(rhs)
+            if rhs:
+                return Scalar(rhs + rhs[-2::-1])
+            else:
+                return Scalar()
+        else:
+            self.err.warn("Unimplemented argtype for PALINDROMIZE:",
+                          type(rhs))
+            return nil
     
     def PARENTHESIZE(self, expr):
         # Result of wrapping a single expression in parentheses
         return expr
 
     def PERMUTATIONS(self, iterable):
-        "Returns List of all permutations of iterable."
+        """Return List of all permutations of iterable."""
         if type(iterable) in (List, Range, Scalar):
             result = itertools.permutations(iterable)
             if type(iterable) is Scalar:
@@ -2180,14 +2222,16 @@ Equivalent to Python's itertools.starmap()."""
     
     def PRINT(self, expression):
         """Output an expression with trailing newline and pass it through.
-Because each Pip type implements __str__, we can just print() it; however,
-printing nil has no effect, including on whitespace."""
+
+        Because each Pip type implements __str__, we can just print()
+        it; however,printing nil has no effect, including on whitespace.
+        """
         if expression is not nil:
             print(expression)
         return expression
 
     def PUSH(self, iterable, item):
-        "Push the rhs onto the front of lhs in place."
+        """Push the rhs onto the front of lhs in place."""
         item = self.getRval(item)
         iterVal = self.getRval(iterable)
         if type(iterVal) in (List, Range):
@@ -2204,7 +2248,7 @@ printing nil has no effect, including on whitespace."""
             return iterVal
 
     def PUSHBACK(self, iterable, item):
-        # Push the rhs onto the back of lhs in place
+        """Push the rhs onto the back of lhs in place."""
         item = self.getRval(item)
         iterVal = self.getRval(iterable)
         if type(iterVal) in (List, Range):
@@ -2220,8 +2264,24 @@ printing nil has no effect, including on whitespace."""
             self.err.warn("Pushing to non-lvalue", iterable)
             return iterVal
 
+    def QUADREFLECT(self, rhs):
+        """REFLECT the rhs and also each of its elements."""
+        result = self.REFLECT(rhs)
+        if result is not nil:
+            return List(self.REFLECT(row) for row in result)
+        else:
+            return nil
+
+    def QUADPALINDROMIZE(self, rhs):
+        """PALINDROMIZE the rhs and also each of its elements."""
+        result = self.PALINDROMIZE(rhs)
+        if result is not nil:
+            return List(self.PALINDROMIZE(row) for row in result)
+        else:
+            return nil
+
     def RADIANS(self, rhs):
-        "Converts from degrees to radians."
+        """Convert from degrees to radians."""
         if type(rhs) is Scalar:
             result = rhs.toNumber() / 180 * math.pi
             return Scalar(result)
@@ -2252,7 +2312,7 @@ printing nil has no effect, including on whitespace."""
             return nil
         
     def RANDRANGETO(self, rhs):
-        "Unary version of RANDRANGE."
+        """Unary version of RANDRANGE."""
         if type(rhs) is Scalar:
             return Scalar(random.randrange(int(rhs)))
         else:
@@ -2273,7 +2333,7 @@ printing nil has no effect, including on whitespace."""
             return nil
 
     def RANGETO(self, rhs):
-        "Unary version of RANGE."
+        """Unary version of RANGE."""
         if type(rhs) in (Scalar, Nil):
             return Range(nil, rhs)
         elif type(rhs) is Pattern:
@@ -2285,8 +2345,25 @@ printing nil has no effect, including on whitespace."""
             self.err.warn("Unimplemented argtype for RANGETO:", type(rhs))
             return nil
 
+    def REFLECT(self, rhs):
+        """Concatenate iterable with its reverse."""
+        if isinstance(rhs, (Range, List)):
+            try:
+                rhs = list(rhs)
+            except ValueError:
+                self.err.warn("Cannot REFLECT an infinite range")
+                return nil
+            else:
+                return List(rhs + rhs[::-1])
+        elif type(rhs) is Scalar:
+            rhs = str(rhs)
+            return Scalar(rhs + rhs[::-1])
+        else:
+            self.err.warn("Unimplemented argtype for REFLECT:", type(rhs))
+            return nil
+
     def REGEX(self, rhs):
-        "Converts a Scalar, List, or Range to a properly-escaped Pattern."
+        """Convert Scalar, List, or Range to properly-escaped Pattern."""
         if type(rhs) is Scalar:
             regex = re.escape(str(rhs))
             if len(rhs) > 1:
@@ -2442,9 +2519,7 @@ printing nil has no effect, including on whitespace."""
     def REVERSE(self, rhs):
         if type(rhs) is Scalar:
             return Scalar(str(rhs)[::-1])
-        elif type(rhs) is List:
-            return List(list(rhs)[::-1])
-        elif type(rhs) is Range:
+        elif isinstance(rhs, (Range, List)):
             try:
                 rhs = list(rhs)
             except ValueError:
@@ -2589,7 +2664,7 @@ printing nil has no effect, including on whitespace."""
             return nil
 
     def SORTKEYED(self, key, iterable):
-        "Sort by value of (numeric!) key function applied to each item."
+        """Sort by value of (numeric!) key function applied to each item."""
         if type(key) is not Block and type(iterable) is Block:
             key, iterable = iterable, key
         if type(key) is Block and type(iterable) in (List, Range, Scalar):
@@ -2659,7 +2734,7 @@ printing nil has no effect, including on whitespace."""
             return nil
 
     def SPLITAT(self, iterable, indices):
-        "Splits iterable at given indices."
+        """Split iterable at given indices."""
         if type(indices) is Scalar:
             indices = [int(indices)]
         elif type(indices) is Range:
@@ -2670,7 +2745,7 @@ printing nil has no effect, including on whitespace."""
                 indices = list(set(int(index) for index in indices))
             except TypeError:
                 # The List contained items that couldn't be converted to int
-                self.err.warn("List of indices for SPLITAT must contain",
+                self.err.warn("List of indices for SPLITAT must contain "
                               "only Scalars")
                 return nil
 
@@ -2906,7 +2981,7 @@ printing nil has no effect, including on whitespace."""
             return nil
 
     def TOBASE(self, number, base=None):
-        "Converts a decimal integer to a string in the specified base."
+        """Convert a decimal integer to a string in the specified base."""
         if base is None:
             base = 2
         elif type(base) is Scalar:
@@ -2938,9 +3013,11 @@ printing nil has no effect, including on whitespace."""
             return nil
 
     def TRANSLITERATE(self, lhs, old, new):
-        "Expanded version of Python's str.translate."
-        # With Scalars, translates one letter to another; with Range or List
-        # of numbers, translates character codes
+        """Expanded version of Python's str.translate().
+
+        With Scalars, translate one letter to another; with Range or
+        List of numbers, translate character codes.
+        """
         if type(lhs) in (List, Range):
             return List(self.TRANSLITERATE(item, old, new) for item in lhs)
         elif (type(lhs) is Scalar
@@ -2965,7 +3042,7 @@ printing nil has no effect, including on whitespace."""
                 except ValueError:
                     if infiniteRange:
                         # They're both infinite
-                        self.err.warn("Cannot TRANSLITERATE one infinite",
+                        self.err.warn("Cannot TRANSLITERATE one infinite "
                                       "Range into another:", old, "->", new)
                         return nil
             mapping = {}
@@ -3027,7 +3104,11 @@ printing nil has no effect, including on whitespace."""
             return nil
 
     def UNIQUE(self, iterable):
-        "Removes duplicate values from iterable."
+        """Remove duplicate values from iterable.
+
+        Each value appears in the result List/Scalar in the order
+        of its first appearance in the original iterable.
+        """
         if type(iterable) is Range:
             # All values are already unique
             return iterable
@@ -3053,7 +3134,7 @@ printing nil has no effect, including on whitespace."""
             return nil
 
     def UNWEAVE(self, iterable, strands=2):
-        "Reverse WEAVE operation: distributes items into multiple iterables."
+        """Distribute items into multiple iterables; inverse of WEAVE."""
         if type(iterable) is Range:
             try:
                 len(iterable)
@@ -3100,7 +3181,7 @@ printing nil has no effect, including on whitespace."""
             return nil
 
     def WEAVE(self, iterable1, iterable2=None):
-        "Interleave two iterables."
+        """Interleave two iterables, or a List of iterables."""
         if iterable2 is None:
             # Unary version: rhs is expected to be a list of iterables to be
             # woven together
@@ -3154,29 +3235,28 @@ printing nil has no effect, including on whitespace."""
                 return nil
 
     def WRAP(self, string, outer):
-        "Prepends and appends characters around string."
+        """Prepend and append characters around string."""
         if (type(string) in (Scalar, Pattern)
                 and type(outer) in (Scalar, Pattern)):
-            result = self.CAT(outer, string)
-            return self.CAT(result, outer)
+            return self.CAT(self.CAT(outer, string), outer)
         else:
             self.err.warn("Unimplemented argtypes for WRAP:",
                           type(string), "and", type(outer))
             return nil
 
     def YANK(self, rhs):
-        "Assigns rhs to the y variable."
+        """Assign rhs to the y variable."""
         lhs = Lval("y")
         self.assign(lhs, rhs)
         return lhs
 
     def YANKOUTPUT(self, rhs):
-        "OUTPUT and then YANK rhs."
+        """OUTPUT and then YANK rhs."""
         self.OUTPUT(rhs)
         return self.YANK(rhs)
 
     def YANKPRINT(self, rhs):
-        "PRINT and then YANK rhs."
+        """PRINT and then YANK rhs."""
         self.PRINT(rhs)
         return self.YANK(rhs)
 

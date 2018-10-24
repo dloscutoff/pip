@@ -12,7 +12,7 @@ stringRgx = re.compile(r'"[^"]*"')
 patternRgx = re.compile(r'`(\\`|\\\\|[^`])*`')
 charRgx = re.compile(r"'(.|\n)")
 escStringRgx = re.compile(r'\\"(\\[^"]|[^\\])*\\"')
-numberRgx = re.compile(r'[0-9]+(\.[0-9]+)?')
+numberRgx = re.compile(r'\d+(\.\d+)?')
 symbolsRgx = re.compile(r'[][(){};$E]')
 
 # Create a regex from a list of operators by re.escape-ing them and joining

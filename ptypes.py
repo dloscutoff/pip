@@ -68,6 +68,8 @@ class Scalar(PipType):
 
     def __eq__(self, rhs):
         return type(rhs) == type(self) and self._value == rhs._value
+
+    __hash__ = PipType.__hash__
     
     def __len__(self):
         return len(self._value)
@@ -219,6 +221,8 @@ class Pattern(PipType):
 
     def __eq__(self, rhs):
         return type(rhs) == type(self) and self._raw == rhs._raw
+
+    __hash__ = PipType.__hash__
     
     def __len__(self):
         return len(self._raw)
@@ -253,7 +257,8 @@ class List(PipType):
                            generator,
                            map,
                            zip,
-                           itertools.starmap,):
+                           itertools.starmap,
+                           ):
             self._value = [item for item in value]
         elif type(value) in (List, list):
             self._value = [item.copy() for item in value]
@@ -305,6 +310,8 @@ class List(PipType):
 
     def __eq__(self, rhs):
         return type(rhs) == type(self) and self._value == rhs._value
+
+    __hash__ = PipType.__hash__
 
     def __len__(self):
         return len(self._value)
@@ -442,6 +449,8 @@ class Range(PipType):
         return (type(self) is type(rhs)
                 and self._lower == rhs._lower
                 and self._upper == rhs._upper)
+
+    __hash__ = PipType.__hash__
 
     def __len__(self):
         lower = self._lower or 0
@@ -616,8 +625,11 @@ class Block(PipType):
         return self._statements != [] or self._returnExpr != []
 
     def __eq__(self, rhs):
-        return (self._statements == rhs._statements
+        return (isinstance(rhs, Block)
+                and self._statements == rhs._statements
                 and self._returnExpr == rhs._returnExpr)
+
+    __hash__ = PipType.__hash__
 
     def toNumber(self):
         return 0
@@ -654,6 +666,8 @@ class Nil(PipType):
     def __eq__(self, rhs):
         return self is rhs
 
+    __hash__ = PipType.__hash__
+
     def toNumber(self):
         return 0
     
@@ -665,11 +679,11 @@ nil = Nil()
 
 
 def toPipType(pyObj):
-    if type(pyObj) in (str, int, float, bool):
+    if isinstance(pyObj, (str, int, float, bool)):
         return Scalar(pyObj)
-    elif type(pyObj) in (list, tuple, set, generator, map):
+    elif isinstance(pyObj, (list, tuple, set, generator, map)):
         return List(pyObj)
-    elif type(pyObj) in (range, slice):
+    elif isinstance(pyObj, (range, slice)):
         return Range(pyObj)
     elif pyObj is None:
         return nil
