@@ -222,7 +222,13 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>aPUb</code> Push item to front of iterable (modifying argument in-place)
 
+<code>PZa</code> Palindromize iterable, appending its reverse but without repeating the central item
+
 <code>aQb</code> String equal
+
+<code>QP</code> Quad-palindromize iterable, palindromizing it and also each of its items
+
+<code>QR</code> Quad-reflect iterable, reflecting it and also each of its items
 
 <code>aRbc</code> Replace each occurrence in Scalar `a` of substring or Pattern `b` with replacement `c`
 
@@ -231,6 +237,8 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 <code>RCa</code> Uniformly random choice of single item from iterable
 
 <code>RDa</code> Convert degrees to radians
+
+<code>RFa</code> Reflect iterable, appending its reverse
 
 <code>aRLb</code> Repeat List `a` `b` times
 
