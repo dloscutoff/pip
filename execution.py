@@ -1199,15 +1199,30 @@ class ProgramState:
             return Scalar("0")
 
     def GROUP(self, iterable, rhs):
+        if isinstance(rhs, (List, Range)):
+            # Group by each rhs and return a list of iterables
+            return List(self.GROUP(iterable, jump) for jump in rhs)
         if type(iterable) in (Scalar, List, Range) and type(rhs) is Scalar:
             result = List()
-            index = 0
             jump = int(rhs)
-            while index < len(iterable):
-                endIndex = min(index + jump, len(iterable))
-                result.append(iterable[index:endIndex])
-                index += jump
-            return result
+            if jump > 0:
+                index = 0
+                while index < len(iterable):
+                    endIndex = min(index + jump, len(iterable))
+                    result.append(iterable[index:endIndex])
+                    index += jump
+                return result
+            elif jump < 0:
+                # With a negative jump, group from right to left
+                index = len(iterable)
+                while index > 0:
+                    startIndex = max(index + jump, 0)
+                    result.append(iterable[startIndex:index])
+                    index += jump
+                return result
+            else:
+                self.err.warn("Cannot GROUP into slices of size 0")
+                return nil
         else:
             self.err.warn("Unimplemented argtypes for GROUP:",
                           type(iterable), "and", type(rhs))
@@ -1233,18 +1248,27 @@ class ProgramState:
         else:
             return self.evaluate(falseBranch)
 
-    def IN(self, lhs, rhs):
-        if type(lhs) is Pattern and type(rhs) is Scalar:
-            matches = lhs.asRegex().finditer(str(rhs))
+    def IN(self, needle, haystack):
+        """Count occurrences of needle in haystack.
+
+        Given a Pattern and a Scalar, count regex matches instead.
+        """
+        if isinstance(needle, (List, Range)) and isinstance(haystack, Scalar):
+            # It doesn't make sense for a List or Range to be a
+            # substring of a Scalar, so return a List of the counts
+            # of all items of needle in haystack
+            return List(self.IN(item, haystack) for item in needle)
+        elif type(needle) is Pattern and type(haystack) is Scalar:
+            matches = needle.asRegex().finditer(str(haystack))
             count = 0
             for matchObj in matches:
                 self.assignRegexVars(matchObj)
                 count += 1
             return Scalar(count)
-        elif lhs is nil and type(rhs) in (Scalar, Range):
+        elif needle is nil and type(haystack) in (Scalar, Range):
             return nil
-        elif type(rhs) in (Scalar, List, Range):
-            return Scalar(rhs.count(lhs))
+        elif type(haystack) in (Scalar, List, Range):
+            return Scalar(haystack.count(needle))
         else:
             # If it's not one of those types, it's automatically false
             return Scalar("0")
@@ -1747,12 +1771,14 @@ class ProgramState:
         result = not rhs
         return Scalar(result)
 
-    def NOTIN(self, lhs, rhs):
-        if type(lhs) is Pattern and type(rhs) is Scalar:
-            matchExists = lhs.asRegex().search(str(rhs))
+    def NOTIN(self, needle, haystack):
+        if isinstance(needle, (List, Range)) and isinstance(haystack, Scalar):
+            return List(self.NOTIN(item, haystack) for item in needle)
+        elif type(needle) is Pattern and type(haystack) is Scalar:
+            matchExists = needle.asRegex().search(str(haystack))
             return Scalar(not matchExists)
         else:
-            return Scalar(lhs not in rhs)
+            return Scalar(needle not in haystack)
 
     def NUMCMP(self, lhs, rhs):
         # Equivalent to Python2's cmp() function: return -1 if lhs < rhs,
@@ -1768,19 +1794,19 @@ class ProgramState:
     def NUMEQUAL(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() == rhs.toNumber()
-        elif (type(lhs) is type(rhs) is List
-              or type(lhs) is List and type(rhs) is Range
-              or type(lhs) is Range and type(rhs) is List):
+        elif type(lhs) is type(rhs) is Range:
+            # Just use the Range class's __eq__
+            result = lhs == rhs
+        elif (isinstance(lhs, (List, Range))
+              and isinstance(rhs, (List, Range)):
             try:
                 result = (len(lhs) == len(rhs)
                           and all(self.NUMEQUAL(i, j)
                                   for i, j in zip(lhs, rhs)))
             except ValueError:
                 # Raised by taking len of infinite Range, which cannot be
-                # equal to any list
+                # equal to any List
                 result = False
-        elif type(lhs) is type(rhs) is Range:
-            result = lhs == rhs
         else:
             result = False
         return Scalar(result)
@@ -1788,9 +1814,27 @@ class ProgramState:
     def NUMGREATER(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() > rhs.toNumber()
-        elif (type(lhs) is type(rhs) is List
-              or type(lhs) is List and type(rhs) is Range
-              or type(lhs) is Range and type(rhs) is List):
+        elif type(lhs) is type(rhs) is Range:
+            leftLower = lhs.getLower() or 0
+            rightLower = rhs.getLower() or 0
+            leftUpper = lhs.getUpper()
+            rightUpper = rhs.getUpper()
+            if leftLower > rightLower:
+                result = True
+            elif leftLower < rightLower:
+                result = False
+            elif leftUpper == rightUpper:
+                result = False
+            elif leftUpper is None:
+                # lhs is an infinite Range, thus bigger
+                result = True
+            elif rightUpper is None:
+                # rhs is an infinite Range, thus bigger
+                result = False
+            else:
+                result = leftUpper > rightUpper
+        elif (isinstance(lhs, (List, Range))
+              and isinstance(rhs, (List, Range)):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMGREATER(i, j):
@@ -1813,6 +1857,14 @@ class ProgramState:
                     # Rhs is infinite Range
                     return False
                 result = leftLen > rightLen
+        else:
+            result = False
+        return Scalar(result)
+
+    def NUMGREATEREQ(self, lhs, rhs):
+        if type(lhs) is type(rhs) is Scalar:
+            result = lhs.toNumber() >= rhs.toNumber()
+            return Scalar(result)
         elif type(lhs) is type(rhs) is Range:
             leftLower = lhs.getLower() or 0
             rightLower = rhs.getLower() or 0
@@ -1823,7 +1875,7 @@ class ProgramState:
             elif leftLower < rightLower:
                 result = False
             elif leftUpper == rightUpper:
-                result = False
+                result = True
             elif leftUpper is None:
                 # lhs is an infinite Range, thus bigger
                 result = True
@@ -1832,17 +1884,8 @@ class ProgramState:
                 result = False
             else:
                 result = leftUpper > rightUpper
-        else:
-            result = False
-        return Scalar(result)
-
-    def NUMGREATEREQ(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
-            result = lhs.toNumber() >= rhs.toNumber()
-            return Scalar(result)
-        elif (type(lhs) is type(rhs) is List
-              or type(lhs) is List and type(rhs) is Range
-              or type(lhs) is Range and type(rhs) is List):
+        elif (isinstance(lhs, (List, Range))
+              and isinstance(rhs, (List, Range)):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMGREATER(i, j):
@@ -1866,34 +1909,33 @@ class ProgramState:
                     return False
                 result = leftLen >= rightLen
             return Scalar(result)
-        elif type(lhs) is type(rhs) is Range:
-            leftLower = lhs.getLower() or 0
-            rightLower = rhs.getLower() or 0
-            leftUpper = lhs.getUpper()
-            rightUpper = rhs.getUpper()
-            if leftLower > rightLower:
-                result = True
-            elif leftLower < rightLower:
-                result = False
-            elif leftUpper == rightUpper:
-                result = True
-            elif leftUpper is None:
-                # lhs is an infinite Range, thus bigger
-                result = True
-            elif rightUpper is None:
-                # rhs is an infinite Range, thus bigger
-                result = False
-            else:
-                result = leftUpper > rightUpper
         else:
             return Scalar(False)
 
     def NUMLESS(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() < rhs.toNumber()
-        elif (type(lhs) is type(rhs) is List
-              or type(lhs) is List and type(rhs) is Range
-              or type(lhs) is Range and type(rhs) is List):
+        elif type(lhs) is type(rhs) is Range:
+            leftLower = lhs.getLower() or 0
+            rightLower = rhs.getLower() or 0
+            leftUpper = lhs.getUpper()
+            rightUpper = rhs.getUpper()
+            if leftLower < rightLower:
+                result = True
+            elif leftLower > rightLower:
+                result = False
+            elif leftUpper == rightUpper:
+                result = False
+            elif leftUpper is None:
+                # lhs is an infinite Range, thus bigger
+                result = False
+            elif rightUpper is None:
+                # rhs is an infinite Range, thus bigger
+                result = True
+            else:
+                result = leftUpper < rightUpper
+        elif (isinstance(lhs, (List, Range))
+              and isinstance(rhs, (List, Range)):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMLESS(i, j):
@@ -1916,25 +1958,6 @@ class ProgramState:
                     # Rhs is infinite Range
                     return True
                 result = leftLen <= rightLen
-        elif type(lhs) is type(rhs) is Range:
-            leftLower = lhs.getLower() or 0
-            rightLower = rhs.getLower() or 0
-            leftUpper = lhs.getUpper()
-            rightUpper = rhs.getUpper()
-            if leftLower < rightLower:
-                result = True
-            elif leftLower > rightLower:
-                result = False
-            elif leftUpper == rightUpper:
-                result = False
-            elif leftUpper is None:
-                # lhs is an infinite Range, thus bigger
-                result = False
-            elif rightUpper is None:
-                # rhs is an infinite Range, thus bigger
-                result = True
-            else:
-                result = leftUpper < rightUpper
         else:
             result = False
         return Scalar(result)
@@ -1942,9 +1965,27 @@ class ProgramState:
     def NUMLESSEQ(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() <= rhs.toNumber()
-        elif (type(lhs) is type(rhs) is List
-              or type(lhs) is List and type(rhs) is Range
-              or type(lhs) is Range and type(rhs) is List):
+        elif type(lhs) is type(rhs) is Range:
+            leftLower = lhs.getLower() or 0
+            rightLower = rhs.getLower() or 0
+            leftUpper = lhs.getUpper()
+            rightUpper = rhs.getUpper()
+            if leftLower < rightLower:
+                result = True
+            elif leftLower > rightLower:
+                result = False
+            elif leftUpper == rightUpper:
+                result = True
+            elif leftUpper is None:
+                # lhs is an infinite Range, thus bigger
+                result = False
+            elif rightUpper is None:
+                # rhs is an infinite Range, thus bigger
+                result = True
+            else:
+                result = leftUpper < rightUpper
+        elif (isinstance(lhs, (List, Range))
+              and isinstance(rhs, (List, Range)):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMLESS(i, j):
@@ -1967,25 +2008,6 @@ class ProgramState:
                     # Rhs is infinite Range
                     return True
                 result = leftLen <= rightLen
-        elif type(lhs) is type(rhs) is Range:
-            leftLower = lhs.getLower() or 0
-            rightLower = rhs.getLower() or 0
-            leftUpper = lhs.getUpper()
-            rightUpper = rhs.getUpper()
-            if leftLower < rightLower:
-                result = True
-            elif leftLower > rightLower:
-                result = False
-            elif leftUpper == rightUpper:
-                result = True
-            elif leftUpper is None:
-                # lhs is an infinite Range, thus bigger
-                result = False
-            elif rightUpper is None:
-                # rhs is an infinite Range, thus bigger
-                result = True
-            else:
-                result = leftUpper < rightUpper
         else:
             result = False
         return Scalar(result)
@@ -1993,19 +2015,18 @@ class ProgramState:
     def NUMNOTEQUAL(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() != rhs.toNumber()
-        elif (type(lhs) is type(rhs) is List
-              or type(lhs) is List and type(rhs) is Range
-              or type(lhs) is Range and type(rhs) is List):
+        elif type(lhs) is type(rhs) is Range:
+            result = lhs != rhs
+        elif (isinstance(lhs, (List, Range))
+              and isinstance(rhs, (List, Range)):
             try:
                 result = (len(lhs) != len(rhs)
                           or any(self.NUMNOTEQUAL(i, j)
                                   for i, j in zip(lhs, rhs)))
             except ValueError:
                 # Raised by taking len of infinite Range, which cannot be
-                # equal to any list
+                # equal to any List
                 result = True
-        elif type(lhs) is type(rhs) is Range:
-            result = lhs != rhs
         else:
             result = True
         return Scalar(result)
@@ -2030,31 +2051,31 @@ class ProgramState:
             print(expression, end="")
         return expression
 
-    def PALINDROMIZE(self, rhs):
+    def PALINDROMIZE(self, iterable):
         """Concatenate iterable with all but first element of its reverse.
 
         Empty List/Range or Scalar results in empty List or Scalar.
         """
-        if isinstance(rhs, (Range, List)):
+        if isinstance(iterable, (Range, List)):
             try:
-                rhs = list(rhs)
+                iterable = list(iterable)
             except ValueError:
                 self.err.warn("Cannot PALINDROMIZE an infinite range")
                 return nil
             else:
-                if rhs:
-                    return List(rhs + rhs[-2::-1])
+                if iterable:
+                    return List(iterable + iterable[-2::-1])
                 else:
                     return List()
-        elif type(rhs) is Scalar:
-            rhs = str(rhs)
-            if rhs:
-                return Scalar(rhs + rhs[-2::-1])
+        elif type(iterable) is Scalar:
+            iterable = str(iterable)
+            if iterable:
+                return Scalar(iterable + iterable[-2::-1])
             else:
                 return Scalar()
         else:
             self.err.warn("Unimplemented argtype for PALINDROMIZE:",
-                          type(rhs))
+                          type(iterable))
             return nil
     
     def PARENTHESIZE(self, expr):
@@ -2264,17 +2285,17 @@ class ProgramState:
             self.err.warn("Pushing to non-lvalue", iterable)
             return iterVal
 
-    def QUADREFLECT(self, rhs):
-        """REFLECT the rhs and also each of its elements."""
-        result = self.REFLECT(rhs)
+    def QUADREFLECT(self, iterable):
+        """REFLECT the iterable and also each of its elements."""
+        result = self.REFLECT(iterable)
         if result is not nil:
             return List(self.REFLECT(row) for row in result)
         else:
             return nil
 
-    def QUADPALINDROMIZE(self, rhs):
-        """PALINDROMIZE the rhs and also each of its elements."""
-        result = self.PALINDROMIZE(rhs)
+    def QUADPALINDROMIZE(self, iterable):
+        """PALINDROMIZE the iterable and also each of its elements."""
+        result = self.PALINDROMIZE(iterable)
         if result is not nil:
             return List(self.PALINDROMIZE(row) for row in result)
         else:
@@ -2298,68 +2319,69 @@ class ProgramState:
                           type(iterable))
             return nil
 
-    def RANDRANGE(self, lhs, rhs):
-        if type(lhs) in (Scalar, Nil) and type(rhs) is Scalar:
-            if lhs is nil:
-                lhs = 0
+    def RANDRANGE(self, lower, upper):
+        if type(lower) in (Scalar, Nil) and type(upper) is Scalar:
+            if lower is nil:
+                lower = 0
             else:
-                lhs = int(lhs)
-            rhs = int(rhs)
-            return Scalar(random.randrange(lhs, rhs))
+                lower = int(lower)
+            upper = int(upper)
+            return Scalar(random.randrange(lower, upper))
         else:
             self.err.warn("Unimplemented argtypes for RANDRANGE:",
-                          type(lhs), "and", type(rhs))
+                          type(lower), "and", type(upper))
             return nil
         
-    def RANDRANGETO(self, rhs):
+    def RANDRANGETO(self, upper):
         """Unary version of RANDRANGE."""
-        if type(rhs) is Scalar:
-            return Scalar(random.randrange(int(rhs)))
+        if type(upper) is Scalar:
+            return Scalar(random.randrange(int(upper)))
         else:
-            self.err.warn("Unimplemented argtype for RANDRANGETO:", type(rhs))
+            self.err.warn("Unimplemented argtype for RANDRANGETO:", type(upper))
             return nil
 
-    def RANGE(self, lhs, rhs):
-        if type(lhs) in (Scalar, Nil) and type(rhs) in (Scalar, Nil):
-            return Range(lhs, rhs)
-        elif type(lhs) is Pattern and type(rhs) is Pattern:
+    def RANGE(self, lower, upper):
+        if type(lower) in (Scalar, Nil) and type(upper) in (Scalar, Nil):
+            return Range(lower, upper)
+        elif type(lower) is Pattern and type(upper) is Pattern:
             # , with two Patterns returns a new Pattern that matches one OR
             # the other
-            result = "(?:%s)|(?:%s)" % (lhs, rhs)
+            result = "(?:%s)|(?:%s)" % (lower, upper)
             return Pattern(result)
         else:
             self.err.warn("Unimplemented argtypes for RANGE:",
-                          type(lhs), "and", type(rhs))
+                          type(lower), "and", type(upper))
             return nil
 
-    def RANGETO(self, rhs):
+    def RANGETO(self, upper):
         """Unary version of RANGE."""
-        if type(rhs) in (Scalar, Nil):
-            return Range(nil, rhs)
-        elif type(rhs) is Pattern:
+        if type(upper) in (Scalar, Nil):
+            return Range(nil, upper)
+        elif type(upper) is Pattern:
             # , operator on a Pattern makes ^ and $ match fronts & ends of
             # lines
-            result = "(?m)" + str(rhs)
+            result = "(?m)" + str(upper)
             return Pattern(result)
         else:
-            self.err.warn("Unimplemented argtype for RANGETO:", type(rhs))
+            self.err.warn("Unimplemented argtype for RANGETO:", type(upper))
             return nil
 
-    def REFLECT(self, rhs):
+    def REFLECT(self, iterable):
         """Concatenate iterable with its reverse."""
-        if isinstance(rhs, (Range, List)):
+        if isinstance(iterable, (Range, List)):
             try:
-                rhs = list(rhs)
+                iterable = list(iterable)
             except ValueError:
                 self.err.warn("Cannot REFLECT an infinite range")
                 return nil
             else:
-                return List(rhs + rhs[::-1])
-        elif type(rhs) is Scalar:
-            rhs = str(rhs)
-            return Scalar(rhs + rhs[::-1])
+                return List(iterable + iterable[::-1])
+        elif type(iterable) is Scalar:
+            iterable = str(iterable)
+            return Scalar(iterable + iterable[::-1])
         else:
-            self.err.warn("Unimplemented argtype for REFLECT:", type(rhs))
+            self.err.warn("Unimplemented argtype for REFLECT:",
+                          type(iterable))
             return nil
 
     def REGEX(self, rhs):

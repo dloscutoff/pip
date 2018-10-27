@@ -62,7 +62,7 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>a&lt;=b</code> Numeric less than or equal
 
-<code>a&lt;>b</code> Group iterable `a` into sections of length `b`
+<code>a&lt;>b</code> Group iterable `a` into sections of length `b`; with negative `b`, groups right-to-left
 
 <code>a&lt;|b</code> Strip characters in `b` from right of `a`
 

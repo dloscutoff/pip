@@ -4,7 +4,6 @@
 #  Fix: operators with * metaop should work in lambdas
 #  Allow ; after For loop variable
 #  Escaped Regex
-#  List N Scalar returns List of results??
 #  Unary R for reverse??
 #  Flag equivalent to Perl's -p
 #  Make RA behave as expected for multiple, size-changing replacements
@@ -24,7 +23,7 @@ from parsing import parse
 from execution import ProgramState
 from errors import FatalError
 
-VERSION = "0.18.10.23"
+VERSION = "0.18.10.26"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:
