@@ -1,5 +1,5 @@
 
-Regex operations in Pip use the Pattern data type. Patterns are delimited by <code>`</code> (backticks); backticks within the Pattern can be escaped using backslash, as can literal backslashes. Regexes are basically Python flavor with a few add-ons. Any legal Python regex is a legal Pip regex (as long as backticks and `&` are escaped) and will behave the same way.
+Regex operations in Pip use the Pattern data type. Patterns are delimited by ``` ` ``` (backticks); backticks within the Pattern can be escaped using backslash, as can literal backslashes. Regexes are basically Python flavor with a few add-ons. Any legal Python regex is a legal Pip regex (as long as backticks and `&` are escaped) and will behave the same way.
 
 ## Differences between Python and Pip
 
