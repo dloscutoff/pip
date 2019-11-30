@@ -2,6 +2,8 @@
 
 # Priorities TODO:
 #  Fix: operators with * metaop should work in lambdas
+#  Fix: decide sensible behavior for indexed empty sequence as lval
+#    (e.g. currently x@0:4 raises an uncaught exception)
 #  Allow ; after For loop variable
 #  Escaped Regex
 #  Unary R for reverse??
