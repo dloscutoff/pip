@@ -225,6 +225,7 @@ precedenceTable = [
      ("CP", "CARTESIANPRODUCT", [], RVALS | IN_LAMBDA),
      ("CG", "COORDINATEGRID", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("ZG", "ZEROGRID", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     ("OG", "ONEGRID", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ],
     [3, "L",
      ("RA", "REPLACEAT", None, RVALS | IN_LAMBDA),
@@ -234,6 +235,7 @@ precedenceTable = [
      ("^", "SPLIT", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("J", "JOIN", None, RVALS | IN_LAMBDA),
      ("RV", "REVERSE", None, RVALS | IN_LAMBDA),
+     ("R", "REVERSE", None, RVALS | IN_LAMBDA), # Synonym for golfiness
      ("RF", "REFLECT", None, RVALS | IN_LAMBDA),
      ("PZ", "PALINDROMIZE", None, RVALS | IN_LAMBDA),
      ("QR", "QUADREFLECT", None, RVALS | IN_LAMBDA),
@@ -245,6 +247,7 @@ precedenceTable = [
      ("CP", "CARTESIANPRODUCT", None, RVALS | IN_LAMBDA),
      ("CG", "COORDINATEGRID", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("ZG", "ZEROGRID", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     ("OG", "ONEGRID", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("EY", "IDENTITYMATRIX", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ],
     [3, "L",

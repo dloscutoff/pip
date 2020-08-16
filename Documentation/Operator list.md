@@ -6,7 +6,7 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 `*` Map: occurs after a unary operator; arity and precedence remain the same
 
-`:` Modify-assign: occurs after a unary, binary, or ternary operator; the resulting compound operator has the same arity but has the precedence of `:`
+`:` Modify-assign: occurs after a unary, binary, or ternary operator; the resulting compound operator has the same arity but is right-associative and has the same precedence as `:`
 
 ### Operators
 
@@ -26,17 +26,17 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>a&b</code> Logical and (short-circuiting)
 
-<code>a*b</code> Multiplication; regex repetition
+<code>a\*b</code> Multiplication; if one operand is a Pattern, regex repetition
 
-<code>a**b</code> Exponentiation
+<code>a\*\*b</code> Exponentiation
 
-<code>a+b</code> Addition; regex concatenation
+<code>a+b</code> Addition; if both operands are Patterns, regex concatenation
 
 <code>+a</code> Cast value as number
 
 <code>++a</code> Pre-increment (always comes before operand, never `a++`)
 
-<code>a,b</code> Range; regex alternation
+<code>a,b</code> Range; if both operands are Patterns, regex alternation
 
 <code>,a</code> Range from 0 up to; set multiline flag on Pattern
 
@@ -82,15 +82,15 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>@a</code> Get item at index 0
 
-<code>a@*b</code> Find all indices of item in iterable, substring or regex match in Scalar
+<code>a@\*b</code> Find all indices of item in iterable, substring or regex match in Scalar
 
 <code>a@&lt;b</code> Slice of iterable left of index
 
-<code>@&lt;a</code> Leftmost item of iterable
+<code>@&lt;a</code> Slice of iterable left of index -1 (i.e. all but the last item)
 
 <code>a@>b</code> Slice of iterable right of index
 
-<code>@>a</code> Rightmost item of iterable
+<code>@>a</code> Slice of iterable right of index 0 (i.e. all but the first item)
 
 <code>a@?b</code> Find first index of item in iterable, substring or regex match in Scalar
 
@@ -134,7 +134,7 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>CTa</code> Cotangent
 
-<code>aDCb</code> Remove all occurrences of characters in Scalar `b` from Scalar `a`
+<code>aDCb</code> Delete all occurrences of characters in Scalar `b` from Scalar `a`
 
 <code>DGa</code> Convert radians to degrees
 
@@ -166,7 +166,7 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>aJWb</code> Join iterable on separator and wrap result in separator as well
 
-<code>Ka</code> Applies Kleene star (repeat 0 or more times) to a Pattern
+<code>Ka</code> Apply Kleene star (repeat 0 or more times) to a Pattern
 
 <code>LCa</code> Convert to lowercase
 
@@ -208,7 +208,11 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>Oa</code> Output value and pass through unchanged (same as `P` but without trailing newline)
 
-<code>Pa</code> Print value with newline and pass through unchanged (output format for Lists depends on command-line flags; nil gives no output, including trailing newline)
+<code>aOGb</code> Grid of ones (`a` rows by `b` columns)
+
+<code>OGa</code> Grid of ones (`a` rows by `a` columns)
+
+<code>Pa</code> Print value with newline and pass through unchanged (output format for Lists depends on command-line flags; nil gives no output and also suppresses trailing newline)
 
 <code>aPBb</code> Push item to back of iterable (modifying argument in-place)
 
@@ -226,11 +230,13 @@ Operators are listed in ASCII order. See also the [precedence table](https://git
 
 <code>aQb</code> String equal
 
-<code>QP</code> Quad-palindromize iterable, palindromizing it and also each of its items
+<code>QPa</code> Quad-palindromize iterable, palindromizing it and also each of its items
 
-<code>QR</code> Quad-reflect iterable, reflecting it and also each of its items
+<code>QRa</code> Quad-reflect iterable, reflecting it and also each of its items
 
 <code>aRbc</code> Replace each occurrence in Scalar `a` of substring or Pattern `b` with replacement `c`
+
+<code>Ra</code> Alias for unary `RV`
 
 <code>aRAbc</code> Replace item in iterable `a` at index `b` with replacement `c`
 

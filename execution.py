@@ -550,6 +550,7 @@ class ProgramState:
             "y": Scalar(""),
             "z": Scalar("abcdefghijklmnopqrstuvwxyz"),
             "B": Block([], tokens.Name("b")),
+            "G": Block([], tokens.Name("g")),
             "AZ": Scalar("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
             "CZ": Scalar("bcdfghjklmnpqrstvwxyz"),
             "PA": Scalar("".join(chr(i) for i in range(32, 127))),
@@ -1559,7 +1560,7 @@ class ProgramState:
         if type(function) is Block and type(iterable) in (Scalar, List, Range):
             return self.MAPZIP(function, Range(len(iterable)), iterable)
         else:
-            self.err.warn("Unimplemented argtypes for MAPPAIRS:",
+            self.err.warn("Unimplemented argtypes for MAPENUMERATE:",
                           type(function), "and", type(iterable))
             return nil
 
@@ -1798,7 +1799,7 @@ class ProgramState:
             # Just use the Range class's __eq__
             result = lhs == rhs
         elif (isinstance(lhs, (List, Range))
-              and isinstance(rhs, (List, Range)):
+              and isinstance(rhs, (List, Range))):
             try:
                 result = (len(lhs) == len(rhs)
                           and all(self.NUMEQUAL(i, j)
@@ -1834,7 +1835,7 @@ class ProgramState:
             else:
                 result = leftUpper > rightUpper
         elif (isinstance(lhs, (List, Range))
-              and isinstance(rhs, (List, Range)):
+              and isinstance(rhs, (List, Range))):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMGREATER(i, j):
@@ -1885,7 +1886,7 @@ class ProgramState:
             else:
                 result = leftUpper > rightUpper
         elif (isinstance(lhs, (List, Range))
-              and isinstance(rhs, (List, Range)):
+              and isinstance(rhs, (List, Range))):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMGREATER(i, j):
@@ -1935,7 +1936,7 @@ class ProgramState:
             else:
                 result = leftUpper < rightUpper
         elif (isinstance(lhs, (List, Range))
-              and isinstance(rhs, (List, Range)):
+              and isinstance(rhs, (List, Range))):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMLESS(i, j):
@@ -1985,7 +1986,7 @@ class ProgramState:
             else:
                 result = leftUpper < rightUpper
         elif (isinstance(lhs, (List, Range))
-              and isinstance(rhs, (List, Range)):
+              and isinstance(rhs, (List, Range))):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMLESS(i, j):
@@ -2018,7 +2019,7 @@ class ProgramState:
         elif type(lhs) is type(rhs) is Range:
             result = lhs != rhs
         elif (isinstance(lhs, (List, Range))
-              and isinstance(rhs, (List, Range)):
+              and isinstance(rhs, (List, Range))):
             try:
                 result = (len(lhs) != len(rhs)
                           or any(self.NUMNOTEQUAL(i, j)
@@ -2033,6 +2034,19 @@ class ProgramState:
 
     def OBJEQUAL(self, lhs, rhs):
         return Scalar(lhs == rhs)
+
+    def ONEGRID(self, rows, cols=None):
+        if cols is None:
+            cols = rows
+        if type(rows) is type(cols) is Scalar:
+            rows = range(int(rows))
+            cols = range(int(cols))
+            return List(List(Scalar("1") for col in cols)
+                        for row in rows)
+        else:
+            self.err.warn("Unimplemented argtypes for ONEGRID:",
+                          type(rows), "and", type(cols))
+            return nil
 
     def OR(self, lhs, rhs):
         # Short-circuiting OR operator

@@ -56,7 +56,7 @@ class Scalar(PipType):
                 return '"{}"'.format(self._value)
 
     def __int__(self):
-        m = intRgx.match(self._value)
+        m = intRgx.match(self._value.lstrip())
         if m:
             return int(m.group())
         else:
@@ -77,10 +77,10 @@ class Scalar(PipType):
     def toNumber(self):
         """Convert to a Python float or int for math purposes."""
         # TODO: replace floats with Decimal or somesuch?
-        m = floatRgx.match(self._value)
+        m = floatRgx.match(self._value.lstrip())
         if m:
             return float(m.group())
-        m = intRgx.match(self._value)
+        m = intRgx.match(self._value.lstrip())
         if m:
             return int(m.group())
         # If it doesn't match a float or an int, its numeric value is 0

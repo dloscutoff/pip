@@ -38,6 +38,8 @@ This list also includes the "special variables," which have different behavior w
 
 `B` Block that returns its second argument (`{b}`)
 
+`G` Block that returns its argument list (`{g}`)
+
 `AZ` Uppercase alphabet A to Z
 
 `CZ` Lowercase consonants b to z

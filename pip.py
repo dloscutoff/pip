@@ -4,13 +4,16 @@
 #  Fix: operators with * metaop should work in lambdas
 #  Fix: decide sensible behavior for indexed empty sequence as lval
 #    (e.g. currently x@0:4 raises an uncaught exception)
+#  MC takes a 2-element list and makes a grid of that size
+#  Binary versions of QP and QR that take a directional argument
+#  Wish list for shorter operators: ++ -- ** //
+#  Find uses for D, H, j, p
+#  Repurpose E, S, U, k?
 #  Allow ; after For loop variable
 #  Escaped Regex
-#  Unary R for reverse??
 #  Flag equivalent to Perl's -p
 #  Make RA behave as expected for multiple, size-changing replacements
 #  Rework ugly hacks in definition of Range class
-#  Do loop?
 #  Reconstitute code from parse tree and return that for functions' str and
 #    repr
 #  Figure out how to get correct warning/error reporting in ptypes classes
@@ -25,7 +28,7 @@ from parsing import parse
 from execution import ProgramState
 from errors import FatalError
 
-VERSION = "0.18.10.26"
+VERSION = "0.20.08.16"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:
