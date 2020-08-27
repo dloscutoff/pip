@@ -21,8 +21,8 @@
 title: Pip Docs
 description: >- # this means to ignore newlines until "baseurl:"
   Pip Golfing Language Documentation Website
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
+baseurl: "/pip" # the subpath of your site, e.g. /blog
+url: "http://razetime.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 #twitter_username: jekyllrb
 github_username: dloscutoff
 
