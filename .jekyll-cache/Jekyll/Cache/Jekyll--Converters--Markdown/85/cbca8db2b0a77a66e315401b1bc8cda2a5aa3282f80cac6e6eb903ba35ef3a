@@ -1,0 +1,100 @@
+I"ï<h1 id="example-programs">Example Programs</h1>
+<p>These are general examples that have been made to touch upon the features of Pip.</p>
+
+<p>Some of these may link to questions on <a href="https://codegolf.stackexchange.com/">Code Golf Stack Exchange</a>, where you can look at them in more detail.</p>
+<h2 id="gcdgreatest-common-divisor-of-two-numbers">GCD(Greatest Common Divisor) of two numbers:</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Wb%:aSaba
+</code></pre></div></div>
+
+<h4 id="explanation">Explanation:</h4>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Wb%:a      Assign b%a to b and loop while nonzero:
+     Sab    Swap a and b
+        a  After the loop, print a
+</code></pre></div></div>
+
+<h2 id="three-quine-strategies">Three quine strategies:</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>" X2RsC34.s" X2RsC34.s  Duplicate the string and replace each space with double quote followed by space
+Y"Y yRsRPy"yRsRPy       Repr substitution, as in the standard Python quine
+V Y"`V Y`.RPy"          Using eval, with a Pattern to allow a string-like object without double quotes
+</code></pre></div></div>
+
+<h2 id="first-a-fibonacci-numbers-starting-with-1">First <em>a</em> Fibonacci numbers, starting with 1:</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>La{Po+:xSox}
+</code></pre></div></div>
+
+<h2 id="arithmetic-mean-of-input">Arithmetic mean of input:</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$+g/#g
+</code></pre></div></div>
+
+<h4 id="explanation-1">Explanation:</h4>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  g      List of cmdline args
+   /#g   Divide each element of the list by the length of the list
+$+       Sum the result (fold on addition)
+</code></pre></div></div>
+
+<h2 id="three-different-ways-to-do-factorial">Three different ways to do factorial:</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>a?a*(fa-1)1   Recursive...
+Fi\,ao*:io    Iterative...
+$*\,a         But fold is the best!
+</code></pre></div></div>
+
+<h2 id="fizzbuzz">FizzBuzz:</h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>LhP J["Fizz""Buzz"]X!*++i%^35|i
+</code></pre></div></div>
+
+<h4 id="explanation-2">Explanation:</h4>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Lh                               Loop 100 times:
+  P                              Print this expression:
+                          ^35    35, split into a list of characters [3;5]
+                      ++i%       Increment i and take its new value mod each of those numbers
+                    !*           Logically negate each value (0 -&gt; 1, nonzero -&gt; 0)
+     ["Fizz""Buzz"]X             String-multiply "Fizz" and "Buzz", itemwise, by the above
+                                 The result is a list containing "Fizz" or "" depending on i%3
+                                 and "Buzz" or "" depending on i%5
+    J                            Join that list into a string
+                             |i  Logical or with i (i.e. use the number if the resulting string is "")
+</code></pre></div></div>
+
+<hr />
+
+<h2 id="translate-alphanumeric-phone-numbers"><a href="http://codegolf.stackexchange.com/q/21327/16766">Translate alphanumeric phone numbers</a></h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{aQ'z?9aNz?5*Aa//16-28a}Ma
+</code></pre></div></div>
+
+<h2 id="is-a-number-divisible-by-all-of-its-digits"><a href="http://codegolf.stackexchange.com/q/41902/16766">Is a number divisible by all of its digits?</a></h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>0=$+a%^a
+</code></pre></div></div>
+
+<h4 id="explanation-3">Explanation:</h4>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>      ^a  Split num (as string) into an array of its digits                              [1;2;8]  [2;0]   [3;2]
+    a%    Take num mod each of those digits; if a digit is zero, the result will be nil  [0;0;0]  [0;()]  [2;0]
+  $+      Sum the resulting list (note: summing a list containing nil results in nil!)   0        ()      2
+0=        Iff the sum equals 0, return 1 (true); otherwise (&gt;0 or nil), return 0 (false) 1        0       0
+</code></pre></div></div>
+
+<h2 id="build-nested-lists"><a href="http://codegolf.stackexchange.com/q/47351/16766">Build nested lists</a></h2>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>a?--a?[0(fa)+1][0]l   20 bytes counting -p flag
+</code></pre></div></div>
+
+<h4 id="explanation-4">Explanation:</h4>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>a?                l   If input is 0, return empty list
+  --a?         [0]    Else decrement input; if it is now 0, return [0]
+        (fa)+1        If --a was not 0, recurse and add 1 memberwise to the result...
+      [0      ]       ... and make it the second item in a new outer list
+                      The recursive main function thus builds up lists like [0] -&gt; [0;[1]] -&gt; [0;[1;[2]]] etc.
+</code></pre></div></div>
+:ET
