@@ -20,7 +20,7 @@ Backticks within the Pattern can be escaped using backslash, as can literal back
 
 ## Predefined Pattern variables
 
-Some common regexes are available as predefined variables:
+Some common regexes are available as predefined [variables](vars):
 
 Variable | Value                     | Mnemonic
 -------- | ------------------------- | ----------------
@@ -150,7 +150,6 @@ Usage: `LRxs{...}`
 The command version of `MR`: loops over all matches of Pattern `x` in Scalar `s`. Use regex special variables to access match information inside the loop. Can also be used as `LRsx{...}`.
 
 ## Match variables
-(see also: [Pre-defined variables.](pre-defs))
 
 The following regex match variables are set every time a match is made by most regex operations--most usefully, `MR`, `LR`, and `R`:
 
