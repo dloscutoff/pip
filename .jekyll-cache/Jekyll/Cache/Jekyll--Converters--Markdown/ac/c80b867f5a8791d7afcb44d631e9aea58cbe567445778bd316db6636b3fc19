@@ -1,0 +1,22 @@
+I"`<h1 id="getting-started">Getting Started</h1>
+
+<p>The quickest way to get started using Pip is at <a href="https://tio.run/#pip">Try It Online!</a> (Thanks, Dennis!)</p>
+
+<p>Pip is implemented in Python 3.
+The main interpreter is the <code class="language-plaintext highlighter-rouge">pip.py</code> file. It should run on most systems with Python 3 installed simply by invoking pip.py in the directory where you put it (for *nix systems, use ./pip.py).</p>
+
+<p>You may also wish to modify the PATH environment variable to include the path to Pip, so that you can invoke it from anywhere.</p>
+
+<h2 id="basic-pip-commands">Basic Pip Commands:</h2>
+
+<h3 id="executing-a-pip-program-from-file">Executing a pip program from file:</h3>
+<p><code class="language-plaintext highlighter-rouge">python3 pip.py [flags] path/to/codefile.pip [args]</code></p>
+<h3 id="executing-a-pip-program-directly">Executing a pip program directly:</h3>
+<p><code class="language-plaintext highlighter-rouge">python3 pip.py [flags] -e 'code' [args]</code></p>
+<h3 id="pip-shellinteractive-mode">Pip shell(Interactive mode)</h3>
+<p><code class="language-plaintext highlighter-rouge">python3 pip.py</code></p>
+<h3 id="help-topics">Help Topics</h3>
+<p>Execute this command for more detailed information on the interpreter.</p>
+
+<p><code class="language-plaintext highlighter-rouge">pip.py --help</code></p>
+:ET

@@ -1,0 +1,84 @@
+I".<h1 id="pre-defined-variables">Pre-defined Variables</h1>
+<p>This list also includes the “special variables,” which have different behavior when accessed and/or assigned.
+Many of these are golfing-specifc.
+(For regex match variables, see <a href="https://github.com/dloscutoff/pip/blob/master/Documentation/Regex%20operations.md">Regex operations</a>.) Eventually, every letter h-z should appear below.</p>
+
+<h2 id="important-variables">Important variables</h2>
+<p><code class="language-plaintext highlighter-rouge">q</code> Special variable: reads and returns a line of input each time it is accessed</p>
+
+<p><code class="language-plaintext highlighter-rouge">r</code> Special variable: returns a random number 0 &lt;= <code class="language-plaintext highlighter-rouge">r</code> &lt; 1 when it is accessed; assigning to <code class="language-plaintext highlighter-rouge">r</code> seeds the random-number generator</p>
+
+<p><code class="language-plaintext highlighter-rouge">a</code> Special variable: reads all command line arguments given in as a list</p>
+
+<h2 id="miscellaneous">Miscellaneous</h2>
+
+<p><code class="language-plaintext highlighter-rouge">_</code> Identity function (== <code class="language-plaintext highlighter-rouge">{a}</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">h</code> 100</p>
+
+<p><code class="language-plaintext highlighter-rouge">i</code> 0</p>
+
+<p><code class="language-plaintext highlighter-rouge">k</code> <code class="language-plaintext highlighter-rouge">", "</code></p>
+
+<p><code class="language-plaintext highlighter-rouge">l</code> Empty list</p>
+
+<p><code class="language-plaintext highlighter-rouge">m</code> 1000 (mnemonic: Roman numeral M)</p>
+
+<p><code class="language-plaintext highlighter-rouge">n</code> Newline character</p>
+
+<p><code class="language-plaintext highlighter-rouge">o</code> 1</p>
+
+<p><code class="language-plaintext highlighter-rouge">s</code> Space character</p>
+
+<p><code class="language-plaintext highlighter-rouge">t</code> 10</p>
+
+<p><code class="language-plaintext highlighter-rouge">u</code> Nil</p>
+
+<p><code class="language-plaintext highlighter-rouge">v</code> -1</p>
+
+<p><code class="language-plaintext highlighter-rouge">w</code> Pattern matching one or more whitespace characters (<code>\`\s+\`</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">x</code> Empty string</p>
+
+<p><code class="language-plaintext highlighter-rouge">y</code> Empty string (modified by <code class="language-plaintext highlighter-rouge">Y</code> operator)</p>
+
+<p><code class="language-plaintext highlighter-rouge">z</code> Lowercase alphabet a to z</p>
+
+<p><code class="language-plaintext highlighter-rouge">B</code> Block that returns its second argument (<code class="language-plaintext highlighter-rouge">{b}</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">G</code> Block that returns its argument list (<code class="language-plaintext highlighter-rouge">{g}</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">AZ</code> Uppercase alphabet A to Z</p>
+
+<p><code class="language-plaintext highlighter-rouge">CZ</code> Lowercase consonants b to z</p>
+
+<p><code class="language-plaintext highlighter-rouge">PA</code> All <strong>P</strong>rintable <strong>A</strong>SCII characters, 32 through 126</p>
+
+<p><code class="language-plaintext highlighter-rouge">PI</code> Pi (3.141592653589793)</p>
+
+<p><code class="language-plaintext highlighter-rouge">VW</code> Lowercase vowels a to u</p>
+
+<p><code class="language-plaintext highlighter-rouge">VY</code> Lowercase vowels a to y</p>
+
+<p><code class="language-plaintext highlighter-rouge">XA</code> Pattern matching one (ASCII) letter (<code>\`[A-Za-z]\`</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">XC</code> Pattern matching one (lowercase ASCII) consonant (<code>\`[bcdfghjklmnpqrstvwxyz]\`</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">XD</code> Pattern matching one digit (<code>\`\d\`</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">XI</code> Pattern matching an integer (<code>\`-?\d+\`</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">XL</code> Pattern matching one lowercase (ASCII) letter (<code>\`[a-z]\`</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">XN</code> Pattern matching an integer or decimal number (<code>\`-?\d+(?:\.\d+)?\`</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">XU</code> Pattern matching one uppercase (ASCII) letter (<code>\`[A-Z]\`</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">XV</code> Pattern matching one (lowercase ASCII) vowel, not including y (<code>\`[aeiou]\`</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">XW</code> Pattern matching one word character–letter, number, or underscore (<code>\`\w\`</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">XX</code> Pattern matching any one character (<code>\`.\`</code>)</p>
+
+<p><code class="language-plaintext highlighter-rouge">XY</code> Pattern matching one (lowercase ASCII) vowel, including y (<code>\`[aeiouy]\`</code>)</p>
+:ET

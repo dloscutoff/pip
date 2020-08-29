@@ -1,0 +1,206 @@
+{"0": {
+    "doc": "Command Line Flags",
+    "title": "Command Line Flags",
+    "content": "Pip uses several command-line flags to control input and output options: . ",
+    "url": "http://localhost:4000/pip/cli-flags",
+    "relUrl": "/cli-flags"
+  },"1": {
+    "doc": "Command Line Flags",
+    "title": "Code source",
+    "content": "-e Execute the following code . -f Execute code in given file . -i Execute code read from stdin . When Pip is called without any of these flags, the default is stdin for interactive mode and file for non-interactive. ",
+    "url": "http://localhost:4000/pip/cli-flags#code-source",
+    "relUrl": "/cli-flags#code-source"
+  },"2": {
+    "doc": "Command Line Flags",
+    "title": "List formatting",
+    "content": "-p Pretty-print lists by executing RP on them first . -s Join lists on space . -n Join lists on newline . -l Join each item on empty string, then join results on newline (i.e. print list as multiple lines) . -P Execute RP on each item, then join results on newline . -S Join each item on space, then join results on newline . The default is to join lists on empty string, as in CJam. ",
+    "url": "http://localhost:4000/pip/cli-flags#list-formatting",
+    "relUrl": "/cli-flags#list-formatting"
+  },"3": {
+    "doc": "Command Line Flags",
+    "title": "Debugging output",
+    "content": "-v Verbose mode: currently, prints space-separated list of tokens and parse tree before execution . -w Print warning messages for things like div by 0 (instead of silently using nil and moving on) . -d Debug mode: equivalent to -vwp . ",
+    "url": "http://localhost:4000/pip/cli-flags#debugging-output",
+    "relUrl": "/cli-flags#debugging-output"
+  },"4": {
+    "doc": "Command Line Flags",
+    "title": "Other",
+    "content": "-r Instead of getting g from command-line args, initialize it from lines of stdin . ",
+    "url": "http://localhost:4000/pip/cli-flags#other",
+    "relUrl": "/cli-flags#other"
+  },"5": {
+    "doc": "Commands",
+    "title": "Commands",
+    "content": "Each command is given, followed by a pseudocode equivalent and an explanation. For loop . Fil{...} foreach(i in l) {...} . Loops the variable i over each item in l. Legal types for the iteration object are scalar, list, and range. The variable must be a single identifier; this requirement allows the following very useful syntax with the unary range operator: . Fi,20{...} foreach(i in range(0, 20)) {...} . If statement . Ix&lt;0{...}EIx&gt;0{...}E{...} if(x &lt; 0) {...} elseif(x &lt; 0) {...} else {...} . Since both the if and else branches may drop the curly braces if they contain single statements, the EI is just syntactic sugar for E I. Fixed iterations loop . L10{...} repeat 10 times {...} . Like a for loop, but takes a number rather than an iterable, and does not assign to a loop variable. Equivalent of {...}*10 in some languages. Regex match loop . LRxs{...} foreach(regex match of x in s) {...} . Similar to while $s =~ $x in Perl. Use regex special variables to access match data on each iteration. Swap statement . Sab swap values of a, b . a and b can be any two expressions as long as they evaluate to lvalues. For instance, Sx@0x@1 will swap the first two items in an iterable x. Till loop . Tx&gt;9{...} while(not x &gt; 9) {...} . Loop as long as the condition is false; stop when it becomes true. Unify . UxyzWg (x,y,z) = g . Read as “unify x, y, z with g.” Like Python’s tuple unpacking, but works even if the size of the list doesn’t match the number of variables: if the list is too long, the remainder is ignored; if the list is too short, the latter variables get values of nil. While loop . Wx&lt;10{...} while(x &lt; 10) {...} . Loop as long as the condition is true; stop when it becomes false. Wipe globals . WG . Resets all global variables to their default values. ",
+    "url": "http://localhost:4000/pip/commands",
+    "relUrl": "/commands"
+  },"6": {
+    "doc": "Example Programs",
+    "title": "Example Programs",
+    "content": "These are general examples that have been made to touch upon the features of Pip. Some of these may link to questions on Code Golf Stack Exchange, where you can look at them in more detail. ",
+    "url": "http://localhost:4000/pip/examples",
+    "relUrl": "/examples"
+  },"7": {
+    "doc": "Example Programs",
+    "title": "GCD(Greatest Common Divisor) of two numbers:",
+    "content": "Wb%:aSaba . Explanation: . Wb%:a Assign b%a to b and loop while nonzero: Sab Swap a and b a After the loop, print a . ",
+    "url": "http://localhost:4000/pip/examples#gcdgreatest-common-divisor-of-two-numbers",
+    "relUrl": "/examples#gcdgreatest-common-divisor-of-two-numbers"
+  },"8": {
+    "doc": "Example Programs",
+    "title": "Three quine strategies:",
+    "content": "\" X2RsC34.s\" X2RsC34.s Duplicate the string and replace each space with double quote followed by space Y\"Y yRsRPy\"yRsRPy Repr substitution, as in the standard Python quine V Y\"`V Y`.RPy\" Using eval, with a Pattern to allow a string-like object without double quotes . ",
+    "url": "http://localhost:4000/pip/examples#three-quine-strategies",
+    "relUrl": "/examples#three-quine-strategies"
+  },"9": {
+    "doc": "Example Programs",
+    "title": "First a Fibonacci numbers, starting with 1:",
+    "content": "La{Po+:xSox} . ",
+    "url": "http://localhost:4000/pip/examples#first-a-fibonacci-numbers-starting-with-1",
+    "relUrl": "/examples#first-a-fibonacci-numbers-starting-with-1"
+  },"10": {
+    "doc": "Example Programs",
+    "title": "Arithmetic mean of input:",
+    "content": "$+g/#g . Explanation: . g List of cmdline args /#g Divide each element of the list by the length of the list $+ Sum the result (fold on addition) . ",
+    "url": "http://localhost:4000/pip/examples#arithmetic-mean-of-input",
+    "relUrl": "/examples#arithmetic-mean-of-input"
+  },"11": {
+    "doc": "Example Programs",
+    "title": "Three different ways to do factorial:",
+    "content": "a?a*(fa-1)1 Recursive... Fi\\,ao*:io Iterative... $*\\,a But fold is the best! . ",
+    "url": "http://localhost:4000/pip/examples#three-different-ways-to-do-factorial",
+    "relUrl": "/examples#three-different-ways-to-do-factorial"
+  },"12": {
+    "doc": "Example Programs",
+    "title": "FizzBuzz:",
+    "content": "LhP J[\"Fizz\"\"Buzz\"]X!*++i%^35|i . Explanation: . Lh Loop 100 times: P Print this expression: ^35 35, split into a list of characters [3;5] ++i% Increment i and take its new value mod each of those numbers !* Logically negate each value (0 -&gt; 1, nonzero -&gt; 0) [\"Fizz\"\"Buzz\"]X String-multiply \"Fizz\" and \"Buzz\", itemwise, by the above The result is a list containing \"Fizz\" or \"\" depending on i%3 and \"Buzz\" or \"\" depending on i%5 J Join that list into a string |i Logical or with i (i.e. use the number if the resulting string is \"\") . ",
+    "url": "http://localhost:4000/pip/examples#fizzbuzz",
+    "relUrl": "/examples#fizzbuzz"
+  },"13": {
+    "doc": "Example Programs",
+    "title": "Translate alphanumeric phone numbers",
+    "content": "{aQ'z?9aNz?5*Aa//16-28a}Ma . ",
+    "url": "http://localhost:4000/pip/examples#translate-alphanumeric-phone-numbers",
+    "relUrl": "/examples#translate-alphanumeric-phone-numbers"
+  },"14": {
+    "doc": "Example Programs",
+    "title": "Is a number divisible by all of its digits?",
+    "content": "0=$+a%^a . Explanation: . ^a Split num (as string) into an array of its digits [1;2;8] [2;0] [3;2] a% Take num mod each of those digits; if a digit is zero, the result will be nil [0;0;0] [0;()] [2;0] $+ Sum the resulting list (note: summing a list containing nil results in nil!) 0 () 2 0= Iff the sum equals 0, return 1 (true); otherwise (&gt;0 or nil), return 0 (false) 1 0 0 . ",
+    "url": "http://localhost:4000/pip/examples#is-a-number-divisible-by-all-of-its-digits",
+    "relUrl": "/examples#is-a-number-divisible-by-all-of-its-digits"
+  },"15": {
+    "doc": "Example Programs",
+    "title": "Build nested lists",
+    "content": "a?--a?[0(fa)+1][0]l 20 bytes counting -p flag . Explanation: . a? l If input is 0, return empty list --a? [0] Else decrement input; if it is now 0, return [0] (fa)+1 If --a was not 0, recurse and add 1 memberwise to the result... [0 ] ... and make it the second item in a new outer list The recursive main function thus builds up lists like [0] -&gt; [0;[1]] -&gt; [0;[1;[2]]] etc. ",
+    "url": "http://localhost:4000/pip/examples#build-nested-lists",
+    "relUrl": "/examples#build-nested-lists"
+  },"16": {
+    "doc": "Getting Started",
+    "title": "Getting Started",
+    "content": "The quickest way to get started using Pip is at Try It Online! (Thanks, Dennis!) . Pip is implemented in Python 3. The main interpreter is the pip.py file. It should run on most systems with Python 3 installed simply by invoking pip.py in the directory where you put it (for *nix systems, use ./pip.py). You may also wish to modify the PATH environment variable to include the path to Pip, so that you can invoke it from anywhere. ",
+    "url": "http://localhost:4000/pip/getting-started",
+    "relUrl": "/getting-started"
+  },"17": {
+    "doc": "Getting Started",
+    "title": "Basic Pip Commands:",
+    "content": "Executing a pip program from file: . python3 pip.py [flags] path/to/codefile.pip [args] . Executing a pip program directly: . python3 pip.py [flags] -e 'code' [args] . Pip shell(Interactive mode) . python3 pip.py . Help Topics . Execute this command for more detailed information on the interpreter. pip.py --help . ",
+    "url": "http://localhost:4000/pip/getting-started#basic-pip-commands",
+    "relUrl": "/getting-started#basic-pip-commands"
+  },"18": {
+    "doc": "List of Operators",
+    "title": "List of Operators",
+    "content": "Operators are listed in ASCII order. See also: precedence table. For guaranteed up-to-date information, your best bet is to read the code: there’s a reasonably human-readable precedence table in operators.py. Meta-operators . The following operators change the way other operators are used, when applied on them. $ Fold: occurs before a binary operator; the resulting compound operator is unary, with the same precedence as the original binary operator . * Map: occurs after a unary operator; arity and precedence remain the same . : Modify-assign: occurs after a unary, binary, or ternary operator; the resulting compound operator has the same arity but is right-associative and has the same precedence as : . Operators . !a Logical not . a!=b Numeric not equal . #a Length . a#&lt;b Length less than . a#=b Length equal . a#&gt;b Length greater than . a%b Modulo . a&amp;b Logical and (short-circuiting) . a\\*b Multiplication; if one operand is a Pattern, regex repetition . a\\*\\*b Exponentiation . a+b Addition; if both operands are Patterns, regex concatenation . +a Cast value as number . ++a Pre-increment (always comes before operand, never a++) . a,b Range; if both operands are Patterns, regex alternation . ,a Range from 0 up to; set multiline flag on Pattern . a-b Subtraction . -a Numeric negation; set case-insensitive flag on Pattern . --a Pre-decrement (always comes before operand, never a--) . a.b Concatenation .a Set dotall flag on Pattern; no-op on other data types . a/b Division . /a Inverse . a//b Integer division . a:b Assignment . a&lt;b Numeric less than . a&lt;=b Numeric less than or equal . a&lt;&gt;b Group iterable a into sections of length b; with negative b, groups right-to-left . a&lt;|b Strip characters in b from right of a . &lt;|a Strip whitespace from right of a . a=b Numeric equal . a==b Exactly equal . a&gt;b Numeric greater than . a&gt;=b Numeric greater than or equal . a?bc If-then-else operator (short-circuiting) . a@b Get item/slice at index . @a Get item at index 0 . a@\\*b Find all indices of item in iterable, substring or regex match in Scalar . a@&lt;b Slice of iterable left of index . @&lt;a Slice of iterable left of index -1 (i.e. all but the last item) . a@&gt;b Slice of iterable right of index . @&gt;a Slice of iterable right of index 0 (i.e. all but the first item) . a@?b Find first index of item in iterable, substring or regex match in Scalar . Aa Convert first char of Scalar to ASCII value (or Unicode point); set ASCII-only flag on Pattern . ABa Absolute value of number . aAEb List a with element b appended . aALb List a with List b appended . aATb Arctan2 (with a being the y-coordinate and b being the x-coordinate) . ATa Arctangent . aBAb Bitwise and . aBNb Bitwise not . aBOb Bitwise or . aBXb Bitwise xor . Ca Convert ASCII value/Unicode point to character . aCBb List of all combinations of b elements from iterable a . aCGb Coordinate grid of a rows by b columns . CGa Coordinate grid of a rows by a columns . aCMb Numeric cmp (-1 if less, 0 if equal, 1 if greater) . COa Cosine . aCPb Cartesian product of two iterables . CPa Cartesian product of a List of iterables . CSa Cosecant . CTa Cotangent . aDCb Delete all occurrences of characters in Scalar b from Scalar a . DGa Convert radians to degrees . DQa Dequeue item from back of iterable (modifying argument in-place) . ENa Enumerate an iterable (gives List of [index item] Lists) . aEQb Alias for binary Q, kept for backwards compatibility . EXa Exponential (base e) . EYa Identity matrix (abbreviation from Matlab’s eye() function) . aFBb Convert number from given base to decimal integer . FBa Convert number from binary to decimal integer . aFIb Filter (1st arg is Block, 2nd is List) . aGTb String greater than . aGEb String greater than or equal . aINb Alias for binary N, kept for backwards compatibility . aJb Join iterable on separator . Ja Join iterable on empty string . aJWb Join iterable on separator and wrap result in separator as well . Ka Apply Kleene star (repeat 0 or more times) to a Pattern . LCa Convert to lowercase . aLTb String less than . aLEb String less than or equal . LNa Natural logarithm . aMb Map Block to iterable, returning List . aMCb Map Block a to each x,y in bxb grid of coordinate pairs . aMEb Map Block a to index/value pairs for items in iterable, returning List . aMJb Map Block to iterable and join results into Scalar . aMMb Map Block to each subitem of iterable, returning List of Lists . MNa Min of iterable using numeric comparison . aMPb Map Block to consecutive pairs of items from iterable, returning List . aMRbc Map Block to each match of regex b in Scalar c . aMSb Map Block to iterable and sum results . aMUb Map Block to iterable, unpacking each item as function arguments (like Python’s itertools.starmap); returns List . MXa Max of iterable using numeric comparison . aMZbc Map Block to two iterables, passing zipped pairs of elements as arguments; returns List . aNb In (returns count of occurrences or 0 if none) . aNEb String not equal . aNIb Not in (returns truth value 0 or 1) . Oa Output value and pass through unchanged (same as P but without trailing newline) . aOGb Grid of ones (a rows by b columns) . OGa Grid of ones (a rows by a columns) . Pa Print value with newline and pass through unchanged (output format for Lists depends on command-line flags; nil gives no output and also suppresses trailing newline) . aPBb Push item to back of iterable (modifying argument in-place) . aPEb List a with element b prepended . PMa List of all permutations of iterable . aPKb Pick out item from index b of iterable a (modifying a in-place) . POa Pop item from front of iterable (modifying argument in-place) . aPUb Push item to front of iterable (modifying argument in-place) . PZa Palindromize iterable, appending its reverse but without repeating the central item . aQb String equal . QPa Quad-palindromize iterable, palindromizing it and also each of its items . QRa Quad-reflect iterable, reflecting it and also each of its items . aRbc Replace each occurrence in Scalar a of substring or Pattern b with replacement c . Ra Alias for unary RV . aRAbc Replace item in iterable a at index b with replacement c . RCa Uniformly random choice of single item from iterable . RDa Convert degrees to radians . RFa Reflect iterable, appending its reverse . aRLb Repeat List a b times . aRMb From Scalar remove substring(s) or regex matches; from List or Range remove item . RPa Convert to Pip representation . aRRb Randrange from a to b . RRa Randrange from 0 to a . aRTb ath root of b . RTa Square root of a . RVa Reverse iterable . SCa Swap case: Hello, World! becomes hELLO, wORLD! . SEa Secant . SGa Sign of number (-1, 0, or 1) . SIa Sine . aSKb Sort iterable using Block as key function . SNa Sort iterable using numeric comparison . SSa Sort iterable using string comparison . STa Convert to string (for Lists, the format of the result depends on command-line flags) . TAa Tangent . aTBb Convert decimal integer a to base b . TBa Convert decimal integer a to binary . aTMb Trim Scalar a by b characters from front and end (Scalar b trims same amt on both sides; Range b trims different amts) . TMa Trim first and last characters from Scalar a . aTRbc Transliterate a from characters in b to those in c (with b or c Scalar, transliterates one letter to another; with b or c Range or List of numbers, translates character codes) . UCa Convert to UPPERCASE . UQa Keep only unique values from iterable . aUWb Unweave iterable a into a List of b strands . UWa Unweave iterable a into a List of two strands . aVb Call Block as function with arglist (equivalent to a(*b) in Python) . Va Evaluate Block in current context, returning value of final expression or nil if there isn’t one . aWRb Wrap Scalar or Pattern with a delimiter . aWVb Weave two iterables together, alternating their items . WVa Weave all subitems in an iterable together . aXb Repeat Scalar a b times . Xa Covert Scalar or List/Range to equivalent regex Pattern (escaping special characters as necessary) . Ya Yank value into the variable y (equivalent to (y:a)) . YOa Output value, then yank it (equivalent to (y:Oa)) . YPa Print value, then yank it (equivalent to (y:Pa)) . aZb Zip two Lists together (clipping to the shorter length) . Za Zip a List of Lists together (clipping to the shortest length) . aZDb Zip a List of Lists together, filling missing values with default value b . ZDa Zip a List of Lists together, filling missing values with nil . aZGb Grid of zeros (a rows by b columns) . ZGa Grid of zeros (a rows by a columns) . a\\\\,b Inclusive range . \\\\,a Inclusive range from 1 . a^b Split Scalar a on separator b . ^a Split Scalar a into List of characters . a^@b Split iterable a at index or List of indices b . a|b Logical or (short-circuiting) . a|&gt;b Strip characters in b from left of a . |&gt;a Strip whitespace from left of a . a||b Strip characters in b from a . ||a Strip whitespace from a . a~b Find first match of Pattern a in Scalar b (reversible) . a~=b Test if Pattern a fully matches Scalar b (reversible) . ",
+    "url": "http://localhost:4000/pip/operators",
+    "relUrl": "/operators"
+  },"19": {
+    "doc": "Pre-defined Variables",
+    "title": "Pre-defined Variables",
+    "content": "This list also includes the “special variables,” which have different behavior when accessed and/or assigned. Many of these are golfing-specifc. (For regex match variables, see Regex operations.) Eventually, every letter h-z should appear below. ",
+    "url": "http://localhost:4000/pip/pre-defs",
+    "relUrl": "/pre-defs"
+  },"20": {
+    "doc": "Pre-defined Variables",
+    "title": "Important variables",
+    "content": "q Special variable: reads and returns a line of input each time it is accessed . r Special variable: returns a random number 0 &lt;= r &lt; 1 when it is accessed; assigning to r seeds the random-number generator . a Special variable: reads all command line arguments given in as a list . ",
+    "url": "http://localhost:4000/pip/pre-defs#important-variables",
+    "relUrl": "/pre-defs#important-variables"
+  },"21": {
+    "doc": "Pre-defined Variables",
+    "title": "Miscellaneous",
+    "content": "_ Identity function (== {a}) . h 100 . i 0 . k \", \" . l Empty list . m 1000 (mnemonic: Roman numeral M) . n Newline character . o 1 . s Space character . t 10 . u Nil . v -1 . w Pattern matching one or more whitespace characters (\\`\\s+\\`) . x Empty string . y Empty string (modified by Y operator) . z Lowercase alphabet a to z . B Block that returns its second argument ({b}) . G Block that returns its argument list ({g}) . AZ Uppercase alphabet A to Z . CZ Lowercase consonants b to z . PA All Printable ASCII characters, 32 through 126 . PI Pi (3.141592653589793) . VW Lowercase vowels a to u . VY Lowercase vowels a to y . XA Pattern matching one (ASCII) letter (\\`[A-Za-z]\\`) . XC Pattern matching one (lowercase ASCII) consonant (\\`[bcdfghjklmnpqrstvwxyz]\\`) . XD Pattern matching one digit (\\`\\d\\`) . XI Pattern matching an integer (\\`-?\\d+\\`) . XL Pattern matching one lowercase (ASCII) letter (\\`[a-z]\\`) . XN Pattern matching an integer or decimal number (\\`-?\\d+(?:\\.\\d+)?\\`) . XU Pattern matching one uppercase (ASCII) letter (\\`[A-Z]\\`) . XV Pattern matching one (lowercase ASCII) vowel, not including y (\\`[aeiou]\\`) . XW Pattern matching one word character–letter, number, or underscore (\\`\\w\\`) . XX Pattern matching any one character (\\`.\\`) . XY Pattern matching one (lowercase ASCII) vowel, including y (\\`[aeiouy]\\`) . ",
+    "url": "http://localhost:4000/pip/pre-defs#miscellaneous",
+    "relUrl": "/pre-defs#miscellaneous"
+  },"22": {
+    "doc": "Regex",
+    "title": "Regex Operations",
+    "content": "Regex operations in Pip use the Pattern data type. Patterns are delimited by ` (backticks). Backticks within the Pattern can be escaped using backslash, as can literal backslashes. Regexes are basically Python flavor with a few add-ons. Any legal Python regex is a legal Pip regex (as long as backticks and &amp; are escaped) and will behave the same way. ",
+    "url": "http://localhost:4000/pip/regex#regex-operations",
+    "relUrl": "/regex#regex-operations"
+  },"23": {
+    "doc": "Regex",
+    "title": "Differences between Python and Pip",
+    "content": ". | Pip Patterns are used both as regexes and as regex replacement strings. | In addition to back-references (e.g. \\1), Pip replacement Patterns can contain &amp;, which corresponds to the entire match (as in sed et al.). | Many Pip regex operations set special variables similar to the ones in Perl, rather than the Python strategy of returning a match object encapsulating that information. | . ",
+    "url": "http://localhost:4000/pip/regex#differences-between-python-and-pip",
+    "relUrl": "/regex#differences-between-python-and-pip"
+  },"24": {
+    "doc": "Regex",
+    "title": "Predefined Pattern variables",
+    "content": "Some common regexes are available as predefined variables: . | Variable | Value | Mnemonic | . | w | \\s+ | Whitespace | . | XA | [A-Za-z] | regeX Alpha | . | XC | [bcdfghjklmnpqrstvwxyz] | regeX Consonant | . | XD | \\d | regeX Digit | . | XI | -?\\d+ | regeX Integer | . | XL | [a-z] | regeX Lowercase | . | XN | -?\\d+(?:\\.\\d+)? | regeX Number | . | XU | [A-Z] | regeX Uppercase | . | XV | [aeiou] | regeX Vowel | . | XW | \\w | regeX Word | . | XX | . | regeX anything | . | XY | [aeiouy] | regeX vowel-or-Y | . ",
+    "url": "http://localhost:4000/pip/regex#predefined-pattern-variables",
+    "relUrl": "/regex#predefined-pattern-variables"
+  },"25": {
+    "doc": "Regex",
+    "title": "Regex-building operations",
+    "content": "The following operators can be used to build regexes: . Concatenate/repeat (low level): . X . Usage: x.s xXn . Both binary operators work the same as with Scalars. They consider only the text of the Pattern, whether it is a regex, a fragment of a regex, or a replacement. Concatenating a Scalar and a Pattern coerces the result to Pattern. Concatenate/alternate/repeat (high level): + , * . Usage: x+y x,y x*n . + and , assume both operands are valid regexes, wrap each in a non-capturing group, and concatenate them, with , placing a | in between. * assumes the first operand is a valid regex, wraps it in a non-capturing group, and appends a repetition construct like {n}. Convert to regex: X . Usage: Xs . Converts a Scalar to a Pattern, escaping special characters. Given a List or Range, converts to a Pattern that will match any of the items. Repetition/grouping: K + C . Usage: Kx . K and + modify a Pattern with * or +, respectively. C wraps a pattern in a capturing group. NOTE: K also works on Scalars and Ranges, converting them to Patterns first. + and C only work on Patterns. Set flags: - . , A . Usage: -x . The unary operators - . , A set the case-insensitive, dotall, multiline, and ASCII-only regex flags, respectively. See the Python 3 re docs for more information. ",
+    "url": "http://localhost:4000/pip/regex#regex-building-operations",
+    "relUrl": "/regex#regex-building-operations"
+  },"26": {
+    "doc": "Regex",
+    "title": "Pip regex operations",
+    "content": "Pip currently supports the following regex operations (with more in the works): . First match: ~ . Usage: s~x . Returns the first match of Pattern x in Scalar s, or nil if no match was found. Can also be used as x~s. All matches: @ . Usage: s@x . Returns a List of all non-overlapping matches of Pattern x in Scalar s. Find index: @? . Usage: s@?x . Returns the start index of the first match of Pattern x in Scalar s, or nil if no match was found. Find all indices: @* . Usage: s@*x . Same as @?, but returns a List of all match indices. Not in/in/count: NI, N . Usage: xNs . N returns the number of non-overlapping matches of Pattern x in Scalar s. NI returns 1 if the Pattern was not found, 0 if it was. Fullmatch: ~= . Usage: x~=s . Returns 1 if Pattern x fully matches Scalar s, 0 otherwise. Can be chained with other comparison operators. Can also be used as s~=x. Replace: R . Usage: sRxp . Replace each non-overlapping match of Pattern x in Scalar s with replacement (Pattern, Scalar or callback function) p. The arguments passed to a callback function are the entire match (parameter a) followed by capture groups (parameters b through e). Remove: RM . Usage: sRMx . Remove each non-overlapping match of Pattern x from Scalar s. Strip/lstrip/rstrip: ||&gt; &lt;| . Usage: s||x . Strip matches of Pattern x from the left, right, or both sides of Scalar s. Split: ^ . Usage: s^x . Split Scalar s on occurrences of Pattern x. If x contains capture groups, they are included in the resulting List. Map: MR . Usage: fMRxs . Find all matches of Pattern x in Scalar s and map function f to them. The arguments passed to the function are the entire match (parameter a) followed by capture groups (parameters b through e). Can also be used as sMRxf or fMRsx. Loop: LR . Usage: LRxs{...} . The command version of MR: loops over all matches of Pattern x in Scalar s. Use regex special variables to access match information inside the loop. Can also be used as LRsx{...}. ",
+    "url": "http://localhost:4000/pip/regex#pip-regex-operations",
+    "relUrl": "/regex#pip-regex-operations"
+  },"27": {
+    "doc": "Regex",
+    "title": "Match variables",
+    "content": "(see also: Pre-defined variables.) . The following regex match variables are set every time a match is made by most regex operations–most usefully, MR, LR, and R: . | $0: entire match | $1: capture group 1 (and similarly for 2-9) | $$: list of all capture group contents | $(: start index of match | $): end index of match | $[: list of start indices of capture groups | $]: list of end indices of capture groups | $`: the part of the string before the match | $': the part of the string after the match | . ",
+    "url": "http://localhost:4000/pip/regex#match-variables",
+    "relUrl": "/regex#match-variables"
+  },"28": {
+    "doc": "Regex",
+    "title": "Regex",
+    "content": " ",
+    "url": "http://localhost:4000/pip/regex",
+    "relUrl": "/regex"
+  },"29": {
+    "doc": "Syntax",
+    "title": "Pip syntax",
+    "content": "The syntax of Pip is generally C-like with strong influence from Python, Perl/PHP, and various golfing languages. A few features are reminiscent of Bash script or Lisp. Tokens . Tokens in Pip can be any of the following: . | Number (consecutive digits, optionally followed by a period and more consecutive digits) | String literal (between “double quotes”) | Single-character string literal (a ‘ single quote followed by any character–no escapes) | Escaped string literal (between \"escaped quotes\"–allows literal double quotes as well as variable interpolation) | Pattern literal (between `backticks`–backslash escapes for backtick &amp; backslash) | Operator (one or more symbols or uppercase letters) | Lowercase identifier (a single lowercase letter; runs of lowercase letters become multiple identifiers) | Uppercase identifier (one or two uppercase letters which are not an operator) | Underscore (identity function; see below) | Delimiters (parens, square braces, curly braces, semicolon) | . Parsing . Because uppercase identifiers and operators are limited to two characters, the scanner breaks a longer run of them into multiple tokens. For example, LCAZ is equivalent to LC AZ. If the run contains an odd number of characters, it is interpreted as having a single-character token at the beginning: PLCAZ is P LC AZ. String literals . Escaped string literals warrant further explanation. The delimiter is \\\", and therefore literal double quotes can be placed inside the string without escaping them (\\\"like \"this\"\\\"). Backslashes do need to be escaped with a second backslash (unlike in regular string literals). A backslash followed by an identifier is a variable interpolation: for example, \\\"Value is \\v.\\\" This usage is syntactic sugar for (J[\"Value is \";STv;\".\"]). Expressions cannot be interpolated at present. Comments . Comments come in two types: lines that start with a (possibly indented) semicolon, and anything at the end of a line if preceded by two or more spaces. ; This is a comment. x:42 This is a comment too. Whitespace . Whitespace is not significant except for indicating comments and separating tokens. For example, (- -5) returns 5, . But (--5) returns 4 because -- is the decrement operator. Types . There are 6 data types in Pip: . | Scalar represents strings and numbers, similar to scalar variables in Perl. A string in numeric context is converted to a number by taking the leading run of digits, possibly with a minus sign or decimal point. | List is similar to lists in Python: dynamically resizeable, can hold items of any type including other lists, etc. | Range has a lower and upper bound, and usually represents all integers &gt;= the lower bound and &lt; the upper bound. 5,10 is functionally equivalent to [5 6 7 8 9] in most contexts, but potentially more efficient since the numbers need not all be generated. Infinite ranges can be created by passing an upper bound of nil. Ranges are also used for string/array slicing, in which context negative indices may be used: \"Hello\"@(1,-1) == \"ell\". | Pattern represents regular expressions and replacement patterns. See Regex operations. | Block represents a code block or function. | Nil is a singleton type, similar to null or None from other languages. Note that many situations that would cause a runtime error in other languages (such as dividing by zero) simply return nil in Pip (unless warnings are turned on using the -w or -d flags). Most operators, when given nil as an operand, return nil. | . Boolean expressions return 0 and 1. The values 0 (and variants like 0.0), \"\", [], ``, and nil are falsy; all others are truthy. Many operators, including arithmetic and most string operators, function memberwise on ranges and lists, similar to array-programming languages like APL. For example, [1 2 3]+[6 5 4] is [7 7 7], and \"Hello\".1,3 is [\"Hello1\" \"Hello2\"]. Most operators can be used to construct lambda expressions from the identity function _. For instance, 3*_+1 is a function equivalent to {3*a+1}. This does not work with certain operators, particularly logic operators and operators that otherwise take functions as operands (such as M or R). ",
+    "url": "http://localhost:4000/pip/syntax#pip-syntax",
+    "relUrl": "/syntax#pip-syntax"
+  },"30": {
+    "doc": "Syntax",
+    "title": "General Program Syntax",
+    "content": "Programs consist of a series of statements that are executed one by one. Bare expressions also count as statements. If the program ends with a bare expression, its value is automatically printed. To suppress printing, end the program with a statement or a nil expression. Note: P and O are operators, not statements, so code like P\"abcd\" at the end of the program will print twice. Use \"abcd\" instead. Expressions use infix operators; precedence/associativity may be coerced using parentheses. Basic operators are mostly chosen to coincide with familiar ones from C, Python, or Perl/PHP: +-*/%!? are as expected; comparison operators chain, as in Python; ., X, and string comparison operators are borrowed from Perl, // integer division and ** exponentiation from Python. A few potential “gotchas”: . | &amp; and | are logical, not bitwise operators | The assignment operator is :, freeing up = to be the (numeric) equality operator | Ternary operators do not have a symbol between their second and third arguments: a?\"Yes\"\"No\" | Increment ++ and decrement -- are pre- only (i.e. you can do ++x but not x++) | . Lists are constructed via square braces: [1 2 3]. No separator is necessary, except in cases of ambiguity in scanning or parsing: [-1 2 3] works as expected, but [1 -2 3] is actually [-1 3] because the - is treated as a binary operator if possible. Here, the expression terminator ; can be used to eliminate the ambiguity: [1;-2 3]. (; can also be useful with ternary operators: a?1;-1.) By default, all elements are concatenated together when a list is printed, but there are several Command-line flags that provide different formats. As in C, assignments are valid expressions that can be used anywhere an expression can be used: in a loop test, for example. Appending a colon to any operator turns it into a compound assignment operator: x+:5 is equivalent to x:x+5. This also works with unary and ternary operators: -:x flips the sign of the variable. Another meta-operator is $, fold. Prepended to a binary operator, it turns it into a unary fold operation on that operator: e.g., $+[1 2 3 4] gives 10. Note: the precedence of the compound operator is the same as that of the original binary operator, so $.[1 2]+3 is interpreted as $.([1 2]+3) == $.[4 5] == 45. Folding respects the associativity of the operator: $**[2 3 4] is 2**(3**4), not (2**3)**4. Furthermore, folding on a chaining comparison operator results in a chaining comparison: $&gt;[9 8 7] is 9&gt;8&gt;7 (true), not (9&gt;8)&gt;7 (equiv to 1&gt;7, false). When * is appended to a unary operator, it becomes a map meta-operator: #[123 4567] gives the length of the list, 2, but #*[123 4567] gives [3 4], the length of each item in the list. The $ and * meta-operators leave the precedence of the operator unchanged, but : changes the precedence to the precedence of the assignment operator. Meta-operators can be combined: $+*:x sums over each item in x and assigns the resulting list back to x. If * and : are both present, * must come first. As in C, loops and if statements use curly braces to mark off their blocks, and the curly braces can be dropped if the block is a single statement. Curly braces are also used to construct functions, which are first-class objects and can be assigned to variables, passed to other functions, etc. Functions are called via a Lisp-like syntax: (fxyz) calls the function f with arguments x, y, and z. (This syntax makes parsing much, much easier!) If the (fxyz) syntax is used with f being a list, scalar, or range rather than a function, it is an alternate syntax for subscripting: (lij) is equivalent to l@i@j, or l[i][j] in most languages. Within a function, the arguments are available through the local variables a-e. For example, the function {a+b} takes two arguments and adds them; it could be called like so: ({a+b}1 2), or assigned to a variable first. The local variable g contains the entire list of arguments that were passed in (mnemonic: args). The local variable f contains a reference to the current function, allowing recursion even in anonymous functions. Functions do not have a set arity, although a function cannot be called with zero arguments. The last bare expression in a function is its return value. If a function does not end in an expression, it returns nil. The main program is an implicitly declared anonymous function, which gets its arguments from the command-line args and prints its return value. Thus, a full factorial program can be written using recursion as a?a*(fa-1)1–identical to a factorial function, just without the curly braces. The M operator is used to map a function to each element of a list, range, or scalar: _*_ M ,5 gives [0 1 4 9 16]. The result is always a list, although there are also operators like MJ “map-join” and MS “map-sum” that perform further operations on the result list after mapping. ",
+    "url": "http://localhost:4000/pip/syntax#general-program-syntax",
+    "relUrl": "/syntax#general-program-syntax"
+  },"31": {
+    "doc": "Syntax",
+    "title": "Syntax",
+    "content": " ",
+    "url": "http://localhost:4000/pip/syntax",
+    "relUrl": "/syntax"
+  },"32": {
+    "doc": "Home",
+    "title": "Welcome to the Pip Docs!",
+    "content": "Pip is a concise and imperative golfing language. This site contains all the readable docs, tutorials and examples for the Pip golfing language. ",
+    "url": "http://localhost:4000/pip/#welcome-to-the-pip-docs",
+    "relUrl": "/#welcome-to-the-pip-docs"
+  },"33": {
+    "doc": "Home",
+    "title": "Home",
+    "content": " ",
+    "url": "http://localhost:4000/pip/",
+    "relUrl": "/"
+  }
+}

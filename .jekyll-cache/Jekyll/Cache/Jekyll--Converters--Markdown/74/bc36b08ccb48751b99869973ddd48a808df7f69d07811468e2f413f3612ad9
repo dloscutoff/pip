@@ -1,0 +1,42 @@
+I"ƒ<h1 id="command-line-flags">Command Line Flags</h1>
+
+<p>Pip uses several command-line flags to control input and output options:</p>
+
+<h2 id="code-source">Code source</h2>
+
+<p><code class="language-plaintext highlighter-rouge">-e</code> Execute the following code</p>
+
+<p><code class="language-plaintext highlighter-rouge">-f</code> Execute code in given file</p>
+
+<p><code class="language-plaintext highlighter-rouge">-i</code> Execute code read from stdin</p>
+
+<p>When Pip is called without any of these flags, the default is stdin for interactive mode and file for non-interactive.</p>
+
+<h2 id="list-formatting">List formatting</h2>
+
+<p><code class="language-plaintext highlighter-rouge">-p</code> Pretty-print lists by executing RP on them first</p>
+
+<p><code class="language-plaintext highlighter-rouge">-s</code> Join lists on space</p>
+
+<p><code class="language-plaintext highlighter-rouge">-n</code> Join lists on newline</p>
+
+<p><code class="language-plaintext highlighter-rouge">-l</code> Join each item on empty string, then join results on newline (i.e. print list as multiple lines)</p>
+
+<p><code class="language-plaintext highlighter-rouge">-P</code> Execute RP on each item, then join results on newline</p>
+
+<p><code class="language-plaintext highlighter-rouge">-S</code> Join each item on space, then join results on newline</p>
+
+<p>The default is to join lists on empty string, as in CJam.</p>
+
+<h2 id="debugging-output">Debugging output</h2>
+
+<p><code class="language-plaintext highlighter-rouge">-v</code> Verbose mode: currently, prints space-separated list of tokens and parse tree before execution</p>
+
+<p><code class="language-plaintext highlighter-rouge">-w</code> Print warning messages for things like div by 0 (instead of silently using nil and moving on)</p>
+
+<p><code class="language-plaintext highlighter-rouge">-d</code> Debug mode: equivalent to <code class="language-plaintext highlighter-rouge">-vwp</code></p>
+
+<h2 id="other">Other</h2>
+
+<p><code class="language-plaintext highlighter-rouge">-r</code> Instead of getting <code class="language-plaintext highlighter-rouge">g</code> from command-line args, initialize it from lines of stdin</p>
+:ET
