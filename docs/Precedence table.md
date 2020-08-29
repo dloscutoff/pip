@@ -1,7 +1,11 @@
-<!--Contains symbols that are invalid for a UTF-8 encoding, so it doesn't seem to work well with Jekyll. Site links back to the repository.-->
+---
+layout: default
+title: Precedence Table
+permalink: precedence
+---
 
 # Precedence Table
-For descriptions of each operator, see the [operator list](https://github.com/dloscutoff/pip/blob/master/Documentation/Operator%20list.md). For guaranteed up-to-date information, your best bet is to read the code: there's a reasonably human-readable precedence table in `operators.py`.
+For descriptions of each operator, see the [operator list](operators). For guaranteed up-to-date information, your best bet is to read the code: there's a reasonably human-readable precedence table in `operators.py`.
 
 **Chaining** associativity means multiple comparisons can be strung together, like `x<y=z`. **Fold default** is the result of folding an empty iterable on this operator. **Itemwise** indicates whether the operator applies item-by-item to lists, both lists and ranges, or neither. **In lambda** indicates whether the operator can be applied to functions (typically starting from the identity function `_`) to build bigger functions.
 
