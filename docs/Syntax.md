@@ -1,6 +1,6 @@
 ---
-title: Syntax
 layout: default
+title: Syntax
 permalink: syntax
 nav_order: 3
 ---

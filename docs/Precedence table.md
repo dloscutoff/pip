@@ -2,9 +2,11 @@
 layout: default
 title: Precedence Table
 permalink: precedence
+nav_order: 7
 ---
 
-# Precedence Table
+# Precedence table
+
 For descriptions of each operator, see the [operator list](operators). For guaranteed up-to-date information, your best bet is to read the code: there's a reasonably human-readable precedence table in `operators.py`.
 
 **Chaining** associativity means multiple comparisons can be strung together, like `x<y=z`. **Fold default** is the result of folding an empty iterable on this operator. **Itemwise** indicates whether the operator applies item-by-item to lists, both lists and ranges, or neither. **In lambda** indicates whether the operator can be applied to functions (typically starting from the identity function `_`) to build bigger functions.

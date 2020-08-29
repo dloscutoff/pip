@@ -2,11 +2,12 @@
 layout: default
 title: Command Line Flags
 permalink: cli-flags
+nav_order: 9
 ---
 
-# Command Line Flags
+# Command-line flags
 
-Pip uses several command-line flags to control input and output options:
+Pip uses several command-line flags to control input and output options.
 
 ## Code source
 
@@ -18,9 +19,15 @@ Pip uses several command-line flags to control input and output options:
 
 When Pip is called without any of these flags, the default is stdin for interactive mode and file for non-interactive.
 
+## Input source
+
+`-r` Instead of setting `g` to the list of command-line args, set it to the list of all lines read from stdin
+
 ## List formatting
 
-`-p` Pretty-print lists by executing RP on them first
+If no flag is specified, the default is to join lists on empty string.
+
+`-p` Pretty-print lists by executing `RP` on them first
 
 `-s` Join lists on space
 
@@ -28,20 +35,14 @@ When Pip is called without any of these flags, the default is stdin for interact
 
 `-l` Join each item on empty string, then join results on newline (i.e. print list as multiple lines)
 
-`-P` Execute RP on each item, then join results on newline
+`-P` Execute `RP` on each item, then join results on newline
 
 `-S` Join each item on space, then join results on newline
 
-The default is to join lists on empty string, as in CJam.
-
 ## Debugging output
 
-`-v` Verbose mode: currently, prints space-separated list of tokens and parse tree before execution
+`-v` Verbose mode: print space-separated list of tokens and parse tree before execution
 
-`-w` Print warning messages for things like div by 0 (instead of silently using nil and moving on)
+`-w` Print warning messages for things like division by 0 (instead of silently using nil and moving on)
 
 `-d` Debug mode: equivalent to `-vwp`
-
-## Other
-
-`-r` Instead of getting `g` from command-line args, initialize it from lines of stdin

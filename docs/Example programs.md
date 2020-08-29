@@ -1,15 +1,17 @@
 ---
 layout: default
 title: Example Programs
-nav_order: 4
 permalink: examples
+nav_order: 10
 ---
 
-# Example Programs
+# Example programs
+
 These are general examples that have been made to touch upon the features of Pip.
 
 Some of these may link to questions on [Code Golf Stack Exchange](https://codegolf.stackexchange.com/), where you can look at them in more detail.
-## GCD(Greatest Common Divisor) of two numbers:
+
+## GCD (Greatest Common Divisor) of two numbers
 
     Wb%:aSaba
 
@@ -19,17 +21,19 @@ Some of these may link to questions on [Code Golf Stack Exchange](https://codego
          Sab    Swap a and b
             a  After the loop, print a
 
-## Three quine strategies:
+## [Quine](https://en.wikipedia.org/wiki/Quine_(computing))
+
+Each of these approaches requires the code to end with a newline, since the output will have a trailing newline.
 
     " X2RsC34.s" X2RsC34.s  Duplicate the string and replace each space with double quote followed by space
     Y"Y yRsRPy"yRsRPy       Repr substitution, as in the standard Python quine
     V Y"`V Y`.RPy"          Using eval, with a Pattern to allow a string-like object without double quotes
 
-## First _a_ Fibonacci numbers, starting with 1:
+## First _a_ Fibonacci numbers, starting with 1
 
     La{Po+:xSox}
 
-## Arithmetic mean of input:
+## Arithmetic mean of input
 
     $+g/#g
 
@@ -39,13 +43,15 @@ Some of these may link to questions on [Code Golf Stack Exchange](https://codego
        /#g   Divide each element of the list by the length of the list
     $+       Sum the result (fold on addition)
 
-## Three different ways to do factorial:
+## Factorial
+
+Three different approaches:
 
     a?a*(fa-1)1   Recursive...
     Fi\,ao*:io    Iterative...
     $*\,a         But fold is the best!
 
-## FizzBuzz:
+## [FizzBuzz](https://codegolf.stackexchange.com/questions/58615/1-2-fizz-4-buzz)
 
     LhP J["Fizz""Buzz"]X!*++i%^35|i
 
@@ -61,8 +67,6 @@ Some of these may link to questions on [Code Golf Stack Exchange](https://codego
                                      and "Buzz" or "" depending on i%5
         J                            Join that list into a string
                                  |i  Logical or with i (i.e. use the number if the resulting string is "")
-
----
 
 ## [Translate alphanumeric phone numbers](http://codegolf.stackexchange.com/q/21327/16766)
 
