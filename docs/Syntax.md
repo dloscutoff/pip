@@ -1,10 +1,11 @@
+
 # Pip syntax
 
 The syntax of Pip is generally C-like with strong influence from Python, Perl/PHP, and various golfing languages. A few features are reminiscent of Bash script or Lisp.
 
 ### Tokens
 
-Any of the following is a token in Pip:
+Tokens in Pip can be any of the following:
 
  - Number (consecutive digits, optionally followed by a period and more consecutive digits)
  - String literal (between "double quotes")
@@ -17,16 +18,24 @@ Any of the following is a token in Pip:
  - Underscore (identity function; see below)
  - Delimiters (parens, square braces, curly braces, semicolon)
 
+### Parsing
 Because uppercase identifiers and operators are limited to two characters, the scanner breaks a longer run of them into multiple tokens. For example, `LCAZ` is equivalent to `LC AZ`. If the run contains an odd number of characters, it is interpreted as having a single-character token at the beginning: `PLCAZ` is `P LC AZ`.
 
+### String literals
 Escaped string literals warrant further explanation. The delimiter is `\"`, and therefore literal double quotes can be placed inside the string without escaping them (`\"like "this"\"`). Backslashes do need to be escaped with a second backslash (unlike in regular string literals). A backslash followed by an identifier is a variable interpolation: for example, `\"Value is \v.\"` This usage is syntactic sugar for `(J["Value is ";STv;"."])`. Expressions cannot be interpolated at present.
 
+### Comments
 Comments come in two types: lines that start with a (possibly indented) semicolon, and anything at the end of a line if preceded by two or more spaces.
 
 <pre>; This is a comment.
 x:42  This is a comment too.</pre>
 
-Whitespace is not significant except for indicating comments and separating tokens; for example, `(- -5)` returns 5, but `(--5)` returns 4 because `--` is the decrement operator.
+### Whitespace
+Whitespace is not significant except for indicating comments and separating tokens.
+
+For example, `(- -5)` returns 5,
+
+But `(--5)` returns 4 because `--` is the decrement operator.
 
 ### Types
 
@@ -35,7 +44,7 @@ There are 6 data types in Pip:
  - **Scalar** represents strings and numbers, similar to scalar variables in Perl. A string in numeric context is converted to a number by taking the leading run of digits, possibly with a minus sign or decimal point.
  - **List** is similar to lists in Python: dynamically resizeable, can hold items of any type including other lists, etc.
  - **Range** has a lower and upper bound, and usually represents all integers >= the lower bound and < the upper bound. `5,10` is functionally equivalent to `[5 6 7 8 9]` in most contexts, but potentially more efficient since the numbers need not all be generated. Infinite ranges can be created by passing an upper bound of nil. Ranges are also used for string/array slicing, in which context negative indices may be used: `"Hello"@(1,-1)` == `"ell"`.
- - **Pattern** represents regular expressions and replacement patterns. See [Regex operations](https://github.com/dloscutoff/pip/blob/master/Documentation/Regex%20operations.md).
+ - **Pattern** represents regular expressions and replacement patterns. See [Regex operations](https://github.com/dloscutoff/pip/blob/master/docs/Regex%20operations.md).
  - **Block** represents a code block or function.
  - **Nil** is a singleton type, similar to `null` or `None` from other languages. Note that many situations that would cause a runtime error in other languages (such as dividing by zero) simply return nil in Pip (unless warnings are turned on using the -w or -d flags). Most operators, when given nil as an operand, return nil.
 
@@ -45,7 +54,9 @@ Many operators, including arithmetic and most string operators, function memberw
 
 Most operators can be used to construct lambda expressions from the identity function `_`. For instance, `3*_+1` is a function equivalent to `{3*a+1}`. This does not work with certain operators, particularly logic operators and operators that otherwise take functions as operands (such as `M` or `R`).
 
-### Syntax
+---
+
+## General Program Syntax
 
 Programs consist of a series of statements that are executed one by one. Bare expressions also count as statements. If the program ends with a bare expression, its value is automatically printed. To suppress printing, end the program with a statement or a nil expression. **Note**: `P` and `O` are operators, not statements, so code like `P"abcd"` at the end of the program will print twice. Use `"abcd"` instead.
 
@@ -56,7 +67,7 @@ Expressions use infix operators; precedence/associativity may be coerced using p
  - Ternary operators do not have a symbol between their second and third arguments: `a?"Yes""No"`
  - Increment `++` and decrement `--` are pre- only (i.e. you can do `++x` but not `x++`)
 
-Lists are constructed via square braces: `[1 2 3]`. No separator is necessary, except in cases of ambiguity in scanning or parsing: `[-1 2 3]` works as expected, but `[1 -2 3]` is actually `[-1 3]` because the `-` is treated as a binary operator if possible. Here, the expression terminator `;` can be used to eliminate the ambiguity: `[1;-2 3]`. (`;` can also be useful with ternary operators: `a?1;-1`.) By default, all elements are concatenated together when a list is printed, but there are several [Command-line flags](https://github.com/dloscutoff/pip/blob/master/Documentation/Command-line%20flags.md) that provide different formats.
+Lists are constructed via square braces: `[1 2 3]`. No separator is necessary, except in cases of ambiguity in scanning or parsing: `[-1 2 3]` works as expected, but `[1 -2 3]` is actually `[-1 3]` because the `-` is treated as a binary operator if possible. Here, the expression terminator `;` can be used to eliminate the ambiguity: `[1;-2 3]`. (`;` can also be useful with ternary operators: `a?1;-1`.) By default, all elements are concatenated together when a list is printed, but there are several [Command-line flags](https://github.com/dloscutoff/pip/blob/master/docs/Command-line%20flags.md) that provide different formats.
 
 As in C, assignments are valid expressions that can be used anywhere an expression can be used: in a loop test, for example. Appending a colon to any operator turns it into a compound assignment operator: `x+:5` is equivalent to `x:x+5`. This also works with unary and ternary operators: `-:x` flips the sign of the variable.
 

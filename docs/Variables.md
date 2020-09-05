@@ -1,10 +1,40 @@
-This list also includes the "special variables," which have different behavior when accessed and/or assigned. (For regex match variables, see [Regex operations](https://github.com/dloscutoff/pip/blob/master/Documentation/Regex%20operations.md).) Eventually, every letter h-z should appear below.
+
+# Variables
+
+There are four kinds of variables in Pip:
+
+- *Local variables* have different bindings at each scope level. Only their values at the current scope are accessible.
+- *Global variables* have the same bindings anywhere in a Pip program. Many of them have useful initial values.
+- *Special variables* have side effects when accessed and/or assigned.
+- *Regex match variables* can be accessed normally, but they are automatically set each time a regex match is completed. See also the section on [regex in Pip](https://github.com/dloscutoff/pip/blob/master/docs/Regex%20operations.md).
+
+## Local variables
+
+`a` First argument of the current function (at top level, first command-line argument)
+
+`b` Second argument of the current function (at top level, second command-line argument)
+
+`c` Third argument of the current function (at top level, third command-line argument)
+
+`d` Fourth argument of the current function (at top level, fourth command-line argument)
+
+`e` Fifth argument of the current function (at top level, fifth command-line argument)
+
+`f` The current function (at top level, the full program as a function)
+
+`g` Full list of arguments of the current function (at top level, full list of command-line arguments)
+
+## Global variables
+
+Note: any sequence of two uppercase letters that isn't a command or an operator is a global variable. The ones not listed here are initialized to nil.
 
 `_` Identity function (== `{a}`)
 
 `h` 100
 
 `i` 0
+
+`j` TBD; currently initialized to nil
 
 `k` `", "`
 
@@ -16,9 +46,7 @@ This list also includes the "special variables," which have different behavior w
 
 `o` 1
 
-`q` Special variable: reads and returns a line of input each time it is accessed
-
-`r` Special variable: returns a random number 0 <= `r` < 1 when it is accessed; assigning to `r` seeds the random-number generator
+`p` TBD; currently initialized to nil
 
 `s` Space character
 
@@ -73,3 +101,29 @@ This list also includes the "special variables," which have different behavior w
 `XX` Pattern matching any one character (<code>\`.\`</code>)
 
 `XY` Pattern matching one (lowercase ASCII) vowel, including y (<code>\`[aeiouy]\`</code>)
+
+## Special variables
+
+`q` Reads and returns a line of input each time it is accessed
+
+`r` Returns a random number 0 <= `r` < 1 when it is accessed; assigning to `r` seeds the random-number generator
+
+## Regex match variables
+
+`$0` Entire match
+
+`$1` Contents of capture group 1 (and similarly for 2-9)
+
+`$$` List of all capture group contents
+
+`$(` Start index of match
+
+`$)` End index of match
+
+`$[` List of start indices of capture groups
+
+`$]` List of end indices of capture groups
+
+<code>$`</code> The part of the string before the match
+
+`$'` The part of the string after the match

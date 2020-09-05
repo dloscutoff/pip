@@ -1,6 +1,11 @@
-Operators are listed in ASCII order. See also the [precedence table](https://github.com/dloscutoff/pip/blob/master/Documentation/Precedence%20table.md). For guaranteed up-to-date information, your best bet is to read the code: there's a reasonably human-readable precedence table in `operators.py`.
+
+# List of operators
+
+Operators are listed in ASCII order. See also: [precedence table](https://github.com/dloscutoff/pip/blob/master/docs/Precedence%20table.md). For guaranteed up-to-date information, your best bet is to read the code: there's a reasonably human-readable precedence table in `operators.py`.
 
 ### Meta-operators
+
+The following operators change the way other operators are used, when applied on them.
 
 `$` Fold: occurs before a binary operator; the resulting compound operator is unary, with the same precedence as the original binary operator
 
