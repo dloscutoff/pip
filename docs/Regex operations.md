@@ -1,10 +1,11 @@
 ---
-title: Regex
 layout: default
+title: Regex
 permalink: regex
+nav_order: 8
 ---
 
-# Regex Operations
+# Regex operations
 
 Regex operations in Pip use the Pattern data type.
 

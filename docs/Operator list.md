@@ -5,7 +5,9 @@ permalink: operators
 nav_order: 6
 ---
 
-Operators are listed in ASCII order. See also: [precedence table](https://github.com/dloscutoff/pip/blob/master/Documentation/Precedence%20table.md). For guaranteed up-to-date information, your best bet is to read the code: there's a reasonably human-readable precedence table in `operators.py`.
+# List of operators
+
+Operators are listed in ASCII order. See also: [precedence table](precedence). For guaranteed up-to-date information, your best bet is to read the code: there's a reasonably human-readable precedence table in `operators.py`.
 
 ### Meta-operators
 

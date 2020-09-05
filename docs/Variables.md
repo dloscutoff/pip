@@ -1,8 +1,10 @@
 ---
-title: Variables
 layout: default
+title: Variables
 permalink: vars
+nav_order: 4
 ---
+
 # Variables
 
 There are four kinds of variables in Pip:
