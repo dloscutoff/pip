@@ -1300,7 +1300,7 @@ class ProgramState:
         """Like RANGE, but include upper bound."""
         if type(lhs) in (Scalar, Nil) and type(lhs) in (Scalar, Nil):
             if type(rhs) is Scalar:
-                return Range(lhs, rhs.toNumber() + 1)
+                return Range(lhs, int(rhs) + 1)
             elif rhs is nil:
                 return Range(lhs, rhs)
         else:
@@ -1313,7 +1313,7 @@ class ProgramState:
         if rhs is nil:
             return Range(1, rhs)
         elif type(rhs) is Scalar:
-            return Range(1, rhs.toNumber() + 1)
+            return Range(1, int(rhs) + 1)
         else:
             self.err.warn("Unimplemented argtype for INCLRANGETO:", type(rhs))
             return nil
