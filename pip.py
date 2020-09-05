@@ -28,7 +28,7 @@ from parsing import parse
 from execution import ProgramState
 from errors import FatalError
 
-VERSION = "0.20.08.16"
+VERSION = "0.20.09.05"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:

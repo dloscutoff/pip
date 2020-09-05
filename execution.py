@@ -1085,8 +1085,18 @@ class ProgramState:
                           type(number))
             return nil
 
-    def FILTER(self, function, iterable):
+    def FILTER(self, function, iterable=None):
         """Filter iterable: keep items where function returns truthy."""
+        if iterable is None:
+            # The unary version keeps items that are truthy
+            function, iterable = iterable, function
+            if type(iterable) in (Scalar, List, Range):
+                result = (item for item in iterable if item)
+                return List(result)
+            else:
+                self.err.warn("Unimplemented argtype for FILTER:",
+                              type(iterable))
+                return nil
         if type(iterable) is Block and type(function) in (Scalar, List, Range):
             # The arguments are reversible to enable things like lFI:f
             function, iterable = iterable, function
@@ -1711,7 +1721,10 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for MIN:", type(iterable))
             return nil
     
-    def MOD(self, lhs, rhs):
+    def MOD(self, lhs, rhs=None):
+        if rhs is None:
+            # Unary version takes its argument mod 2
+            rhs = Scalar(2)
         if type(lhs) is Scalar and type(rhs) is Scalar:
             try:
                 result = lhs.toNumber() % rhs.toNumber()
@@ -2223,7 +2236,11 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for POS:", type(rhs))
             return nil
 
-    def POW(self, lhs, rhs):
+    def POW(self, lhs, rhs=None):
+        if rhs is None:
+            # Unary **a is short for 2**a
+            rhs = lhs
+            lhs = Scalar(2)
         if type(lhs) is Scalar and type(rhs) is Scalar:
             lhs = lhs.toNumber()
             rhs = rhs.toNumber()
@@ -2812,6 +2829,15 @@ class ProgramState:
             return Scalar(result)
         else:
             self.err.warn("Unimplemented argtype for SQRT:", type(rhs))
+            return nil
+
+    def SQUARE(self, rhs):
+        if type(rhs) is Scalar:
+            rhs = rhs.toNumber()
+            result = rhs * rhs
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtype for SQUARE:", type(rhs))
             return nil
 
     def STR(self, rhs):
