@@ -35,11 +35,15 @@ The following operators change the way other operators are used, when applied on
 
 <code>a%b</code> Modulo
 
+<code>%a</code> Modulo 2
+
 <code>a&b</code> Logical and (short-circuiting)
 
 <code>a\*b</code> Multiplication; if one operand is a Pattern, regex repetition
 
 <code>a\*\*b</code> Exponentiation
+
+<code>\*\*a</code> Exponentiation with base 2
 
 <code>a+b</code> Addition; if both operands are Patterns, regex concatenation
 
@@ -163,7 +167,9 @@ The following operators change the way other operators are used, when applied on
 
 <code>FBa</code> Convert number from binary to decimal integer
 
-<code>aFIb</code> Filter (1st arg is Block, 2nd is List)
+<code>aFIb</code> Filter: keep items from iterable `b` which return truthy results when passed to function `a`
+
+<code>FIa</code> Unary filter: keep items from iterable `a` which are truthy
 
 <code>aGTb</code> String greater than
 
@@ -284,6 +290,8 @@ The following operators change the way other operators are used, when applied on
 <code>aSKb</code> Sort iterable using Block as key function
 
 <code>SNa</code> Sort iterable using numeric comparison
+
+<code>SQa</code> `a` squared
 
 <code>SSa</code> Sort iterable using string comparison
 
