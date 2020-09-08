@@ -47,7 +47,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>a+b</code> Addition; if both operands are Patterns, regex concatenation
 
-<code>+a</code> Cast value as number
+<code>+a</code> Cast value(s) of `a` as number
 
 <code>++a</code> Pre-increment (always comes before operand, never `a++`)
 
@@ -67,11 +67,11 @@ The following operators change the way other operators are used, when applied on
 
 <code>a/b</code> Division
 
-<code>/a</code> Inverse
+<code>/a</code> Reciprocal
 
 <code>a//b</code> Integer division
 
-<code>a:b</code> Assignment
+<code>a:b</code> Assign b to a
 
 <code>a&lt;b</code> Numeric less than
 
@@ -91,19 +91,19 @@ The following operators change the way other operators are used, when applied on
 
 <code>a>=b</code> Numeric greater than or equal
 
-<code>a?bc</code> If-then-else operator (short-circuiting)
+<code>a?bc</code> Ternary If operator (short-circuiting)
 
 <code>a@b</code> Get item/slice at index
 
 <code>@a</code> Get item at index 0
 
-<code>a@\*b</code> Find all indices of item in iterable, substring or regex match in Scalar
+<code>a@\*b</code> Find all indices of item `b` in `a`, `b → Scalar, List or Regex`
 
-<code>a@&lt;b</code> Slice of iterable left of index
+<code>a@&lt;b</code> Slice of iterable left of index `b`
 
 <code>@&lt;a</code> Slice of iterable left of index -1 (i.e. all but the last item)
 
-<code>a@>b</code> Slice of iterable right of index
+<code>a@>b</code> Slice of iterable right of index `b`
 
 <code>@>a</code> Slice of iterable right of index 0 (i.e. all but the first item)
 
@@ -133,13 +133,13 @@ The following operators change the way other operators are used, when applied on
 
 <code>aCBb</code> List of all combinations of `b` elements from iterable `a`
 
-<code>aCGb</code> Coordinate grid of `a` rows by `b` columns
+<code>aCGb</code> Coordinate grid of `a` rows by `b` columns (`(0,0)` to `(a,b)`)
 
-<code>CGa</code> Coordinate grid of `a` rows by `a` columns
+<code>CGa</code> Coordinate grid of `a` rows by `a` columns (`(0,0)` to `(a,a)`)
 
-<code>aCMb</code> Numeric cmp (-1 if less, 0 if equal, 1 if greater)
+<code>aCMb</code> Numeric comparison (-1 if less, 0 if equal, 1 if greater)
 
-<code>COa</code> Cosine
+<code>COa</code> Cosine(a)
 
 <code>aCPb</code> Cartesian product of two iterables
 
@@ -157,7 +157,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>ENa</code> Enumerate an iterable (gives List of `[index item]` Lists)
 
-<code>aEQb</code> Alias for binary `Q`, kept for backwards compatibility
+<code>aEQb</code> Alias for [binary `Q`](#stringequal), kept for backwards compatibility
 
 <code>EXa</code> Exponential (base *e*)
 
@@ -245,7 +245,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>PZa</code> Palindromize iterable, appending its reverse but without repeating the central item
 
-<code>aQb</code> String equal
+<code id="stringequal">aQb</code> String equal
 
 <code>QPa</code> Quad-palindromize iterable, palindromizing it and also each of its items
 
@@ -253,7 +253,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>aRbc</code> Replace each occurrence in Scalar `a` of substring or Pattern `b` with replacement `c`
 
-<code>Ra</code> Alias for unary `RV`
+<code>Ra</code> Reverse
 
 <code>aRAbc</code> Replace item in iterable `a` at index `b` with replacement `c`
 
@@ -265,19 +265,19 @@ The following operators change the way other operators are used, when applied on
 
 <code>aRLb</code> Repeat List `a` `b` times
 
-<code>aRMb</code> From Scalar remove substring(s) or regex matches; from List or Range remove item
+<code>aRMb</code> Remove occurrences of `b` from `a`, `b → String, Regex or Scalar`
 
-<code>RPa</code> Convert to Pip representation
+<code>RPa</code> Convert to Pip representation (`[1 2 3] → [1;2;3]`)
 
-<code>aRRb</code> Randrange from `a` to `b`
+<code>aRRb</code> Random number in range from `a` to `b`
 
-<code>RRa</code> Randrange from 0 to `a`
+<code>RRa</code> Random number in range from 0 to `a`
 
 <code>aRTb</code> `a`th root of `b`
 
 <code>RTa</code> Square root of `a`
 
-<code>RVa</code> Reverse iterable
+<code>RVa</code> Alias for unary `R`
 
 <code>SCa</code> Swap case: `Hello, World!` becomes `hELLO, wORLD!`
 
@@ -289,11 +289,11 @@ The following operators change the way other operators are used, when applied on
 
 <code>aSKb</code> Sort iterable using Block as key function
 
-<code>SNa</code> Sort iterable using numeric comparison
+<code>SNa</code> Sort iterable in ascending order using numeric comparison
 
 <code>SQa</code> `a` squared
 
-<code>SSa</code> Sort iterable using string comparison
+<code>SSa</code> Sort iterable in ascending order using string comparison
 
 <code>STa</code> Convert to string (for Lists, the format of the result depends on command-line flags)
 
