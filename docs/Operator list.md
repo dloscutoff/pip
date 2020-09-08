@@ -139,7 +139,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>aCMb</code> Numeric comparison (-1 if less, 0 if equal, 1 if greater)
 
-<code>COa</code> Cosine(a)
+<code>COa</code> Cosine
 
 <code>aCPb</code> Cartesian product of two iterables
 
@@ -253,7 +253,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>aRbc</code> Replace each occurrence in Scalar `a` of substring or Pattern `b` with replacement `c`
 
-<code>Ra</code> Reverse
+<code id="#reverse">Ra</code> Reverse
 
 <code>aRAbc</code> Replace item in iterable `a` at index `b` with replacement `c`
 
@@ -277,7 +277,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>RTa</code> Square root of `a`
 
-<code>RVa</code> Alias for unary `R`
+<code>RVa</code> Alias for [unary `R`](#reverse)
 
 <code>SCa</code> Swap case: `Hello, World!` becomes `hELLO, wORLD!`
 
