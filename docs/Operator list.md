@@ -71,7 +71,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>a//b</code> Integer division
 
-<code>a:b</code> Assign b to a
+<code>a:b</code> Assign `b` to `a`
 
 <code>a&lt;b</code> Numeric less than
 
@@ -97,7 +97,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>@a</code> Get item at index 0
 
-<code>a@\*b</code> Find all indices of item `b` in `a`, `b → Scalar, List or Regex`
+<code>a@\*b</code> Find all indices of item `b` in `a` (find Scalar in Range, Pattern match or Scalar substring in Scalar, or any type in List)
 
 <code>a@&lt;b</code> Slice of iterable left of index `b`
 
@@ -107,7 +107,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>@>a</code> Slice of iterable right of index 0 (i.e. all but the first item)
 
-<code>a@?b</code> Find first index of item in iterable, substring or regex match in Scalar
+<code>a@?b</code> Find first index of item `b` in `a` (find Scalar in Range, Pattern match or Scalar substring in Scalar, or any type in List)
 
 <code>Aa</code> Convert first char of Scalar to ASCII value (or Unicode point); set ASCII-only flag on Pattern
 
@@ -133,11 +133,11 @@ The following operators change the way other operators are used, when applied on
 
 <code>aCBb</code> List of all combinations of `b` elements from iterable `a`
 
-<code>aCGb</code> Coordinate grid of `a` rows by `b` columns (`(0,0)` to `(a,b)`)
+<code>aCGb</code> Coordinate grid of `a` rows by `b` columns (`[0 0]` to `[a b]`)
 
-<code>CGa</code> Coordinate grid of `a` rows by `a` columns (`(0,0)` to `(a,a)`)
+<code>CGa</code> Coordinate grid of `a` rows by `a` columns (`[0 0]` to `[a a]`)
 
-<code>aCMb</code> Numeric comparison (-1 if less, 0 if equal, 1 if greater)
+<code>aCMb</code> Numeric comparison (-1 if `a < b`, 0 if `a = b`, 1 if `a > b`)
 
 <code>COa</code> Cosine
 
@@ -157,7 +157,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>ENa</code> Enumerate an iterable (gives List of `[index item]` Lists)
 
-<code>aEQb</code> Alias for [binary `Q`](#stringequal), kept for backwards compatibility
+<code>aEQb</code> Alias for [binary `Q`](#stringequal)
 
 <code>EXa</code> Exponential (base *e*)
 
@@ -175,7 +175,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>aGEb</code> String greater than or equal
 
-<code>aINb</code> Alias for binary `N`, kept for backwards compatibility
+<code>aINb</code> Alias for [binary `N`](#in)
 
 <code>aJb</code> Join iterable on separator
 
@@ -217,7 +217,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>aMZbc</code> Map Block to two iterables, passing zipped pairs of elements as arguments; returns List
 
-<code>aNb</code> In (returns count of occurrences or 0 if none)
+<code id="in">aNb</code> In (returns count of occurrences or 0 if none)
 
 <code>aNEb</code> String not equal
 
@@ -265,13 +265,13 @@ The following operators change the way other operators are used, when applied on
 
 <code>aRLb</code> Repeat List `a` `b` times
 
-<code>aRMb</code> Remove occurrences of `b` from `a`, `b → String, Regex or Scalar`
+<code>aRMb</code> Remove occurrences of `b` from `a` (removes items from List or Range; removes substrings or regex matches from Scalar)
 
-<code>RPa</code> Convert to Pip representation (`[1 2 3] → [1;2;3]`)
+<code>RPa</code> Like Python's `repr`: convert to an unambiguous string representation (numeric Scalar becomes `123.45`; non-numeric Scalar becomes `"abc"`; Pattern becomes `` `abc` ``; Range becomes `(1,4)`; List becomes `[1;2;"three"]`; Nil becomes `()`)
 
-<code>aRRb</code> Random number in range from `a` to `b`
+<code>aRRb</code> Random integer in range from `a` to `b`
 
-<code>RRa</code> Random number in range from 0 to `a`
+<code>RRa</code> Random integer in range from 0 to `a`
 
 <code>aRTb</code> `a`th root of `b`
 
