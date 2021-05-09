@@ -149,6 +149,10 @@ The following operators change the way other operators are used, when applied on
 
 <code>DQa</code> Dequeue item from back of iterable (modifying argument in-place)
 
+<code>aEEb</code> E notation: `a` times 10 to the power of `b`
+
+<code>EEa</code> Unary E notation: 10 to the power of `a`
+
 <code>ENa</code> Enumerate an iterable (gives List of `[index item]` Lists)
 
 <code>aEQb</code> Alias for binary `Q`, kept for backwards compatibility
@@ -189,7 +193,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>aMb</code> Map Block to iterable, returning List
 
-<code>aMCb</code> Map Block `a` to each x,y in `b`x`b` grid of coordinate pairs
+<code>aMCb</code> Map Block `a` to each x,y in `b`x`b` grid of coordinate pairs; if `b` is a two-element Range or List of Scalars, map to `b@0`x`b@1` grid
 
 <code>aMEb</code> Map Block `a` to index/value pairs for items in iterable, returning List
 

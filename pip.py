@@ -4,7 +4,7 @@
 #  Fix: operators with * metaop should work in lambdas
 #  Fix: decide sensible behavior for indexed empty sequence as lval
 #    (e.g. currently x@0:4 raises an uncaught exception)
-#  MC takes a 2-element list and makes a grid of that size
+#  More operations that work on Scalars should also work on Patterns
 #  Binary versions of QP and QR that take a directional argument
 #  Wish list for shorter operators: ++ -- ** //
 #  Find uses for D, H, j, p
@@ -28,7 +28,7 @@ from parsing import parse
 from execution import ProgramState
 from errors import FatalError
 
-VERSION = "0.20.09.05"
+VERSION = "0.21.05.08"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:

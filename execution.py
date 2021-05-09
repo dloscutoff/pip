@@ -1542,25 +1542,50 @@ class ProgramState:
                           type(lhs), "and", type(iterable))
             return nil
 
-    def MAPCOORDS(self, lhs, size):
+    def MAPCOORDS(self, lhs, rhs):
         """Map function over grid of coordinate pairs."""
-        if type(size) is Scalar:
-            result = []
-            for row in range(int(size)):
-                subresult = []
-                for col in range(int(size)):
-                    if type(lhs) is Block:
-                        subresult.append(self.functionCall(lhs,
-                                                           [Scalar(row),
-                                                            Scalar(col)]))
-                    else:
-                        # If lhs isn't a function, just return a grid of it
-                        subresult.append(lhs)
-                result.append(List(subresult))
-            return List(result)
+        if isinstance(rhs, Scalar):
+            # A single number means a square grid of that size
+            rows = range(int(rhs))
+            cols = range(int(rhs))
+        elif isinstance(rhs, (List, Range)):
+            # A List/Range of two numbers means a rectangular grid
+            # If there are more than two numbers, we use the first two;
+            # if there is only one number, we use it twice; but if there
+            # are no numbers, that's a problem
+            try:
+                if len(rhs) == 0:
+                    self.err.warn("Empty List/Range argument to MAPCOORDS")
+                    return nil
+            except ValueError:
+                # An infinite Range doesn't have a len(), but it does
+                # have at least two numbers, so it's fine for our purposes
+                pass
+            if isinstance(rhs[0], Scalar) and isinstance(rhs[1], Scalar):
+                rows = range(int(rhs[0]))
+                cols = range(int(rhs[1]))
+            else:
+                self.err.warn("Unsupported argtypes in List argument "
+                              "to MAPCOORDS:", type(rhs[0]), "and",
+                              type(rhs[1]))
+                return nil
         else:
             self.err.warn("Unimplemented argtypes for MAPCOORDS:",
-                          type(lhs), "and", type(size))
+                          type(lhs), "and", type(rhs))
+            return nil
+        result = []
+        for row in rows:
+            subresult = []
+            for col in cols:
+                if type(lhs) is Block:
+                    subresult.append(self.functionCall(lhs,
+                                                       [Scalar(row),
+                                                        Scalar(col)]))
+                else:
+                    # If lhs isn't a function, just return a grid of it
+                    subresult.append(lhs)
+            result.append(List(subresult))
+        return List(result)
 
     def MAPENUMERATE(self, function, iterable):
         """Map function over index/value pairs of items of the iterable."""
@@ -2257,6 +2282,22 @@ class ProgramState:
             return Scalar(result)
         else:
             self.err.warn("Unimplemented argtypes for POW:",
+                          type(lhs), "and", type(rhs))
+            return nil
+
+    def POWEROFTEN(self, lhs, rhs=None):
+        """E-notation: aEEb == a*10**b."""
+        if rhs is None:
+            # Unary EEa is short for 1EEa
+            rhs = lhs
+            lhs = Scalar(1)
+        if type(lhs) is Scalar and type(rhs) is Scalar:
+            lhs = lhs.toNumber()
+            rhs = rhs.toNumber()
+            result = lhs * 10 ** rhs
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtypes for POWEROFTEN:",
                           type(lhs), "and", type(rhs))
             return nil
 
