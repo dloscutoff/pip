@@ -384,7 +384,7 @@ operators = set()
 highestPrecedence = len(precedenceTable)
 paren = Operator("PAREN", "PARENTHESIZE", 1,
                  highestPrecedence, "L", None, VALS)
-enlist = Operator("LIST", "LIST", 1, highestPrecedence, "L", None, RVALS)
+enlist = Operator("LIST", "LIST", 1, highestPrecedence, "L", None, VALS)
 block = Operator("BLOCK", "BLOCK", 1, highestPrecedence, "L", None)
 send = Operator("SEND", "SEND", 1, highestPrecedence, "L", None, VALS)
 chain = None  # We define this "operator" later to make sure it gets the same

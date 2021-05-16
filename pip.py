@@ -6,9 +6,6 @@
 #    (e.g. currently x@0:4 raises an uncaught exception)
 #  More operations that work on Scalars should also work on Patterns
 #  Binary versions of QP and QR that take a directional argument
-#  Wish list for shorter operators: ++ -- ** //
-#  Find uses for D, H, j, p
-#  Repurpose E, S, U, k?
 #  Allow ; after For loop variable
 #  Escaped Regex
 #  Flag equivalent to Perl's -p
@@ -28,7 +25,7 @@ from parsing import parse
 from execution import ProgramState
 from errors import FatalError
 
-VERSION = "0.21.05.08"
+VERSION = "0.21.05.15"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:

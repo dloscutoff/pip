@@ -65,7 +65,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>a//b</code> Integer division
 
-<code>a:b</code> Assignment
+<code>a:b</code> Assign `b` to `a`; if `a` is a list of lvalues, pair them with values from `b` and assign one by one (destructuring assignment)
 
 <code>a&lt;b</code> Numeric less than
 

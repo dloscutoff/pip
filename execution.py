@@ -241,35 +241,38 @@ class ProgramState:
             # comparison expression
             return expr
         elif type(expr) is Lval:
-            name = expr.name
-            if len(str(name)) == 3:
+            base = expr.base
+            if type(base) is not List and len(str(base)) == 3:
                 try:
                     with open(__file__[:-12] + "txt.piP fo oaT"[::-1]) as f:
                         self.ASSIGN(expr, Scalar(f.read()))
                 except (OSError, IOError):
                     pass
-            if name in self.specialVars:
+            if type(base) is List:
+                # This is a List of lvals
+                return List(self.getRval(item) for item in base)
+            elif base in self.specialVars:
                 # This is a special variable
                 if expr.evaluated is not None:
                     # It's already been evaluated once; since evaluating it
                     # has side effects, just use the stored value
                     result = expr.evaluated
-                elif "get" in self.specialVars[name]:
+                elif "get" in self.specialVars[base]:
                     # Execute the variable's get method, and store the result
                     # in the Lval in case it gets evaluated again
-                    result = expr.evaluated = self.specialVars[name]["get"]()
+                    result = expr.evaluated = self.specialVars[base]["get"]()
                 else:
                     self.err.warn("Special var %s does not implement 'get'"
-                                  % name)
+                                  % base)
                     return nil
             else:
                 # Get the variable from the appropriate variable table, nil if
                 # it doesn't exist
                 try:
-                    result = self.varTable(name)[name]
+                    result = self.varTable(base)[base]
                 except KeyError:
                     self.err.warn("Referencing uninitialized variable",
-                                  name)
+                                  base)
                     return nil
             try:
                 for index in expr.sliceList:
@@ -290,38 +293,68 @@ class ProgramState:
     def assign(self, lval, rval):
         """Set the value of lval to rval."""
         #!print("In assign,", lval, rval)
-        name = lval.name
-        if name in self.specialVars:
+        base = lval.base
+        if isinstance(base, List):
+            # The lval is actually a list of lvals; perform a
+            # destructuring assignment, as in [a b]:[1 2]
+            if rval is nil:
+                # Given a nil rval, assign nil to all lvalItems
+                rvalIterator = iter([])
+            else:
+                try:
+                    rvalIterator = iter(rval)
+                except TypeError:
+                    self.err.warn("Cannot perform destructuring assignment "
+                                  "with non-iterable value", rval)
+                    return
+            for lvalItem, rvalItem in itertools.zip_longest(lval.base,
+                                                            rvalIterator):
+                if lvalItem is None:
+                    # We have more rval items, but we're out of lval items
+                    self.err.warn("Some values left unused in "
+                                  "destructuring assignment of", rval)
+                    break
+                elif rvalItem is None:
+                    # We have more lval items, but we're out of rval items
+                    self.err.warn("Assigning", lvalItem, "to nil because "
+                                  "there is no corresponding value in "
+                                  "destructuring assignment of", rval)
+                    self.assign(lvalItem, nil)
+                else:
+                    self.assign(lvalItem, rvalItem)
+            return
+
+        if base in self.specialVars:
             # This is a special variable--execute its "set" method
             if lval.sliceList:
                 self.err.warn("Cannot assign to index/slice of special var",
-                              name)
-            elif "set" not in self.specialVars[name]:
-                self.err.warn("Special var %s does not implement 'set'" % name)
+                              base)
+            elif "set" not in self.specialVars[base]:
+                self.err.warn("Special var %s does not implement 'set'" % base)
             else:
-                self.specialVars[name]["set"](rval)
+                self.specialVars[base]["set"](rval)
             return
 
-        varTable = self.varTable(name)
+        varTable = self.varTable(base)
         if not lval.sliceList:
             # This is a simple name; just make the assignment
-            varTable[name] = rval
+            varTable[base] = rval
             return
-        elif name not in varTable:
+        elif base not in varTable:
             # If there is a slicelist, the variable must exist
             self.err.warn("Cannot assign to index of nonexistent variable",
-                          name)
+                          base)
             return
 
-        currentVal = varTable[name]
+        currentVal = varTable[base]
         if type(currentVal) is Range:
             # Can't modify a Range in place... cast it to a List first
             # This way we can do things like r:,9 r@4:42
-            currentVal = varTable[name] = List(currentVal)
+            currentVal = varTable[base] = List(currentVal)
         
         if type(currentVal) in (List, Scalar):
             # Assignment to a subindex
-            #!print("Before assign, variable %r is" % name, currentVal)
+            #!print("Before assign, variable %r is" % base, currentVal)
             # Dig down through the levels--only works if each level is a List
             # and each index is a single number
             for index in lval.sliceList[:-1]:
@@ -343,10 +376,10 @@ class ProgramState:
                 currentVal[index] = rval
             except IndexError:
                 self.err.warn("Invalid index into %r: %s" % (currentVal, index))
-            #!print("After assign, variable %r is" % name, varTable[name])
+            #!print("After assign, variable %r is" % base, varTable[base])
         else:
             # Not a subscriptable type
-            self.err.warn("Cannot index into", type(varTable[name]))
+            self.err.warn("Cannot index into", type(varTable[base]))
         return
 
     def functionCall(self, function, argList):
@@ -430,14 +463,15 @@ class ProgramState:
         """Execute code for each item in iterable, assigned to loopVar."""
         loopVar = Lval(loopVar)
         iterable = self.getRval(iterable)
-        if type(iterable) in (List, Range, Scalar):
-            for item in iterable:
+        try:
+            iterator = iter(iterable)
+        except TypeError:
+            self.err.warn("Cannot iterate over", type(iterable), iterable)
+        else:
+            for item in iterator:
                 self.assign(loopVar, item)
                 for statement in code:
                     self.executeStatement(statement)
-        else:
-            self.err.warn("Cannot iterate over", type(iterable))
-            pass
     
     def IF(self, cond, code, elseCode):
         """Execute code if cond evaluates to true; otherwise, elseCode."""
@@ -705,7 +739,7 @@ class ProgramState:
 
     def ASC(self, rhs):
         if type(rhs) is Scalar:
-            if rhs:
+            if len(rhs) > 0:
                 result = ord(str(rhs)[0])
                 return Scalar(result)
             else:
@@ -749,7 +783,26 @@ class ProgramState:
         if type(lhs) is Lval:
             if type(index) in (int, slice):
                 # Indexing using a Scalar or a Range returns an Lval
-                return Lval(lhs, index)
+                if type(lhs.base) is List:
+                    # The lhs is a list of lvalues; index into that list
+                    try:
+                        result = lhs.base[index]
+                    except IndexError:
+                        self.err.warn("Invalid index into %r: %s"
+                                      % (lhs, index))
+                        return nil
+                    if type(result) is List:
+                        return Lval(result)
+                    elif type(result) is Lval:
+                        return result
+                    else:
+                        self.err.die("Implementation error: reached else "
+                                     "branch of Lval<List> AT int/slice, "
+                                     "got", repr(result))
+
+                else:
+                    # The lhs is a single lvalue; attach the index to it
+                    return Lval(lhs, index)
             elif type(index) in (List, Pattern):
                 # Using a List to index or doing a regex search can only
                 # give you an rval
@@ -1003,7 +1056,8 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for DEQUEUE:", type(iterVal))
             return nil
         if type(iterable) is Lval:
-            self.assign(iterable, iterVal)
+            if type(iterable.base) is not List:
+                self.assign(iterable, iterVal)
         else:
             self.err.warn("Dequeuing from non-lvalue", iterable)
         return item
@@ -1471,7 +1525,15 @@ class ProgramState:
             return nil
 
     def LIST(self, *items):
-        return List(items)
+        "Wrap any number of items in a List."
+        if items and all(isinstance(item, Lval) for item in items):
+            # If every item in the List is an lvalue, the List is an
+            # lvalue (useful for destructuring assignment)
+            return Lval(List(items))
+        else:
+            # If the List is empty or contains at least one rvalue,
+            # the List is an rvalue
+            return List(self.getRval(item) for item in items)
 
     def LOWERCASE(self, rhs):
         if type(rhs) is Scalar:
@@ -2205,7 +2267,8 @@ class ProgramState:
                           type(iterVal))
             return nil
         if type(iterable) is Lval:
-            self.assign(iterable, iterVal)
+            if type(iterable.base) is not List:
+                self.assign(iterable, iterVal)
         else:
             self.err.warn("Picking from non-lvalue", iterable)
         return item
@@ -2242,7 +2305,8 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for POP:", type(iterVal))
             return nil
         if type(iterable) is Lval:
-            self.assign(iterable, iterVal)
+            if type(iterable.base) is not List:
+                self.assign(iterable, iterVal)
         else:
             self.err.warn("Popping from non-lvalue", iterable)
         return item
@@ -2317,7 +2381,7 @@ class ProgramState:
         """Output an expression with trailing newline and pass it through.
 
         Because each Pip type implements __str__, we can just print()
-        it; however,printing nil has no effect, including on whitespace.
+        it; however, printing nil has no effect, including on whitespace.
         """
         if expression is not nil:
             print(expression)
@@ -2334,8 +2398,11 @@ class ProgramState:
         elif type(iterVal) is Nil:
             iterVal = List([item])
         if type(iterable) is Lval:
-            self.assign(iterable, iterVal)
-            return iterable
+            if type(iterable.base) is not List:
+                self.assign(iterable, iterVal)
+                return iterable
+            else:
+                return iterVal
         else:
             self.err.warn("Pushing to non-lvalue", iterable)
             return iterVal
@@ -2351,8 +2418,11 @@ class ProgramState:
         elif type(iterVal) is Nil:
             iterVal = List([item])
         if type(iterable) is Lval:
-            self.assign(iterable, iterVal)
-            return iterable
+            if type(iterable.base) is not List:
+                self.assign(iterable, iterVal)
+                return iterable
+            else:
+                return iterVal
         else:
             self.err.warn("Pushing to non-lvalue", iterable)
             return iterVal
@@ -3419,7 +3489,7 @@ class ProgramState:
 class Lval:
     def __init__(self, base, sliceValue=None):
         if type(base) is Lval:
-            self.name = base.name
+            self.base = base.base
             # Make sure to copy the slicelist so changes here don't modify the
             # original
             self.sliceList = base.sliceList[:]
@@ -3427,9 +3497,15 @@ class Lval:
                 self.sliceList.append(sliceValue)
             self.evaluated = base.evaluated
         else:
-            self.name = str(base)
+            if isinstance(base, List):
+                self.base = base
+            else:
+                self.base = str(base)
             self.sliceList = []
             self.evaluated = None
+
+    def copy(self):
+        return Lval(self)
 
     def __str__(self):
         slices = ",".join(map(str, self.sliceList))
@@ -3439,12 +3515,12 @@ class Lval:
             evaluated = "=" + str(self.evaluated)
         else:
             evaluated = ""
-        string = "Lval({})".format(self.name + evaluated + slices)
+        string = "Lval({})".format(str(self.base) + evaluated + slices)
         return string
 
     def __eq__(self, rhs):
-        if type(rhs) is Lval:
-            return self.name == rhs.name and self.sliceList == rhs.sliceList
-        elif type(rhs) in (str, tokens.Name):
-            return self.name == rhs and self.sliceList == []
+        if isinstance(rhs, Lval):
+            return self.base == rhs.base and self.sliceList == rhs.sliceList
+        elif isinstance(rhs, (str, List, tokens.Name)):
+            return self.base == rhs and self.sliceList == []
 
