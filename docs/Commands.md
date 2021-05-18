@@ -55,11 +55,11 @@ Similar to `while $s =~ $x` in Perl. Use [regex special variables](https://githu
 
 ### If statement
 
-    Ix<0{...}EIx>0{...}E{...}
+    Ix<0{...}EIx>0{...}EL{...}
 
     if(x < 0) {...} elseif(x < 0) {...} else {...}
 
-Since both the if and else branches may drop the curly braces if they contain single statements, the `EI` is just syntactic sugar for `E I`.
+Since both the if and else branches may drop the curly braces if they contain single statements, the `EI` is just syntactic sugar for `EL I`.
 
 ## Other commands
 
@@ -70,14 +70,6 @@ Since both the if and else branches may drop the curly braces if they contain si
     swap values of a, b
 
 `a` and `b` can be any two expressions as long as they evaluate to lvalues. For instance, `Sx@0x@1` will swap the first two items in an iterable `x`.
-
-### Unify
-
-    UxyzWg
-
-    (x,y,z) = g
-
-Read as "unify `x`, `y`, `z` with `g`." Like Python's tuple unpacking, but works even if the size of the list doesn't match the number of variables: if the list is too long, the remainder is ignored; if the list is too short, the latter variables get values of nil.
 
 ### Wipe globals
 

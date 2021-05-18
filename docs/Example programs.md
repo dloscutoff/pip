@@ -47,20 +47,20 @@ Three different approaches:
 
 ## [FizzBuzz](https://codegolf.stackexchange.com/questions/58615/1-2-fizz-4-buzz)
 
-    LhP J["Fizz""Buzz"]X!*++i%^35|i
+    LhP J["Fizz""Buzz"]X!*Ui%^35|i
 
 #### Explanation:
 
-    Lh                               Loop 100 times:
-      P                              Print this expression:
-                              ^35    35, split into a list of characters [3;5]
-                          ++i%       Increment i and take its new value mod each of those numbers
-                        !*           Logically negate each value (0 -> 1, nonzero -> 0)
-         ["Fizz""Buzz"]X             String-multiply "Fizz" and "Buzz", itemwise, by the above
-                                     The result is a list containing "Fizz" or "" depending on i%3
-                                     and "Buzz" or "" depending on i%5
-        J                            Join that list into a string
-                                 |i  Logical or with i (i.e. use the number if the resulting string is "")
+    Lh                              Loop 100 times:
+      P                             Print this expression:
+                             ^35    35, split into a list of characters [3;5]
+                          Ui%       Increment i and take its new value mod each of those numbers
+                        !*          Logically negate each value (0 -> 1, nonzero -> 0)
+         ["Fizz""Buzz"]X            String-multiply "Fizz" and "Buzz", itemwise, by the above
+                                    The result is a list containing "Fizz" or "" depending on i%3
+                                    and "Buzz" or "" depending on i%5
+        J                           Join that list into a string
+                                |i  Logical or with i (i.e. use the number if the resulting string is "")
 
 ## [Translate alphanumeric phone numbers](http://codegolf.stackexchange.com/q/21327/16766)
 
@@ -79,12 +79,13 @@ Three different approaches:
 
 ## [Build nested lists](http://codegolf.stackexchange.com/q/47351/16766)
 
-    a?--a?[0(fa)+1][0]l   20 bytes counting -p flag
+    a?Da?[0U(fa)][0]l   17 bytes (uses -p flag)
 
 #### Explanation:
 
-    a?                l   If input is 0, return empty list
-      --a?         [0]    Else decrement input; if it is now 0, return [0]
-            (fa)+1        If --a was not 0, recurse and add 1 memberwise to the result...
-          [0      ]       ... and make it the second item in a new outer list
-                          The recursive main function thus builds up lists like [0] -> [0;[1]] -> [0;[1;[2]]] etc.
+    a?              l   If input is 0, return empty list
+      Da?        [0]    Else, decrement input; if it is now 0, return [0]
+            (fa)        Else, recurse using the decremented value...
+           U            ... and increment the result itemwise...
+         [0     ]       ... and make it the second item in a new outer list
+                        The recursive main function thus builds up lists like [0] -> [0;[1]] -> [0;[1;[2]]] etc.

@@ -32,40 +32,28 @@ def parseStatement(tokenList):
         for argtype in command.argtypes:
             if argtype == "ELSE":
                 #!print("ELSE", tokenList)
-                if tokenList[0] == "E":
-                    # Match the E and parse a code block
+                if tokenList[0] == "EL":
+                    # Match the EL and parse a code block
                     tokenList.pop(0)
                     statement.append(parseBlock(tokenList))
                 else:
                     # There is no else branch--use an empty block
                     statement.append([])
-            elif argtype == "WITH":
-                # The with-clause of unify expressions, e.g. UabcWx
-                if tokenList[0] == "W":
-                    # Match the W and parse an expression
-                    tokenList.pop(0)
-                    statement.append(parseExpr(tokenList))
-                else:
-                    err.die("Expected W after U, got", tokenList[0])
             elif argtype == "CODE":
                 #!print("CODE", tokenList)
                 # Parse a code block
                 statement.append(parseBlock(tokenList))
-            elif argtype == "NAME":
+            elif argtype == "LOOPVAR":
                 # Parse a single name (used in FOR loops)
+                # TODO: allow for a (possibly nested) list of names
                 if type(tokenList[0]) is tokens.Name:
                     statement.append(tokenList.pop(0))
                 else:
                     err.die("Expected name, got", tokenList[0])
-            elif argtype == "NAMES":
-                # Parse 1 or more names (used in UNIFY)
-                if type(tokenList[0]) is tokens.Name:
-                    nameList = []
-                    while type(tokenList[0]) is tokens.Name:
-                        nameList.append(tokenList.pop(0))
-                    statement.append(nameList)
-                else:
-                    err.die("Expected name, got", tokenList[0])
+                # A semicolon after the loop variable is unnecessary
+                # but legal
+                if tokenList[0] == ";":
+                    tokenList.pop(0)
             else:
                 #!print("expression", tokenList)
                 # The arg is an expression (whether LVAL or RVAL)
@@ -223,16 +211,16 @@ def parseOperand(tokenList):
             return ptypes.Scalar(rawText.replace(r"\\", "\\"))
         else:
             # Translate the interpolations into a parse tree
+            strOp = operators.opsByArity[1]["ST"]
+            joinOp = operators.opsByArity[1]["J"]
             expression = [operators.enlist]
             literal = litOrInterpolation.pop(0)
             expression.append(ptypes.Scalar(literal.replace(r"\\", "\\")))
             while litOrInterpolation:
                 interpolation = litOrInterpolation.pop(0)
-                strOp = operators.opsByArity[1]["ST"]
                 expression.append([strOp, tokens.Name(interpolation)])
                 literal = litOrInterpolation.pop(0)
                 expression.append(ptypes.Scalar(literal.replace(r"\\", "\\")))
-            joinOp = operators.opsByArity[1]["J"]
             return [operators.paren, [joinOp, expression]]
     elif type(tokenList[0]) is tokens.Number:
         return ptypes.Scalar(tokenList.pop(0))

@@ -80,13 +80,12 @@ class Operator(tokens.Token):
 # WITH - the W token followed by EXPR
 
 cmdTable = [
-    ("F", "FOR", ["NAME", "EXPR", "CODE"]),
+    ("F", "FOR", ["LOOPVAR", "EXPR", "CODE"]),
     ("I", "IF", ["EXPR", "CODE", "ELSE"]),
     ("L", "LOOP", ["EXPR", "CODE"]),
     ("LR", "LOOPREGEX", ["EXPR", "EXPR", "CODE"]),
     ("S", "SWAP", ["EXPR", "EXPR"]),
     ("T", "TILL", ["EXPR", "CODE"]),
-    ("U", "UNIFY", ["NAMES", "WITH"]),
     ("W", "WHILE", ["EXPR", "CODE"]),
     ("WG", "WIPEGLOBALS", []),
     ]
@@ -165,7 +164,6 @@ precedenceTable = [
      ("LT", "STRLESS", 1, RVALS),
      ("GT", "STRGREATER", 1, RVALS),
      ("Q", "STREQUAL", 1, RVALS),
-     ("EQ", "STREQUAL", 1, RVALS),  # Synonym for backward compatibility
      ("LE", "STRLESSEQ", 1, RVALS),
      ("GE", "STRGREATEREQ", 1, RVALS),
      ("NE", "STRNOTEQUAL", 1, RVALS),
@@ -178,7 +176,6 @@ precedenceTable = [
      # CHAIN pseudo-operator having the IN_LAMBDA flag (see below).
     [2, "L",
      ("N", "IN", None, RVALS | IN_LAMBDA),
-     ("IN", "IN", None, RVALS | IN_LAMBDA), # Synonym for backward compat
      ("NI", "NOTIN", None, RVALS | IN_LAMBDA),
      ],
     [1, None,
@@ -329,11 +326,13 @@ precedenceTable = [
      ],
     [2, "R",
      ("**", "POW", 1, RVALS | IN_LAMBDA | RANGE_EACH),
+     ("E", "POW", 1, RVALS | IN_LAMBDA | RANGE_EACH),
      ("EE", "POWEROFTEN", 1, RVALS | IN_LAMBDA | RANGE_EACH),
      ("RT", "ROOT", 1, RVALS | IN_LAMBDA | RANGE_EACH),
      ],
     [1, None,
      ("**", "POW", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     ("E", "POW", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("EE", "POWEROFTEN", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("RT", "SQRT", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("SQ", "SQUARE", None, RVALS | IN_LAMBDA | RANGE_EACH),
@@ -351,6 +350,10 @@ precedenceTable = [
      ],
     [2, "L",
      ("FB", "FROMBASE", 0, RVALS | IN_LAMBDA | RANGE_EACH),
+     ],
+    [1, None,
+     ("U", "INC", None, VALS | IN_LAMBDA),
+     ("D", "DEC", None, VALS | IN_LAMBDA),
      ],
     [2, "L",
      ("@", "AT", None, VALS | IN_LAMBDA),

@@ -19,23 +19,25 @@ Tokens in Pip can be any of the following:
  - Delimiters (parens, square braces, curly braces, semicolon)
 
 ### Parsing
+
 Because uppercase identifiers and operators are limited to two characters, the scanner breaks a longer run of them into multiple tokens. For example, `LCAZ` is equivalent to `LC AZ`. If the run contains an odd number of characters, it is interpreted as having a single-character token at the beginning: `PLCAZ` is `P LC AZ`.
 
 ### String literals
+
 Escaped string literals warrant further explanation. The delimiter is `\"`, and therefore literal double quotes can be placed inside the string without escaping them (`\"like "this"\"`). Backslashes do need to be escaped with a second backslash (unlike in regular string literals). A backslash followed by an identifier is a variable interpolation: for example, `\"Value is \v.\"` This usage is syntactic sugar for `(J["Value is ";STv;"."])`. Expressions cannot be interpolated at present.
 
 ### Comments
+
 Comments come in two types: lines that start with a (possibly indented) semicolon, and anything at the end of a line if preceded by two or more spaces.
 
 <pre>; This is a comment.
 x:42  This is a comment too.</pre>
 
 ### Whitespace
+
 Whitespace is not significant except for indicating comments and separating tokens.
 
-For example, `(- -5)` returns 5,
-
-But `(--5)` returns 4 because `--` is the decrement operator.
+For example, `(- -5)` returns 5, but `(--5)` returns 4 because `--` is the decrement operator.
 
 ### Types
 
@@ -60,12 +62,12 @@ Most operators can be used to construct lambda expressions from the identity fun
 
 Programs consist of a series of statements that are executed one by one. Bare expressions also count as statements. If the program ends with a bare expression, its value is automatically printed. To suppress printing, end the program with a statement or a nil expression. **Note**: `P` and `O` are operators, not statements, so code like `P"abcd"` at the end of the program will print twice. Use `"abcd"` instead.
 
-Expressions use infix operators; precedence/associativity may be coerced using parentheses. Basic operators are mostly chosen to coincide with familiar ones from C, Python, or Perl/PHP: `+-*/%!?` are as expected; comparison operators chain, as in Python; `.`, `X`, and string comparison operators are borrowed from Perl, `//` integer division and `**` exponentiation from Python. A few potential "gotchas":
+Expressions use infix operators; precedence/associativity may be coerced using parentheses. Basic operators are mostly chosen to coincide with familiar ones from C, Python, or Perl/PHP: `+-*/%!?` are as expected; comparison operators chain, as in Python; `.`, `X`, and string comparison operators are borrowed from Perl, `//` integer division from Python. A few potential "gotchas":
 
  - `&` and `|` are logical, not bitwise operators
  - The assignment operator is `:`, freeing up `=` to be the (numeric) equality operator
  - Ternary operators do not have a symbol between their second and third arguments: `a?"Yes""No"`
- - Increment `++` and decrement `--` are pre- only (i.e. you can do `++x` but not `x++`)
+ - Increment `U`/`++` and decrement `D`/`--` are pre- only (i.e. you can do `++x` but not `x++`)
 
 Lists are constructed via square braces: `[1 2 3]`. No separator is necessary, except in cases of ambiguity in scanning or parsing: `[-1 2 3]` works as expected, but `[1 -2 3]` is actually `[-1 3]` because the `-` is treated as a binary operator if possible. Here, the expression terminator `;` can be used to eliminate the ambiguity: `[1;-2 3]`. (`;` can also be useful with ternary operators: `a?1;-1`.) By default, all elements are concatenated together when a list is printed, but there are several [Command-line flags](https://github.com/dloscutoff/pip/blob/master/docs/Command-line%20flags.md) that provide different formats.
 

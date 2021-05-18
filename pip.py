@@ -6,10 +6,8 @@
 #    (e.g. currently x@0:4 raises an uncaught exception)
 #  More operations that work on Scalars should also work on Patterns
 #  Binary versions of QP and QR that take a directional argument
-#  Allow ; after For loop variable
 #  Escaped Regex
 #  Flag equivalent to Perl's -p
-#  Make RA behave as expected for multiple, size-changing replacements
 #  Rework ugly hacks in definition of Range class
 #  Reconstitute code from parse tree and return that for functions' str and
 #    repr
@@ -25,7 +23,7 @@ from parsing import parse
 from execution import ProgramState
 from errors import FatalError
 
-VERSION = "0.21.05.15"
+VERSION = "0.21.05.17"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:

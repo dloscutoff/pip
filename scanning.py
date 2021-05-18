@@ -13,7 +13,7 @@ patternRgx = re.compile(r'`(\\`|\\\\|[^`])*`')
 charRgx = re.compile(r"'(.|\n)")
 escStringRgx = re.compile(r'\\"(\\[^"]|[^\\])*\\"')
 numberRgx = re.compile(r'\d+(\.\d+)?')
-symbolsRgx = re.compile(r'[][(){};$E]')
+symbolsRgx = re.compile(r'[][(){};$]|EL')
 
 # Create a regex from a list of operators by re.escape-ing them and joining
 # on |
@@ -98,8 +98,8 @@ def tokenize(code):
                     index = m.end()
                 if text == "EI":
                     # Special-case elseif to make parsing easier: just scan
-                    # the E for now, and save the I for the next token
-                    text = "E"
+                    # as EL for now, and save the I for the next token
+                    text = "EL"
                     index -= 1
                 tokenList.append(newToken(text))
                 code = code[index:]

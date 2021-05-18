@@ -35,15 +35,15 @@ The following operators change the way other operators are used, when applied on
 
 <code>a\*b</code> Multiplication; if one operand is a Pattern, regex repetition
 
-<code>a\*\*b</code> Exponentiation
+<code>a\*\*b</code> Alias for binary `E`, kept for backwards compatibility
 
-<code>\*\*a</code> Exponentiation with base 2
+<code>\*\*a</code> Alias for unary `E`, kept for backwards compatibility
 
 <code>a+b</code> Addition; if both operands are Patterns, regex concatenation
 
-<code>+a</code> Cast value as number
+<code>+a</code> Cast Scalar as number; with Pattern, repeat regex 1 or more times
 
-<code>++a</code> Pre-increment (always comes before operand, never `a++`)
+<code>++a</code> Increment (always comes before operand, never `a++`); higher-precedence version of `U`
 
 <code>a,b</code> Range; if both operands are Patterns, regex alternation
 
@@ -53,7 +53,7 @@ The following operators change the way other operators are used, when applied on
 
 <code>-a</code> Numeric negation; set case-insensitive flag on Pattern
 
-<code>--a</code> Pre-decrement (always comes before operand, never `a--`)
+<code>--a</code> Decrement (always comes before operand, never `a--`); higher-precedence version of `D`
 
 <code>a.b</code> Concatenation
 
@@ -143,19 +143,23 @@ The following operators change the way other operators are used, when applied on
 
 <code>CTa</code> Cotangent
 
+<code>Da</code> Decrement (modifying argument in-place)
+
 <code>aDCb</code> Delete all occurrences of characters in Scalar `b` from Scalar `a`
 
 <code>DGa</code> Convert radians to degrees
 
 <code>DQa</code> Dequeue item from back of iterable (modifying argument in-place)
 
+<code>aEb</code> Exponentiation
+
+<code>Ea</code> Exponentiation with base 2
+
 <code>aEEb</code> E notation: `a` times 10 to the power of `b`
 
 <code>EEa</code> Unary E notation: 10 to the power of `a`
 
 <code>ENa</code> Enumerate an iterable (gives List of `[index item]` Lists)
-
-<code>aEQb</code> Alias for binary `Q`, kept for backwards compatibility
 
 <code>EXa</code> Exponential (base *e*)
 
@@ -172,8 +176,6 @@ The following operators change the way other operators are used, when applied on
 <code>aGTb</code> String greater than
 
 <code>aGEb</code> String greater than or equal
-
-<code>aINb</code> Alias for binary `N`, kept for backwards compatibility
 
 <code>aJb</code> Join iterable on separator
 
@@ -301,11 +303,13 @@ The following operators change the way other operators are used, when applied on
 
 <code>TBa</code> Convert decimal integer `a` to binary
 
-<code>aTMb</code> Trim Scalar `a` by `b` characters from front and end (Scalar `b` trims same amt on both sides; Range `b` trims different amts)
+<code>aTMb</code> Trim Scalar `a` by `b` characters from front and end (Scalar `b` trims same amount on both sides; Range `b` trims different amounts)
 
 <code>TMa</code> Trim first and last characters from Scalar `a`
 
 <code>aTRbc</code> Transliterate `a` from characters in `b` to those in `c` (with `b` or `c` Scalar, transliterates one letter to another; with `b` or `c` Range or List of numbers, translates character codes)
+
+<code>Ua</code> Increment (modifying argument in-place)
 
 <code>UCa</code> Convert to UPPERCASE
 

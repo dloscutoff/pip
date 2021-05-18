@@ -539,19 +539,6 @@ class ProgramState:
                 self.executeStatement(statement)
             condVal = self.getRval(cond)
 
-    def UNIFY(self, lvals, rval):
-        """Unify lvals with items of rval, like Python's tuple unpacking."""
-        rval = self.getRval(rval)
-        if type(rval) in (List, Scalar, Range):
-            for i, lval in enumerate(lvals):
-                if i < len(rval):
-                    self.assign(self.evaluate(lval), rval[i])
-                else:
-                    self.assign(self.evaluate(lval), nil)
-        else:
-            self.err.warn("Unimplemented argtype for UNIFY:", type(rval))
-            # TBD: assign nil to all variables, or leave them unmodified?
-
     def WHILE(self, cond, code):
         """Loop, executing code, while cond evaluates to true."""
         condVal = self.getRval(cond)
