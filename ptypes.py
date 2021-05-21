@@ -500,7 +500,7 @@ class Range(PipType):
             # Null upper value results in an infinite iterator
             # TODO: use warning mechanism instead of print()?
             print("Iterating over an infinite Range", file=sys.stderr)
-            i = self._lower
+            i = self._lower or 0
             while True:
                 yield Scalar(i)
                 i += 1

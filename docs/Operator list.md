@@ -73,6 +73,8 @@ The following operators change the way other operators are used, when applied on
 
 <code>a&lt;>b</code> Group iterable `a` into sections of length `b`; with negative `b`, groups right-to-left
 
+<code>&lt;>a</code> Group iterable `a` into sections of length 2
+
 <code>a&lt;|b</code> Strip characters in `b` from right of `a`
 
 <code>&lt;|a</code> Strip whitespace from right of `a`

@@ -1,19 +1,5 @@
 #!/usr/bin/python3
 
-# Priorities TODO:
-#  Fix: operators with * metaop should work in lambdas
-#  Fix: decide sensible behavior for indexed empty sequence as lval
-#    (e.g. currently x@0:4 raises an uncaught exception)
-#  More operations that work on Scalars should also work on Patterns
-#  Binary versions of QP and QR that take a directional argument
-#  Escaped Regex
-#  Flag equivalent to Perl's -p
-#  Rework ugly hacks in definition of Range class
-#  Reconstitute code from parse tree and return that for functions' str and
-#    repr
-#  Figure out how to get correct warning/error reporting in ptypes classes
-#  More operators!
-
 import sys
 import argparse
 import pprint
@@ -23,7 +9,7 @@ from parsing import parse
 from execution import ProgramState
 from errors import FatalError
 
-VERSION = "0.21.05.17"
+VERSION = "0.21.05.20"
 
 def pip(code=None, args=None, interactive=True):
     if code or args:

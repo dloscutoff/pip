@@ -1250,7 +1250,9 @@ class ProgramState:
                           type(regex), "and", type(string))
             return Scalar("0")
 
-    def GROUP(self, iterable, rhs):
+    def GROUP(self, iterable, rhs=None):
+        if rhs is None:
+            rhs = Scalar(2)
         if isinstance(rhs, (List, Range)):
             # Group by each rhs and return a list of iterables
             return List(self.GROUP(iterable, jump) for jump in rhs)
@@ -1475,7 +1477,12 @@ class ProgramState:
 
     def LEN(self, rhs):
         if type(rhs) in (Scalar, List, Range):
-            result = len(rhs)
+            try:
+                result = len(rhs)
+            except ValueError:
+                # Infinite Range does not have a length
+                self.err.warn("Cannot take LEN of an infinite Range")
+                return nil
             return Scalar(result)
         else:
             self.err.warn("Unimplemented argtype for LEN:", type(rhs))
@@ -1484,7 +1491,13 @@ class ProgramState:
     def LENEQUAL(self, lhs, rhs):
         types = (Scalar, List, Range)
         if type(lhs) in types and type(rhs) in types:
-            result = len(lhs) == len(rhs)
+            try:
+                result = len(lhs) == len(rhs)
+            except ValueError:
+                # One or both of the arguments is an infinite Range
+                # Their lengths are equal iff they are both infinite
+                result = (type(lhs) is type(rhs) is Range
+                          and lhs.getUpper() is rhs.getUpper() is None)
             return Scalar(result)
         else:
             self.err.warn("Unimplemented argtypes for LENEQUAL:",
@@ -1494,7 +1507,19 @@ class ProgramState:
     def LENGREATER(self, lhs, rhs):
         types = (Scalar, List, Range)
         if type(lhs) in types and type(rhs) in types:
-            result = len(lhs) > len(rhs)
+            try:
+                result = len(lhs) > len(rhs)
+            except ValueError:
+                # One or both of the arguments is an infinite Range
+                # The lhs's length is greater iff it is infinite
+                # and the rhs is not
+                if type(lhs) is not Range:
+                    result = False
+                elif type(rhs) is not Range:
+                    result = True
+                else:
+                    result = (lhs.getUpper() is None
+                              and rhs.getUpper() is not None)
             return Scalar(result)
         else:
             self.err.warn("Unimplemented argtypes for LENGREATER:",
@@ -1504,7 +1529,19 @@ class ProgramState:
     def LENLESS(self, lhs, rhs):
         types = (Scalar, List, Range)
         if type(lhs) in types and type(rhs) in types:
-            result = len(lhs) < len(rhs)
+            try:
+                result = len(lhs) < len(rhs)
+            except ValueError:
+                # One or both of the arguments is an infinite Range
+                # The lhs's length is less iff it is not an infinite
+                # Range and the rhs is one
+                if type(lhs) is not Range:
+                    result = True
+                elif type(rhs) is not Range:
+                    result = False
+                else:
+                    result = (lhs.getUpper() is not None
+                              and rhs.getUpper() is None)
             return Scalar(result)
         else:
             self.err.warn("Unimplemented argtypes for LENLESS:",
@@ -1896,7 +1933,8 @@ class ProgramState:
                 # equal to any List
                 result = False
         else:
-            result = False
+            # Any other types are equal if they are identical
+            result = lhs == rhs
         return Scalar(result)
 
     def NUMGREATER(self, lhs, rhs):
@@ -1938,13 +1976,17 @@ class ProgramState:
                     leftLen = len(lhs)
                 except ValueError:
                     # Lhs is infinite Range
-                    return True
-                try:
-                    rightLen = len(rhs)
-                except ValueError:
-                    # Rhs is infinite Range
-                    return False
-                result = leftLen > rightLen
+                    result = True
+                else:
+                    try:
+                        rightLen = len(rhs)
+                    except ValueError:
+                        # Rhs is infinite Range
+                        result = False
+                if result is None:
+                    # Neither was an infinite Range, so we can just
+                    # compare their lengths directly
+                    result = leftLen > rightLen
         else:
             result = False
         return Scalar(result)
@@ -1952,7 +1994,6 @@ class ProgramState:
     def NUMGREATEREQ(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
             result = lhs.toNumber() >= rhs.toNumber()
-            return Scalar(result)
         elif type(lhs) is type(rhs) is Range:
             leftLower = lhs.getLower() or 0
             rightLower = rhs.getLower() or 0
@@ -1989,16 +2030,22 @@ class ProgramState:
                     leftLen = len(lhs)
                 except ValueError:
                     # Lhs is infinite Range
-                    return True
-                try:
-                    rightLen = len(rhs)
-                except ValueError:
-                    # Rhs is infinite Range
-                    return False
-                result = leftLen >= rightLen
-            return Scalar(result)
+                    result = True
+                else:
+                    try:
+                        rightLen = len(rhs)
+                    except ValueError:
+                        # Rhs is infinite Range
+                        result = False
+                if result is None:
+                    # Neither was an infinite Range, so we can just
+                    # compare their lengths directly
+                    result = leftLen >= rightLen
         else:
-            return Scalar(False)
+            # For non-comparable types, the only way they can be >=
+            # is if they are identical and thus equal
+            result = lhs == rhs
+        return Scalar(result)
 
     def NUMLESS(self, lhs, rhs):
         if type(lhs) is type(rhs) is Scalar:
@@ -2039,13 +2086,17 @@ class ProgramState:
                     leftLen = len(lhs)
                 except ValueError:
                     # Lhs is infinite Range
-                    return False
-                try:
-                    rightLen = len(rhs)
-                except ValueError:
-                    # Rhs is infinite Range
-                    return True
-                result = leftLen <= rightLen
+                    result = False
+                else:
+                    try:
+                        rightLen = len(rhs)
+                    except ValueError:
+                        # Rhs is infinite Range
+                        result = True
+                if result is None:
+                    # Neither was an infinite Range, so we can just
+                    # compare their lengths directly
+                    result = leftLen < rightLen
         else:
             result = False
         return Scalar(result)
@@ -2089,15 +2140,21 @@ class ProgramState:
                     leftLen = len(lhs)
                 except ValueError:
                     # Lhs is infinite Range
-                    return False
-                try:
-                    rightLen = len(rhs)
-                except ValueError:
-                    # Rhs is infinite Range
-                    return True
-                result = leftLen <= rightLen
+                    result = False
+                else:
+                    try:
+                        rightLen = len(rhs)
+                    except ValueError:
+                        # Rhs is infinite Range
+                        result = True
+                if result is None:
+                    # Neither was an infinite Range, so we can just
+                    # compare their lengths directly
+                    result = leftLen <= rightLen
         else:
-            result = False
+            # For non-comparable types, the only way they can be <=
+            # is if they are identical and thus equal
+            result = lhs == rhs
         return Scalar(result)
 
     def NUMNOTEQUAL(self, lhs, rhs):
@@ -2116,7 +2173,7 @@ class ProgramState:
                 # equal to any List
                 result = True
         else:
-            result = True
+            result = not (lhs == rhs)
         return Scalar(result)
 
     def OBJEQUAL(self, lhs, rhs):
@@ -2948,10 +3005,8 @@ class ProgramState:
             result = (len(lhs) == len(rhs)
                       and all(self.STREQUAL(i, j)
                               for i, j in zip(lhs, rhs)))
-        elif type(lhs) is type(rhs) is Range:
-            result = lhs == rhs
         else:
-            result = False
+            result = lhs == rhs
         return Scalar(result)
 
     def STRGREATER(self, lhs, rhs):
@@ -2991,7 +3046,7 @@ class ProgramState:
                 # the same length?
                 result = len(lhs) >= len(rhs)
         else:
-            result = False
+            result = lhs == rhs
         return Scalar(result)
 
     def STRIP(self, string, extra=None):
@@ -3075,7 +3130,7 @@ class ProgramState:
                 # the same length?
                 result = len(lhs) <= len(rhs)
         else:
-            result = False
+            result = lhs == rhs
         return Scalar(result)
 
     def STRMUL(self, lhs, rhs):
@@ -3095,10 +3150,8 @@ class ProgramState:
             result = (len(lhs) != len(rhs)
                       or any(self.STRNOTEQUAL(i, j)
                               for i, j in zip(lhs, rhs)))
-        elif type(lhs) is type(rhs) is Range:
-            result = lhs != rhs
         else:
-            result = True
+            result = not (lhs == rhs)
         return Scalar(result)
 
     def SUB(self, lhs, rhs):
