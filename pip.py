@@ -6,33 +6,36 @@ import pprint
 
 from scanning import scan, addSpaces
 from parsing import parse
+from ptypes import Scalar
 from execution import ProgramState
 from errors import FatalError
 
-VERSION = "0.21.05.20"
+VERSION = "0.21.06.22"
 
-def pip(code=None, args=None, interactive=True):
-    if code or args:
+def pip(code=None, argv=None, interactive=True):
+    if code is not None or argv is not None:
         interactive = False
     if interactive:
         print("=== Welcome to Pip, version %s ===" % VERSION)
         print("Enter command-line args, terminated by newline (-h for help):")
-        args = input()
-    if args is not None:
+        argv = input()
+    if argv is not None:
         # Artificial command-line input was provided
-        sys.argv = sys.argv[:1]
-        if type(args) is int:
-            args = str(args)
-        if type(args) is list:
-            # Add list of args to sys.argv, making sure they're all strings
-            sys.argv.extend(map(str, args))
-        elif type(args) is str:
+        if type(argv) is int:
+            argv = str(argv)
+        if type(argv) is list:
+            # Args are already in list form, just make sure each one
+            # is a string
+            argv = [str(arg) for arg in argv]
+        elif type(argv) is str:
             # Parse the fake command-line input, simplistically accepting
             # single- and double-quoted strings (with no escapes or shell
             # expansion)
+            argv_string = argv + " "
+            argv = []
             quote = None
             buffer = None
-            for char in args + " ":
+            for char in argv_string:
                 if char in "'\"":
                     if quote is None:
                         # Open quote
@@ -46,7 +49,7 @@ def pip(code=None, args=None, interactive=True):
                         buffer += char
                 elif char == " " and quote is None:
                     if buffer is not None:
-                        sys.argv.append(buffer)
+                        argv.append(buffer)
                     buffer = None
                 else:
                     buffer = buffer or ""
@@ -111,15 +114,27 @@ def pip(code=None, args=None, interactive=True):
                            "--warnings",
                            help="show nonfatal warning messages",
                            action="store_true")
+    argparser.add_argument("-x",
+                           "--exec-args",
+                           help=("treat each arg as Pip code (useful for "
+                                 "args that need to be evaluated "
+                                 "as expressions)"),
+                           action="store_true")
     argparser.add_argument("args",
                            help="arguments to main function",
                            nargs="*")
-    options = argparser.parse_args()
+
+    if argv is not None:
+        # Parse options from artificial command-line input
+        options = argparser.parse_args(argv)
+    else:
+        # Parse options from actual command-line input
+        options = argparser.parse_args()
     #!print(options)
+
     if options.version:
         print("Pip %s" % VERSION)
         return
-    
     if options.debug:
         options.warnings = options.verbose = options.repr = True
     listFormat = ("p" if options.repr else
@@ -141,68 +156,109 @@ def pip(code=None, args=None, interactive=True):
             return
     if code:
         # Code is passed into function
-        program = code + "\n"
+        program = code
     elif options.execute:
         # Code is given as command-line argument
-        program = options.execute + "\n"
+        program = options.execute
     elif options.file:
         # Get code from specified file
         if interactive:
             print("Reading", options.file)
         try:
             with open(options.file) as f:
-                program = f.read() + "\n"
+                program = f.read()
         except:
             print("Could not read from file", options.file, file=sys.stderr)
             return
     elif options.stdin:
         # Get code from stdin, stopping at EOF
-        program = "\n"
+        program = ""
         try:
             while True:
                 program += input() + "\n"
         except EOFError:
             pass
     try:
-        tkns = scan(program)
+        tokens = scan(program)
     except FatalError:
         print("Fatal error while scanning, execution aborted.",
               file=sys.stderr)
         return
     if options.verbose:
-        print(addSpaces(tkns))
+        print(addSpaces(tokens))
         print()
     try:
-        tree = parse(tkns)
+        parse_tree = parse(tokens)
     except FatalError:
         print("Fatal error while parsing, execution aborted.",
               file=sys.stderr)
         return
     if options.verbose:
-        pprint.pprint(tree)
+        pprint.pprint(parse_tree)
         print()
     state = ProgramState(listFormat, options.warnings)
     if options.readlines:
-        args = []
+        raw_args = []
         try:
             while True:
-                args.append(input())
+                raw_args.append(input())
         except EOFError:
             pass
     else:
-        args = options.args
+        raw_args = options.args
+    if options.exec_args:
+        # Treat each argument as a Pip statement/expression
+        program_args = []
+        for arg in raw_args:
+            try:
+                arg_tokens = scan(arg)
+            except FatalError:
+                print("Fatal error while scanning argument {}, "
+                      "execution aborted.".format(repr(arg)),
+                      file = sys.stderr)
+                return
+            try:
+                arg_parse_tree = parse(arg_tokens)
+            except FatalError:
+                print("Fatal error while parsing argument {}, "
+                      "execution aborted.".format(repr(arg)),
+                      file = sys.stderr)
+                return
+            parsed_arg = arg_parse_tree[0]
+            try:
+                program_args.append(state.executeStatement(parsed_arg))
+            except FatalError:
+                print("Fatal error while evaluating argument {}, "
+                      "execution aborted.".format(repr(arg)),
+                      file = sys.stderr)
+                return
+            except KeyboardInterrupt:
+                print("Program terminated by user while evaluating "
+                      "argument {}.".format(repr(arg)),
+                      file=sys.stderr)
+                return
+            except RuntimeError as err:
+                # Probably exceeded Python's max recursion depth
+                print("Fatal error while evaluating argument "
+                      "{}:".format(repr(arg)),
+                      err,
+                      file=sys.stderr)
+                return
+    else:
+        # Treat each argument as a Scalar
+        program_args = [Scalar(arg) for arg in raw_args]
     if interactive:
         print("Executing...")
     try:
-        state.executeProgram(tree, args)
+        state.executeProgram(parse_tree, program_args)
     except FatalError:
         print("Fatal error during execution, program terminated.",
               file=sys.stderr)
     except KeyboardInterrupt:
         print("Program terminated by user.", file=sys.stderr)
-    except RuntimeError as e:
+    except RuntimeError as err:
         # Probably exceeded Python's max recursion depth
-        print("Fatal error:", e, file=sys.stderr)
+        print("Fatal error:", err, file=sys.stderr)
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:

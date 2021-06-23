@@ -13,6 +13,10 @@ Pip uses several command-line flags to control input and output options.
 
 When Pip is called without any of these flags, the default is stdin for interactive mode and file for non-interactive.
 
+## Input interpretation
+
+`-x` Instead of setting `g` to the list of command-line args as Scalars, evaluate each arg as Pip code and set `g` to the list of resulting values
+
 ## Input source
 
 `-r` Instead of setting `g` to the list of command-line args, set it to the list of all lines read from stdin

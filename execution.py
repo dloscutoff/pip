@@ -26,7 +26,7 @@ class ProgramState:
         # The showWarnings parameter determines whether non-fatal errors
         # (such as dividing by 0) show warning messages or continue silently
         self.err = ErrorReporter(showWarnings)
-        self.callDepth = -1
+        self.callDepth = 0
         # There is no maximum recursion depth, but in practice recursion is
         # severely limited by Python's maximum recursion depth. In one test,
         # the program crashed after 140 levels of recursion.
@@ -39,21 +39,19 @@ class ProgramState:
             "r": {"get": self.getr, "set": self.setr},
             }
         # Local variables--one set per function call level
-        self.locals = []
+        self.locals = [{}]
 
-    def executeProgram(self, statements, cmdLineArgs=None):
+    def executeProgram(self, statements, args=None):
         if not statements:
             # Empty program does nothing
             return
-        if cmdLineArgs is None:
-            cmdLineArgs = []
-        else:
-            cmdLineArgs = [Scalar(arg) for arg in cmdLineArgs]
+        if args is None:
+            args = []
         # Convert the whole program to a block and execute a function call
-        # with cmdLineArgs as the arguments and the return value PRINTed
+        # with args as the arguments and the return value PRINTed
         # after execution
         mainFunction = self.BLOCK(statements)
-        returnVal = self.functionCall(mainFunction, cmdLineArgs)
+        returnVal = self.functionCall(mainFunction, args)
         self.PRINT(returnVal)
 
     def executeStatement(self, statement):

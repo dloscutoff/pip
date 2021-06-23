@@ -114,7 +114,7 @@ def tokenize(code):
 
 def scan(code):
     """Tokenize code, and add flags to the end to make parsing easier."""
-    tokenList = tokenize(code)
+    tokenList = tokenize(code + "\n")
     # None at end of token list signals to terminate the program
     return tokenList + [None]
 
