@@ -451,7 +451,7 @@ class ProgramState:
         return Scalar(random.random())
 
     def setr(self, rhs):
-        random.seed(rhs)
+        random.seed(str(rhs))
 
     ################################
     ### Pip built-in commands    ###
@@ -459,7 +459,7 @@ class ProgramState:
 
     def FOR(self, loopVar, iterable, code):
         """Execute code for each item in iterable, assigned to loopVar."""
-        loopVar = Lval(loopVar)
+        loopVar = self.evaluate(loopVar)
         iterable = self.getRval(iterable)
         try:
             iterator = iter(iterable)
@@ -557,7 +557,7 @@ class ProgramState:
             "m": Scalar("1000"),
             "n": Scalar("\n"),
             "o": Scalar("1"),
-            #p
+            "p": Scalar("()"),
             #q is a special variable
             #r is a special variable
             "s": Scalar(" "),
@@ -3553,7 +3553,7 @@ class Lval:
             evaluated = "=" + str(self.evaluated)
         else:
             evaluated = ""
-        string = "Lval({})".format(str(self.base) + evaluated + slices)
+        string = f"Lval({self.base}{evaluated}{slices})"
         return string
 
     def __eq__(self, rhs):

@@ -11,9 +11,7 @@ class Command(tokens.Token):
         return self._text
 
     def __repr__(self):
-        return "Command({},{},{})".format(self._text,
-                                          self.function,
-                                          self.argtypes)
+        return f"Command({self._text},{self.function},{self.argtypes})"
 
 class Operator(tokens.Token):
     def __init__(self, token, function, arity, precedence, associativity,
@@ -40,21 +38,28 @@ class Operator(tokens.Token):
         elif type(default) is list:
             self.default = ptypes.List(default)
         else:
-            print("Unsupported operator default value type:", type(default))
+            print("Unsupported default value type for operator "
+                  f"{token} ({function}):", type(default))
             self.default = ptypes.nil
 
     def __str__(self):
-        return (("$" if self.fold else "")
-                + self._text
-                + ("*" if self.map else "")
-                + (":" if self.assign else ""))
+        opString = self._text
+        if self.fold:
+            opString = "$" + opString
+        if self.map:
+            if self._text + "*" in operators:
+                # Add a space to mapped versions of operators like @
+                # to prevent ambiguity with @* operator
+                opString += " *"
+            else:
+                opString += "*"
+        if self.assign:
+            opString += ":"
+        return opString
 
     def __repr__(self):
-        return "Operator({},{},{},{},{})".format(str(self),
-                                                 self.function,
-                                                 self.arity,
-                                                 self.precedence,
-                                                 self.associativity)
+        return (f"Operator({self},{self.function},{self.arity},"
+                f"{self.precedence},{self.associativity})")
 
     def copy(self):
         cpy = Operator(self._text,
@@ -73,7 +78,7 @@ class Operator(tokens.Token):
 # Each entry in the command table contains the command symbol, the function,
 # and a list of parsing items that the command expects:
 # NAME - a single variable name
-# NAMES - one or more variable names
+# LOOPVAR - a single name, or multiple names in square braces
 # EXPR - any expression
 # CODE - a single statement, or a block of statements in curly braces
 # ELSE - the E token followed by CODE
@@ -355,6 +360,13 @@ precedenceTable = [
     [1, None,
      ("U", "INC", None, VALS | IN_LAMBDA),
      ("D", "DEC", None, VALS | IN_LAMBDA),
+     ("#", "LEN", None, RVALS | IN_LAMBDA),
+     ("A", "ASC", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     ("C", "CHR", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     ("AB", "ABS", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     ("SG", "SIGN", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     ("FB", "FROMBASE", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     # Unary mnemonic: FromBinary
      ],
     [2, "L",
      ("@", "AT", None, VALS | IN_LAMBDA),
@@ -367,13 +379,6 @@ precedenceTable = [
      ("@>", "RIGHTOF", None, VALS | IN_LAMBDA),
      ("++", "INC", None, VALS | IN_LAMBDA),
      ("--", "DEC", None, VALS | IN_LAMBDA),
-     ("#", "LEN", None, RVALS | IN_LAMBDA),
-     ("A", "ASC", None, RVALS | IN_LAMBDA | RANGE_EACH),
-     ("C", "CHR", None, RVALS | IN_LAMBDA | RANGE_EACH),
-     ("AB", "ABS", None, RVALS | IN_LAMBDA | RANGE_EACH),
-     ("SG", "SIGN", None, RVALS | IN_LAMBDA | RANGE_EACH),
-     ("FB", "FROMBASE", None, RVALS | IN_LAMBDA | RANGE_EACH),
-     # Unary mnemonic: FromBinary
      ],
     ]
 

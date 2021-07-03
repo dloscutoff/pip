@@ -29,7 +29,7 @@ Loop as long as the condition is false; stop when it becomes true.
 
     foreach(i in l) {...}
 
-Loops the variable `i` over each item in `l`. Legal types for the iteration object are scalar, list, and range. The variable must be a single identifier; this requirement allows the following very useful syntax with the unary range operator:
+Loops the variable `i` over each item in `l`. The variable must be either a single identifier or a (possibly nested) list of identifiers in square brackets. Legal types for the iteration object are Scalar, List, and Range. Expressions that start with a unary operator are fine:
 
     Fi,20{...}
 

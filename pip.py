@@ -10,7 +10,7 @@ from ptypes import Scalar
 from execution import ProgramState
 from errors import FatalError
 
-VERSION = "0.21.06.22"
+VERSION = "0.21.07.03"
 
 def pip(code=None, argv=None, interactive=True):
     if code is not None or argv is not None:
@@ -152,8 +152,8 @@ def pip(code=None, argv=None, interactive=True):
             # Treat first non-option arg as name of code file
             options.file = options.args.pop(0)
         else:
-            print("Type {} -h for usage information.".format(sys.argv[0]))
-            return
+            print(f"Type {sys.argv[0]} -h for usage information.")
+            sys.exit(0)
     if code:
         # Code is passed into function
         program = code
@@ -169,7 +169,7 @@ def pip(code=None, argv=None, interactive=True):
                 program = f.read()
         except:
             print("Could not read from file", options.file, file=sys.stderr)
-            return
+            sys.exit(1)
     elif options.stdin:
         # Get code from stdin, stopping at EOF
         program = ""
@@ -183,7 +183,7 @@ def pip(code=None, argv=None, interactive=True):
     except FatalError:
         print("Fatal error while scanning, execution aborted.",
               file=sys.stderr)
-        return
+        sys.exit(1)
     if options.verbose:
         print(addSpaces(tokens))
         print()
@@ -192,7 +192,7 @@ def pip(code=None, argv=None, interactive=True):
     except FatalError:
         print("Fatal error while parsing, execution aborted.",
               file=sys.stderr)
-        return
+        sys.exit(1)
     if options.verbose:
         pprint.pprint(parse_tree)
         print()
@@ -213,37 +213,36 @@ def pip(code=None, argv=None, interactive=True):
             try:
                 arg_tokens = scan(arg)
             except FatalError:
-                print("Fatal error while scanning argument {}, "
-                      "execution aborted.".format(repr(arg)),
+                print(f"Fatal error while scanning argument {arg!r}, "
+                      "execution aborted.",
                       file = sys.stderr)
-                return
+                sys.exit(1)
             try:
                 arg_parse_tree = parse(arg_tokens)
             except FatalError:
-                print("Fatal error while parsing argument {}, "
-                      "execution aborted.".format(repr(arg)),
+                print(f"Fatal error while parsing argument {arg!r}, "
+                      "execution aborted.",
                       file = sys.stderr)
-                return
+                sys.exit(1)
             parsed_arg = arg_parse_tree[0]
             try:
                 program_args.append(state.executeStatement(parsed_arg))
             except FatalError:
-                print("Fatal error while evaluating argument {}, "
-                      "execution aborted.".format(repr(arg)),
+                print(f"Fatal error while evaluating argument {arg!r}, "
+                      "execution aborted.",
                       file = sys.stderr)
-                return
+                sys.exit(1)
             except KeyboardInterrupt:
                 print("Program terminated by user while evaluating "
-                      "argument {}.".format(repr(arg)),
+                      f"argument {arg!r}.",
                       file=sys.stderr)
-                return
+                sys.exit(1)
             except RuntimeError as err:
                 # Probably exceeded Python's max recursion depth
-                print("Fatal error while evaluating argument "
-                      "{}:".format(repr(arg)),
+                print(f"Fatal error while evaluating argument {arg!r}:",
                       err,
                       file=sys.stderr)
-                return
+                sys.exit(1)
     else:
         # Treat each argument as a Scalar
         program_args = [Scalar(arg) for arg in raw_args]
@@ -254,11 +253,14 @@ def pip(code=None, argv=None, interactive=True):
     except FatalError:
         print("Fatal error during execution, program terminated.",
               file=sys.stderr)
+        sys.exit(1)
     except KeyboardInterrupt:
         print("Program terminated by user.", file=sys.stderr)
+        sys.exit(1)
     except RuntimeError as err:
         # Probably exceeded Python's max recursion depth
         print("Fatal error:", err, file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:

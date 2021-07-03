@@ -46,7 +46,7 @@ Note: any sequence of two uppercase letters that isn't a command or an operator 
 
 `o` 1
 
-`p` TBD; currently initialized to nil
+`p` `"()"`
 
 `s` Space character
 

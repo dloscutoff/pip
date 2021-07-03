@@ -23,7 +23,7 @@ class Token:
         className = str(type(self))[8:-2]
         if className[:7] == "tokens.":
             className = className[7:]
-        return "{}({})".format(className, self._text)
+        return f"{className}({self._text})"
 
 class Command(Token):
     pass

@@ -50,10 +50,10 @@ class Scalar(PipType):
             # Non-numbers must have quotes
             if '"' in self._value:
                 # Use escaped-string format
-                return r'\"{}\"'.format(self._value.replace("\\", r"\\"))
+                return r'\"' + self._value.replace("\\", r"\\") + r'\"'
             else:
                 # Use normal string format
-                return '"{}"'.format(self._value)
+                return f'"{self._value}"'
 
     def __int__(self):
         m = intRgx.match(self._value.lstrip())
@@ -213,7 +213,7 @@ class Pattern(PipType):
         return self._raw
 
     def __repr__(self):
-        return '`{}`'.format(self._raw.replace("`", "\\`"))
+        return "`" + self._raw.replace("`", r"\`") + "`"
 
     def __bool__(self):
         """A Pattern is false iff it is empty."""

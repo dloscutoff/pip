@@ -44,12 +44,9 @@ def parseStatement(tokenList):
                 # Parse a code block
                 statement.append(parseBlock(tokenList))
             elif argtype == "LOOPVAR":
-                # Parse a single name (used in FOR loops)
-                # TODO: allow for a (possibly nested) list of names
-                if type(tokenList[0]) is tokens.Name:
-                    statement.append(tokenList.pop(0))
-                else:
-                    err.die("Expected name, got", tokenList[0])
+                # Parse a single name or a (possibly nested) list of
+                # names (used in FOR loops)
+                statement.append(parseNameList(tokenList))
                 # A semicolon after the loop variable is unnecessary
                 # but legal
                 if tokenList[0] == ";":
@@ -63,6 +60,26 @@ def parseStatement(tokenList):
         # statements are bare expressions
         statement = parseExpr(tokenList)
     return statement
+
+def parseNameList(tokenList):
+    "Parse a (possibly nested) list containing names."
+    if isinstance(tokenList[0], tokens.Name):
+        return tokenList.pop(0)
+    elif tokenList[0] == "[":
+        tokenList.pop(0)
+        nameList = [operators.enlist]
+        while tokenList[0] != "]":
+            nameList.append(parseNameList(tokenList))
+        tokenList.pop(0)
+        if len(nameList) == 1:
+            # No names in the list, just the enlist operator
+            err.die("List of names in for-loop header cannot be empty")
+        return nameList
+    elif tokenList[0] is None:
+        err.die("Unterminated list of names in for-loop header")
+    else:
+        err.die("For-loop header must be name or list of names, not",
+                tokenList[0])
 
 def parseBlock(tokenList):
     "Parse either a single statement or a series of statements in {}."
