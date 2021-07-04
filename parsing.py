@@ -47,10 +47,6 @@ def parseStatement(tokenList):
                 # Parse a single name or a (possibly nested) list of
                 # names (used in FOR loops)
                 statement.append(parseNameList(tokenList))
-                # A semicolon after the loop variable is unnecessary
-                # but legal
-                if tokenList[0] == ";":
-                    tokenList.pop(0)
             else:
                 #!print("expression", tokenList)
                 # The arg is an expression (whether LVAL or RVAL)
@@ -59,12 +55,15 @@ def parseStatement(tokenList):
         # Other than those that start with commands, the only other kinds of
         # statements are bare expressions
         statement = parseExpr(tokenList)
+    # A semicolon after a statement is unnecessary but legal
+    if tokenList[0] == ";":
+        tokenList.pop(0)
     return statement
 
 def parseNameList(tokenList):
     "Parse a (possibly nested) list containing names."
     if isinstance(tokenList[0], tokens.Name):
-        return tokenList.pop(0)
+        nameList = tokenList.pop(0)
     elif tokenList[0] == "[":
         tokenList.pop(0)
         nameList = [operators.enlist]
@@ -74,12 +73,15 @@ def parseNameList(tokenList):
         if len(nameList) == 1:
             # No names in the list, just the enlist operator
             err.die("List of names in for-loop header cannot be empty")
-        return nameList
     elif tokenList[0] is None:
         err.die("Unterminated list of names in for-loop header")
     else:
         err.die("For-loop header must be name or list of names, not",
                 tokenList[0])
+    # A semicolon after the name list is unnecessary but legal
+    if tokenList[0] == ";":
+        tokenList.pop(0)
+    return nameList
 
 def parseBlock(tokenList):
     "Parse either a single statement or a series of statements in {}."
@@ -103,9 +105,10 @@ def parseBlock(tokenList):
 
 def isExpr(tree):
     "Tests whether the given parse tree is an expression or not."
-    if type(tree) is list and type(tree[0]) is operators.Operator:
+    if isinstance(tree, list) and isinstance(tree[0], operators.Operator):
         return True
-    elif type(tree) in (tokens.Name, ptypes.Scalar, ptypes.Pattern):
+    elif isinstance(tree, (tokens.Name, ptypes.Scalar,
+                           ptypes.Pattern, ptypes.Nil)):
         return True
     else:
         return False
@@ -288,6 +291,7 @@ def parseOperand(tokenList):
                 op = operators.opsByArity[2][token]
                 op = op.copy()
                 op.fold = True
+                op.arity = 1
             else:
                 err.die("Missing/wrong operator for $ meta-operator: got",
                         tokenList[0], "instead")
@@ -318,4 +322,73 @@ def parseOperand(tokenList):
         err.die("Expected expression, got", repr(tokenList[0]))
 
 
+def unparse(tree, statementSep=""):
+    "Convert parse tree back to string of code."
+    code = ""
+    for statement in tree:
+        if isinstance(statement, list):
+            # A parse tree
+            if isinstance(statement[0], operators.Operator):
+                code += unparseExpr(statement, statementSep)
+            elif type(statement[0]) is operators.Command:
+                code += str(statement[0])
+                for i, argtype in enumerate(statement[0].argtypes):
+                    arg = statement[1+i]
+                    if argtype == "ELSE":
+                        code += " EL"
+                        argtype = "CODE"
+                    if argtype == "LOOPVAR" or argtype == "EXPR":
+                        code += " " + unparseExpr(arg, statementSep)
+                    elif argtype == "CODE":
+                        code += " {" + unparse(arg, statementSep) + "}"
+        else:
+            # Not a parse tree, probably a literal or name
+            code += unparseExpr(statement, statementSep)
+        code += "; "
+        code += statementSep
+    return code.strip("; " + statementSep)
+
+def unparseExpr(tree, statementSep):
+    "Convert parse tree of expression back to string of code."
+    #!print("Unparsing expr", tree)
+    if type(tree) is list:
+        op = tree[0]
+        if op == "PAREN":
+            code = "(" + unparseExpr(tree[1], statementSep) + ")"
+        elif op == "BLOCK":
+            code = "{" + unparse(tree[1], statementSep) + "}"
+        elif op == "SEND":
+            exprs = (unparseExpr(item, statementSep) for item in tree[1:])
+            code = "(" + "; ".join(exprs) + ")"
+        elif op == "LIST":
+            exprs = (unparseExpr(item, statementSep) for item in tree[1:])
+            code = "[" + "; ".join(exprs) + "]"
+        else:
+            operands = []
+            for item in tree[1:]:
+                if isinstance(item, operators.Operator):
+                    operands.append(str(item))
+                else:
+                    operand = unparseExpr(item, statementSep)
+                    if (isinstance(item, list)
+                            and item[0] not in ["PAREN", "BLOCK",
+                                                "SEND", "LIST"]):
+                        operand = "(" + operand + ")"
+                    operands.append(operand)
+            if op == "CHAIN":
+                code = " ".join(operands)
+            elif op.arity == 1:
+                code = f"{op} {operands[0]}"
+            elif op.arity == 2:
+                code = f"{operands[0]} {op} {operands[1]}"
+            elif op.arity == 3:
+                code = f"{operands[0]} {op} {operands[1]}; {operands[2]}"
+    elif isinstance(tree, tokens.Name):
+        code = str(tree)
+    elif isinstance(tree, (ptypes.Scalar, ptypes.Pattern, ptypes.Nil)):
+        code = repr(tree)
+    else:
+        # Shouldn't ever get here
+        raise ValueError(repr(tree))
+    return code
 

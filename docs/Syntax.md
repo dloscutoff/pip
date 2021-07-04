@@ -50,7 +50,7 @@ There are 6 data types in Pip:
  - **Block** represents a code block or function.
  - **Nil** is a singleton type, similar to `null` or `None` from other languages. Note that many situations that would cause a runtime error in other languages (such as dividing by zero) simply return nil in Pip (unless warnings are turned on using the -w or -d flags). Most operators, when given nil as an operand, return nil.
 
-Boolean expressions return `0` and `1`. The values `0` (and variants like `0.0`), `""`, `[]`, <code>``</code>, and nil are falsy; all others are truthy.
+Boolean expressions return `0` and `1`. The values `0` (and variants like `0.0`), `""`, `[]`, <code>``</code>, `{}`, and nil are falsy; all others are truthy.
 
 Many operators, including arithmetic and most string operators, function memberwise on ranges and lists, similar to array-programming languages like APL. For example, `[1 2 3]+[6 5 4]` is `[7 7 7]`, and `"Hello".1,3` is `["Hello1" "Hello2"]`.
 

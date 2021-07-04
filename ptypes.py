@@ -618,11 +618,10 @@ class Block(PipType):
         return repr(self)
 
     def __repr__(self):
-        # TODO: make this look nice
         return "{" + str(self._statements + [self._returnExpr])[1:-1] + "}"
 
     def __bool__(self):
-        return self._statements != [] or self._returnExpr != []
+        return self._statements != [] or self._returnExpr is not nil
 
     def __eq__(self, rhs):
         return (isinstance(rhs, Block)

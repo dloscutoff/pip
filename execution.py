@@ -2201,10 +2201,9 @@ class ProgramState:
     def OUTPUT(self, expression):
         """Output an expression, NO trailing newline, and pass it through."""
         expression = self.getRval(expression)
-        # Because each Pip type implements __str__, we can just print() it
-        # However, printing nil has no effect, including on whitespace
+        # Printing nil has no effect, including on whitespace
         if expression is not nil:
-            print(expression, end="")
+            print(self.STR(expression), end="")
         return expression
 
     def PALINDROMIZE(self, iterable):
@@ -2422,11 +2421,10 @@ class ProgramState:
     def PRINT(self, expression):
         """Output an expression with trailing newline and pass it through.
 
-        Because each Pip type implements __str__, we can just print()
-        it; however, printing nil has no effect, including on whitespace.
+        Printing nil has no effect, including on whitespace.
         """
         if expression is not nil:
-            print(expression)
+            print(self.STR(expression))
         return expression
 
     def PUSH(self, iterable, item):
@@ -2719,8 +2717,11 @@ class ProgramState:
             return lhs
 
     def REPR(self, rhs):
-        # Let each class's __repr__ do the work for us
-        return Scalar(repr(rhs))
+        if isinstance(rhs, Block):
+            statements = rhs.getStatements() + [rhs.getReturnExpr()]
+            return Scalar("{" + parsing.unparse(statements) + "}")
+        else:
+            return Scalar(repr(rhs))
 
     def REVERSE(self, rhs):
         if type(rhs) is Scalar:
@@ -2994,7 +2995,11 @@ class ProgramState:
             return nil
 
     def STR(self, rhs):
-        return Scalar(str(rhs))
+        if isinstance(rhs, Block):
+            statements = rhs.getStatements() + [rhs.getReturnExpr()]
+            return Scalar("{" + parsing.unparse(statements) + "}")
+        else:
+            return Scalar(str(rhs))
 
     def STREQUAL(self, lhs, rhs):
         if type(lhs) in (Scalar, Pattern) and type(rhs) in (Scalar, Pattern):
