@@ -649,6 +649,15 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for ABS:", type(rhs))
             return nil
 
+    def ABSOLUTEDIFF(self, lhs, rhs):
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
+            result = abs(lhs.toNumber() - rhs.toNumber())
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtypes for ABSOLUTEDIFF:",
+                          type(lhs), "and", type(rhs))
+            return nil
+
     def ADD(self, lhs, rhs):
         if type(lhs) is Range and type(rhs) is Scalar:
             lhs, rhs = rhs, lhs
@@ -1213,7 +1222,7 @@ class ProgramState:
             self.err.warn("Unimplemented base type for FROMBASE:", type(base))
             return nil
         if base < 2 or base > 36:
-            self.err.warn("Invalid base for conversion:", base)
+            self.err.warn("Invalid base for FROMBASE:", base)
             return nil
         if type(number) is Scalar:
             if len(number) == 0:
@@ -1228,6 +1237,31 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtype for FROMBASE:",
                           type(number))
+            return nil
+
+    def FROMDIGITS(self, digits, base=None):
+        if base is None:
+            base = 2
+        elif type(base) is Scalar:
+            base = base.toNumber()
+        else:
+            self.err.warn("Unimplemented base type for FROMDIGITS:",
+                          type(base))
+            return nil
+        if isinstance(digits, (Scalar, List, Range)):
+            result = 0
+            for exponent, digit in enumerate(reversed(digits)):
+                if isinstance(digit, Scalar):
+                    digit = digit.toNumber()
+                    result += digit * base ** exponent
+                else:
+                    self.err.warn("Digits in FROMDIGITS must each be "
+                                  "Scalar, not", type(digit))
+                    return nil
+            return Scalar(result)
+        else:
+            self.err.warn("Unimplemented argtype for FROMDIGITS:",
+                          type(digits))
             return nil
 
     def FULLMATCH(self, regex, string):
@@ -2548,6 +2582,11 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for RANGETO:", type(upper))
             return nil
 
+    def RECURSE(self, rhs):
+        "Call the current function recursively with rhs as its argument."
+        return self.functionCall(self.locals[self.callDepth]["f"],
+                                 [rhs])
+
     def REFLECT(self, iterable):
         """Concatenate iterable with its reverse."""
         if isinstance(iterable, (Range, List)):
@@ -2820,6 +2859,15 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for lhs of RSTRIP:",
                           type(string))
             return nil
+
+    def RVALAND(self, lhs, rhs):
+        return lhs and rhs
+
+    def RVALIFTE(self, test, trueBranch, falseBranch):
+        return trueBranch if test else falseBranch
+
+    def RVALOR(self, lhs, rhs):
+        return lhs or rhs
 
     def SECANT(self, rhs):
         if type(rhs) is Scalar:
@@ -3207,7 +3255,7 @@ class ProgramState:
                           type(base))
             return nil
         if base < 2 or base > 36:
-            self.err.warn("Invalid base for conversion:", base)
+            self.err.warn("Invalid base for TOBASE:", base)
             return nil
         if type(number) is Scalar:
             number = int(number)   # sorry, no float support
@@ -3226,6 +3274,38 @@ class ProgramState:
             return Scalar(sign + result)
         else:
             self.err.warn("Unimplemented argtype for TOBASE:", type(number))
+            return nil
+
+    def TODIGITS(self, number, base=None):
+        "Convert a decimal integer to a list of digits in the specified base."
+        if isinstance(number, (List, Range)):
+            return List(self.TODIGITS(num, base) for num in number)
+        if base is None:
+            base = 2
+        elif isinstance(base, Scalar):
+            base = int(base)
+        else:
+            self.err.warn("Unimplemented base type for TODIGITS:",
+                          type(base))
+            return nil
+        if base < 2:
+            self.err.warn("Invalid base for conversion:", base)
+            return nil
+        if isinstance(number, Scalar):
+            number = int(number)   # sorry, no float support
+            if number < 0:
+                sign = -1
+                number = -number
+            else:
+                sign = 1
+            result = []
+            while number > 0:
+                digit = number % base
+                number = (number - digit) / base
+                result.insert(0, Scalar(sign * digit))
+            return List(result)
+        else:
+            self.err.warn("Unimplemented argtype for TODIGITS:", type(number))
             return nil
 
     def TRANSLITERATE(self, lhs, old, new):

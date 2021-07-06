@@ -41,7 +41,7 @@ Each of these approaches requires the code to end with a newline, since the outp
 
 Three different approaches:
 
-    a?a*(fa-1)1   Recursive...
+    a?a*REa-1o   Recursive...
     Fi\,ao*:io    Iterative...
     $*\,a         But fold is the best!
 
@@ -79,13 +79,13 @@ Three different approaches:
 
 ## [Build nested lists](http://codegolf.stackexchange.com/q/47351/16766)
 
-    a?Da?[0U(fa)][0]l   17 bytes (uses -p flag)
+    a?Da?[0UREa][0]l   16 bytes (uses -p flag)
 
 #### Explanation:
 
-    a?              l   If input is 0, return empty list
-      Da?        [0]    Else, decrement input; if it is now 0, return [0]
-            (fa)        Else, recurse using the decremented value...
-           U            ... and increment the result itemwise...
-         [0     ]       ... and make it the second item in a new outer list
-                        The recursive main function thus builds up lists like [0] -> [0;[1]] -> [0;[1;[2]]] etc.
+    a?             l   If input is 0, return empty list
+      Da?       [0]    Else, decrement input; if it is now 0, return [0]
+            REa        Else, recurse using the decremented value...
+           U           ... and increment the result itemwise...
+         [0    ]       ... and make it the second item in a new outer list
+                       The recursive main function thus builds up lists like [0] -> [0;[1]] -> [0;[1;[2]]] etc.

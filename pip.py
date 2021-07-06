@@ -10,7 +10,7 @@ from ptypes import Scalar
 from execution import ProgramState
 from errors import FatalError
 
-VERSION = "0.21.07.04"
+VERSION = "0.21.07.05"
 
 def pip(code=None, argv=None, interactive=True):
     if code is not None or argv is not None:

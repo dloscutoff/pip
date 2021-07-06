@@ -109,6 +109,8 @@ The following operators change the way other operators are used, when applied on
 
 <code>ABa</code> Absolute value of number
 
+<code>aADb</code> Absolute difference (i.e. absolute value of the difference) of two numbers
+
 <code>aAEb</code> List `a` with element `b` appended
 
 <code>aALb</code> List `a` with List `b` appended
@@ -170,6 +172,10 @@ The following operators change the way other operators are used, when applied on
 <code>aFBb</code> Convert number from given base to decimal integer
 
 <code>FBa</code> Convert number from binary to decimal integer
+
+<code>aFDb</code> Convert iterable containing digits in given base to decimal integer
+
+<code>FDa</code> Convert iterable containing digits in binary to decimal integer
 
 <code>aFIb</code> Filter: keep items from iterable `b` which return truthy results when passed to function `a`
 
@@ -263,6 +269,8 @@ The following operators change the way other operators are used, when applied on
 
 <code>RDa</code> Convert degrees to radians
 
+<code>REa</code> Call the current function recursively with argument `a`
+
 <code>RFa</code> Reflect iterable, appending its reverse
 
 <code>aRLb</code> Repeat List `a` `b` times
@@ -304,6 +312,10 @@ The following operators change the way other operators are used, when applied on
 <code>aTBb</code> Convert decimal integer `a` to base `b`
 
 <code>TBa</code> Convert decimal integer `a` to binary
+
+<code>aTDb</code> Convert decimal integer `a` to list of digits in base `b`
+
+<code>TDa</code> Convert decimal integer `a` to list of digits in binary
 
 <code>aTMb</code> Trim Scalar `a` by `b` characters from front and end (Scalar `b` trims same amount on both sides; Range `b` trims different amounts)
 
@@ -353,9 +365,17 @@ The following operators change the way other operators are used, when applied on
 
 <code>ZGa</code> Grid of zeros (`a` rows by `a` columns)
 
+<code>\\!a</code> Logical not (can be used in lambda expressions)
+
+<code>a\\&b</code> Logical and (non-short-circuiting, can be used in lambda expressions)
+
 <code>a\\,b</code> Inclusive range
 
 <code>\\,a</code> Inclusive range from 1
+
+<code>a\\?bc</code> If-then-else operator (non-short-circuiting, can be used in lambda expressions)
+
+<code>a\\|b</code> Logical or (non-short-circuiting, can be used in lambda expressions)
 
 <code>a^b</code> Split Scalar `a` on separator `b`
 
