@@ -7,7 +7,7 @@ from errors import ErrorReporter
 
 err = ErrorReporter(warnings=True)  # TODO: get this setting from the args?
 
-nameRgx = re.compile(r"[A-Z]+|[a-z_]|\$[][()$`'0-9]")
+nameRgx = re.compile(r"[A-Z]+|[a-ik-z_]|\$[][()$`'0-9]|\$[a-z][a-z0-9_]*")
 stringRgx = re.compile(r'"[^"]*"')
 patternRgx = re.compile(r'`([^`\\]|\\.)*`')
 charRgx = re.compile(r"'(.|\n)")
@@ -34,9 +34,12 @@ tokenRgx = re.compile("|".join(rgx.pattern for rgx in [nameRgx,
 
 #!print(tokenRgx.pattern)
 
-# Comments come in two types: lines that start with a (possibly indented)
-# semicolon, and anything after code plus two or more spaces
-commentRgx = re.compile(r'(\s*\n\s*(;|#!)| {2,}).*?$', re.MULTILINE)
+# Single-line comments come in two types: lines that start with a
+# (possibly indented) semicolon, and anything after code plus two
+# spaces
+lineCommentRgx = re.compile(r'(\s*\n\s*;| {2}).*')
+# Block comments are anything between {; and ;}
+blockCommentRgx = re.compile(r'\{;.*?;\}', re.DOTALL)
 whitespaceRgx = re.compile(r'\s+')
 
 
@@ -71,45 +74,51 @@ def tokenize(code):
     # Prefix a newline so that leading ;comments get scanned correctly
     code = "\n" + code
     while code:
-        m = commentRgx.match(code)
-        if m:
-            # Discard comments
-            #!print(repr(m.group()))
+        if m := lineCommentRgx.match(code):
+            # Discard line comments
+            #!print("Line comment:", repr(m.group()))
             code = code[m.end():]
-        elif whitespaceRgx.match(code):
+        elif m := blockCommentRgx.match(code):
+            # Discard block comments
+            #!print("Block comment:", repr(m.group()))
+            code = code[m.end():]
+        elif m := whitespaceRgx.match(code):
             # Discard leading whitespace
-            code = code.lstrip()
-        else:
-            m = tokenRgx.match(code)
-            if m:
-                #!print(m.group())
-                text = m.group()
-                if text.isalpha() and text.isupper():
-                    # Break a run of uppercase letters up into two-character
-                    # chunks, possibly beginning with a single character
-                    if len(text) % 2 == 1:
-                        index = 1
-                    else:
-                        index = 2
-                    if text == "PIP":
-                        index = 3
-                    text = text[:index]
+            #!print("Whitespace:", repr(m.group()))
+            code = code[m.end():]
+        elif m := tokenRgx.match(code):
+            #!print(m.group())
+            text = m.group()
+            if text.isalpha() and text.isupper():
+                # Break a run of uppercase letters up into two-character
+                # chunks, possibly beginning with a single character
+                if len(text) % 2 == 1:
+                    index = 1
                 else:
-                    index = m.end()
-                if text == "EI":
-                    # Special-case elseif to make parsing easier: just scan
-                    # as EL for now, and save the I for the next token
-                    text = "EL"
-                    index -= 1
-                tokenList.append(newToken(text))
-                code = code[index:]
-            elif code[0] in '"`\'' or code[:2] == '\\"':
-                err.die("Unterminated string or pattern literal:",
-                        code.strip())
+                    index = 2
+                if text == "PIP":
+                    index = 3
+                text = text[:index]
             else:
-                err.warn("While scanning, ignored unrecognized character: %r"
-                         % code[0])
-                code = code[1:]
+                index = m.end()
+            if text == "EI":
+                # Special-case elseif to make parsing easier: just scan
+                # as EL for now, and save the I for the next token
+                text = "EL"
+                index -= 1
+            tokenList.append(newToken(text))
+            code = code[index:]
+        elif code[0] in '"`\'' or code[:2] == '\\"':
+            err.die("Unterminated string or pattern literal:",
+                    code.strip())
+        else:
+            if code[0] == "j":
+                err.warn("While scanning, ignored 'j' "
+                         "(reserved for future use)")
+            else:
+                err.warn("While scanning, ignored unrecognized character: "
+                         f"{code[0]!r}")
+            code = code[1:]
     return tokenList
 
 def scan(code):

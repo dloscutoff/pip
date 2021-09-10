@@ -8,6 +8,8 @@ There are four kinds of variables in Pip:
 - *Special variables* have side effects when accessed and/or assigned.
 - *Regex match variables* can be accessed normally, but they are automatically set each time a regex match is completed. See also the section on [regex in Pip](https://github.com/dloscutoff/pip/blob/master/docs/Regex%20operations.md).
 
+Note: unlike other lowercase letters, `j` is not a variable; it is reserved for future use.
+
 ## Local variables
 
 `a` First argument of the current function (at top level, first command-line argument)
@@ -33,8 +35,6 @@ Note: any sequence of two uppercase letters that isn't a command or an operator 
 `h` 100
 
 `i` 0
-
-`j` TBD; currently initialized to nil
 
 `k` `", "`
 

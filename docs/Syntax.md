@@ -8,14 +8,15 @@ The syntax of Pip is generally C-like with strong influence from Python, Perl/PH
 Tokens in Pip can be any of the following:
 
  - Number (consecutive digits, optionally followed by a period and more consecutive digits)
- - String literal (between "double quotes")
- - Single-character string literal (a ' single quote followed by any character--no escapes)
- - Escaped string literal (between \"escaped quotes\"--allows literal double quotes as well as variable interpolation)
- - Pattern literal (between \`backticks\`--backslash escapes for backtick & backslash)
+ - String literal (between `"`double quotes`"`)
+ - Single-character string literal (a `'` single quote followed by any character--no escapes)
+ - Escaped string literal (between `\"`escaped quotes`\"`--allows literal double quotes as well as variable interpolation)
+ - Pattern literal (between ``` ` ```backticks``` ` ```--backslash escapes for backtick & backslash)
  - Operator (one or more symbols or uppercase letters)
  - Lowercase identifier (a single lowercase letter; runs of lowercase letters become multiple identifiers)
  - Uppercase identifier (one or two uppercase letters which are not an operator)
  - Underscore (identity function; see below)
+ - $ identifier (`$` followed by one of several symbols, or `$` followed by a run of lowercase letters, numbers, and underscores starting with a letter)
  - Delimiters (parens, square braces, curly braces, semicolon)
 
 ### Parsing
@@ -28,10 +29,26 @@ Escaped string literals warrant further explanation. The delimiter is `\"`, and 
 
 ### Comments
 
-Comments come in two types: lines that start with a (possibly indented) semicolon, and anything at the end of a line if preceded by two or more spaces.
+Comments come in two types: single-line comments and block comments.
 
-<pre>; This is a comment.
-x:42  This is a comment too.</pre>
+A semicolon at the beginning of a line (possibly indented) begins a single-line comment. Also, two consecutive spaces begin a comment if they are *not* at the beginning of a line.
+
+    ; This is a comment.
+      ; This is an indented comment.
+    x:42  This is a comment: it follows two spaces.
+      "This is not a comment: the spaces count as indentation, not a comment marker."
+
+Block comments begin with `{;` and continue until `;}`.
+
+    [3{;This is a block comment.
+    4   The only values in this list
+    5   will be 3 and 6.
+    ;}6]
+
+Comment markers only count if they are not part of a string/character/regex literal.
+
+    "{;None;} of this  is a comment
+    ; it is part of a string."
 
 ### Whitespace
 
@@ -55,8 +72,6 @@ Boolean expressions return `0` and `1`. The values `0` (and variants like `0.0`)
 Many operators, including arithmetic and most string operators, function memberwise on ranges and lists, similar to array-programming languages like APL. For example, `[1 2 3]+[6 5 4]` is `[7 7 7]`, and `"Hello".1,3` is `["Hello1" "Hello2"]`.
 
 Most operators can be used to construct lambda expressions from the identity function `_`. For instance, `3*_+1` is a function equivalent to `{3*a+1}`. This does not work with certain operators, particularly logic operators and operators that otherwise take functions as operands (such as `M` or `R`).
-
----
 
 ## General Program Syntax
 
