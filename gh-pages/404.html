@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Redirecting...</title>
+    <style type="text/css" media="screen">
+        body {
+            background-color: #27262b;
+            color: #e6e1e8;
+            font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+            line-height: 1.4;
+        }
+        .container {
+            margin: 10px auto;
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 {
+            margin: 50px 0;
+            font-size: 2.5em;
+            font-weight: normal;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+    </style>
+    <script>
+        window.onload = function() {
+            var newurl = location.href.replace("pip", "pipdoc");
+            document.getElementById("newsitelink").href = newurl;
+            setTimeout(function() {
+                location.assign(newurl);
+            }, 5000);
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>New location</h1>
+        <p><strong>The Pip docs have moved!</strong></p>
+        <p>You will be automatically redirected to <a id="newsitelink" href="https://dloscutoff.github.io/pipdoc">the new site</a> in a few seconds.</p>
+    </div>
+</body>
+</html>
