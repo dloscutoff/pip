@@ -372,9 +372,9 @@ class ProgramState:
             index = lval.sliceList[-1]
             try:
                 currentVal[index] = rval
-            except IndexError:
-                self.err.warn("Invalid index into %r: %s" % (currentVal, index))
-            #!print("After assign, variable %r is" % base, varTable[base])
+            except (IndexError, ZeroDivisionError):
+                self.err.warn(f"Invalid index into {currentVal!r}:", index)
+            #!print(f"After assign, variable {base!r} is", varTable[base])
         else:
             # Not a subscriptable type
             self.err.warn("Cannot index into", type(varTable[base]))
@@ -3301,7 +3301,7 @@ class ProgramState:
             result = []
             while number > 0:
                 digit = number % base
-                number = (number - digit) / base
+                number //= base
                 result.insert(0, Scalar(sign * digit))
             return List(result)
         else:
