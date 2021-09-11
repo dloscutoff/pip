@@ -1,6 +1,6 @@
 # Pip
 
-Pip is an interpreted, imperative code-golf language. See the [GitHub wiki](https://github.com/dloscutoff/pip/wiki) for an introduction to the language, or the [documentation site](https://dloscutoff.github.io/pip/) for a language reference.
+Pip is an interpreted, imperative code-golf language. See the [GitHub wiki](https://github.com/dloscutoff/pip/wiki) for an introduction to the language, or the [documentation site](https://dloscutoff.github.io/pipdoc/) for a language reference.
 
 ### Usage
 
