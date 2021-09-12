@@ -514,21 +514,6 @@ class ProgramState:
             self.err.warn("Unimplemented argtypes for LOOPREGEX:",
                           type(regex), "and", type(string))
 
-    def SWAP(self, lval1, lval2):
-        """Exchange the values of two variables (or lvals, in general)."""
-        lval1 = self.evaluate(lval1)
-        lval2 = self.evaluate(lval2)
-        rval1 = self.getRval(lval1)
-        rval2 = self.getRval(lval2)
-        if type(lval1) is Lval:
-            self.assign(lval1, rval2)
-        else:
-            self.err.warn("Attempting to swap non-lvalue", lval1)
-        if type(lval2) is Lval:
-            self.assign(lval2, rval1)
-        else:
-            self.err.warn("Attempting to swap non-lvalue", lval2)
-
     def TILL(self, cond, code):
         """Loop, executing code, until cond evaluates to true."""
         condVal = self.getRval(cond)
@@ -1079,6 +1064,13 @@ class ProgramState:
             # TBD: is unary . useful for something for those types?
             return rhs
 
+    def DOUBLE(self, rhs):
+        if type(rhs) is Scalar:
+            return Scalar(rhs.toNumber() * 2)
+        else:
+            self.err.warn("Unimplemented argtype for DOUBLE:",
+                          type(rhs))
+
     def ENUMERATE(self, iterable):
         if type(iterable) in (List, Range, Scalar):
             if type(iterable) is Range and iterable.getUpper() is None:
@@ -1313,6 +1305,13 @@ class ProgramState:
             self.err.warn("Unimplemented argtypes for GROUP:",
                           type(iterable), "and", type(rhs))
             return nil
+
+    def HALVE(self, rhs):
+        if type(rhs) is Scalar:
+            return Scalar(rhs.toNumber() // 2)
+        else:
+            self.err.warn("Unimplemented argtype for HALVE:",
+                          type(rhs))
 
     def IDENTITYMATRIX(self, rhs):
         if type(rhs) is Scalar:
@@ -3227,6 +3226,22 @@ class ProgramState:
             self.err.warn("Unimplemented argtypes for SUB:",
                           type(lhs), "and", type(rhs))
             return nil
+
+    def SWAP(self, lval1, lval2):
+        """Exchange the values of two lvals."""
+        lval1 = self.evaluate(lval1)
+        lval2 = self.evaluate(lval2)
+        rval1 = self.getRval(lval1)
+        rval2 = self.getRval(lval2)
+        if type(lval1) is Lval:
+            self.assign(lval1, rval2)
+        else:
+            self.err.warn("Attempting to swap non-lvalue", lval1)
+        if type(lval2) is Lval:
+            self.assign(lval2, rval1)
+        else:
+            self.err.warn("Attempting to swap non-lvalue", lval2)
+        return lval1
 
     def SWAPCASE(self, rhs):
         if type(rhs) is Scalar:
