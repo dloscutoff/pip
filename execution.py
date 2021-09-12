@@ -106,14 +106,11 @@ class ProgramState:
             result = self.evaluate([normalOp, lval] + args[1:])
             result = self.ASSIGN(lval, result)
         elif operator.map:
-            # This is a unary map-each operator like !*
-            normalOp = operator.copy()
-            normalOp.map = False
-            result = List(self.evaluate([normalOp, item])
-                          for item in self.getRval(args[0]))
+            # A unary operator being mapped across an iterable
+            result = self.MAPMETA(operator, args[0])
         elif operator.fold:
             # A binary operator being used in a unary fold operation
-            result = self.FOLD(operator, args[0])
+            result = self.FOLDMETA(operator, args[0])
         else:
             argsToExpand = []
             blockArgs = []
@@ -578,17 +575,17 @@ class ProgramState:
     ### Pip meta-operators      ###
     ###############################
 
-    def FOLD(self, operator, iterable):
+    def FOLDMETA(self, operator, iterable):
         iterable = self.getRval(iterable)
+        normalOp = operator.copy()
+        normalOp.fold = False
         if type(iterable) is Block:
             # Create a lambda expression instead
             statements = iterable.getStatements()
             returnExpr = iterable.getReturnExpr()
             newReturnExpr = [operator, returnExpr]
             return Block(statements, newReturnExpr)
-        normalOp = operator.copy()
-        normalOp.fold = False
-        if type(iterable) in (Scalar, List, Range):
+        elif type(iterable) in (Scalar, List, Range):
             if len(iterable) == 0:
                 return operator.default
             else:
@@ -614,14 +611,32 @@ class ProgramState:
                         foldValue = self.evaluate(chainExpr)
                 else:
                     self.err.die("Implementation error: unknown associativity",
-                                 operator.associativity, "in FOLD")
+                                 operator.associativity, "in FOLDMETA")
                 return foldValue
         elif iterable is nil:
             return nil
         else:
             self.err.warn("Can't fold", type(iterable))
             return nil
-    
+
+    def MAPMETA(self, operator, iterable):
+        iterable = self.getRval(iterable)
+        normalOp = operator.copy()
+        normalOp.map = False
+        if type(iterable) is Block:
+            # Create a lambda expression instead
+            statements = iterable.getStatements()
+            returnExpr = iterable.getReturnExpr()
+            newReturnExpr = [operator, returnExpr]
+            return Block(statements, newReturnExpr)
+        elif type(iterable) in (Scalar, List, Range):
+            return List(self.evaluate([normalOp, item]) for item in iterable)
+        elif iterable is nil:
+            return nil
+        else:
+            self.err.warn("Can't map operator over", type(iterable))
+            return nil
+
     ###############################
     ### Pip built-in operators  ###
     ###############################
