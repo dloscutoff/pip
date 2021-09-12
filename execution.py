@@ -2454,6 +2454,45 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
+    def PREFIX(self, lhs, rhs=None):
+        if rhs is None:
+            # The unary version gives all but the rightmost character
+            rhs = Scalar(-1)
+        elif type(rhs) is Lval:
+            rhs = self.getRval(rhs)
+        index = None
+        if type(rhs) in (List, Range):
+            if type(lhs) is Lval:
+                lhs = self.getRval(lhs)
+            return List(self.PREFIX(lhs, length) for length in rhs)
+        elif type(rhs) is Scalar:
+            rhs = int(rhs)
+            if rhs < 0:
+                # Slice from the beginning to len(lhs) + rhs
+                if type(lhs) is Lval:
+                    lhsRval = self.getRval(lhs)
+                else:
+                    lhsRval = lhs
+                try:
+                    lhsLength = len(lhsRval)
+                except ValueError:
+                    self.err.warn("In PREFIX, cannot index from end "
+                                  "of infinite Range")
+                    return nil
+                else:
+                    index = slice(None, lhsLength + rhs)
+            else:
+                index = slice(None, rhs)
+        if type(lhs) is Lval and index is not None:
+            return Lval(lhs, index)
+        elif type(lhs) in (Scalar, List, Range) and index is not None:
+            # Use the lhs's __getitem__ with a slice argument
+            return lhs[index]
+        else:
+            self.err.warn("Unimplemented argtypes for PREFIX:",
+                          type(lhs), "and", type(rhs))
+            return nil
+
     def PREPENDELEM(self, lhs, rhs):
         # Note the order of operands: lhs is the list
         if type(lhs) in (Scalar, Pattern, Nil):
@@ -3239,6 +3278,45 @@ class ProgramState:
             return nil
         else:
             self.err.warn("Unimplemented argtypes for SUB:",
+                          type(lhs), "and", type(rhs))
+            return nil
+
+    def SUFFIX(self, lhs, rhs=None):
+        if rhs is None:
+            # The unary version gives all but the leftmost character
+            rhs = Scalar(-1)
+        elif type(rhs) is Lval:
+            rhs = self.getRval(rhs)
+        index = None
+        if type(rhs) in (List, Range):
+            if type(lhs) is Lval:
+                lhs = self.getRval(lhs)
+            return List(self.SUFFIX(lhs, length) for length in rhs)
+        elif type(rhs) is Scalar:
+            rhs = int(rhs)
+            if rhs >= 0:
+                # Slice from len(lhs) - rhs to the end
+                if type(lhs) is Lval:
+                    lhsRval = self.getRval(lhs)
+                else:
+                    lhsRval = lhs
+                try:
+                    lhsLength = len(lhsRval)
+                except ValueError:
+                    self.err.warn("In SUFFIX, cannot index from end "
+                                  "of infinite Range")
+                    return nil
+                else:
+                    index = slice(lhsLength - rhs, None)
+            else:
+                index = slice(-rhs, None)
+        if type(lhs) is Lval and index is not None:
+            return Lval(lhs, index)
+        elif type(lhs) in (Scalar, List, Range) and index is not None:
+            # Use the lhs's __getitem__ with a slice argument
+            return lhs[index]
+        else:
+            self.err.warn("Unimplemented argtypes for SUFFIX:",
                           type(lhs), "and", type(rhs))
             return nil
 

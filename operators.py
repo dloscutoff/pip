@@ -239,6 +239,8 @@ precedenceTable = [
      ("RL", "REPEATLIST", [], RVALS | IN_LAMBDA),
      ("Z", "ZIP", [], RVALS | IN_LAMBDA),
      ("ZD", "ZIPDEFAULT", [], RVALS | IN_LAMBDA),
+     ("H", "PREFIX", [], VALS | IN_LAMBDA),  # Mnemonic: Head
+     ("S", "SUFFIX", [], VALS | IN_LAMBDA),
      ("WV", "WEAVE", [], RVALS | IN_LAMBDA),
      ("UW", "UNWEAVE", [], RVALS | IN_LAMBDA),
      ("CP", "CARTESIANPRODUCT", [], RVALS | IN_LAMBDA),
@@ -264,6 +266,8 @@ precedenceTable = [
      ("QP", "QUADPALINDROMIZE", None, RVALS | IN_LAMBDA),
      ("Z", "ZIP", None, RVALS | IN_LAMBDA),
      ("ZD", "ZIPDEFAULT", None, RVALS | IN_LAMBDA),
+     ("H", "PREFIX", None, VALS | IN_LAMBDA),  # Mnemonic: Head
+     ("S", "SUFFIX", None, VALS | IN_LAMBDA),
      ("WV", "WEAVE", None, RVALS | IN_LAMBDA),
      ("UW", "UNWEAVE", None, RVALS | IN_LAMBDA),
      ("CP", "CARTESIANPRODUCT", None, RVALS | IN_LAMBDA),
