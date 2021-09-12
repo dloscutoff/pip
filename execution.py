@@ -274,7 +274,7 @@ class ProgramState:
                     return nil
             try:
                 for index in expr.sliceList:
-                    if type(result) in (List, Scalar):
+                    if type(result) in (List, Range, Scalar):
                         result = result[index]
                     else:
                         self.err.warn("Cannot index into", type(result))
