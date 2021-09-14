@@ -515,7 +515,7 @@ class Range(PipType):
         
         lower = self._lower or 0
         if type(index) is int:
-            if self._upper:
+            if self._upper is not None:
                 length = len(self)
                 if length == 0:
                     raise IndexError("Cannot index into empty range.")
@@ -532,7 +532,7 @@ class Range(PipType):
                     return Scalar(lower + index)
         elif type(index) is slice:
             start, stop = index.start, index.stop
-            if self._upper:
+            if self._upper is not None:
                 length = len(self)
                 if length == 0:
                     # Can't slice an empty Range or one where upper < lower
