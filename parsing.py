@@ -24,7 +24,7 @@ def parseStatement(tokenList):
     "Parse a statement from the beginning of the token list."
     if tokenList[0] is None:
         err.die("Hit end of tokens while parsing statement")
-    elif type(tokenList[0]) is tokens.Command:
+    elif isinstance(tokenList[0], tokens.Command):
         token = tokenList.pop(0)
         command = operators.commands[token]
         statement = [command]
@@ -116,7 +116,7 @@ def isExpr(tree):
 def parseExpr(tokenList, minPrecedence=-1):
     "Parse an expression from the beginning of the token list."
     expression = parseOperand(tokenList)
-    while type(tokenList[0]) is tokens.Operator:
+    while isinstance(tokenList[0], tokens.Operator):
         op = tokenList[0]
         if op in operators.opsByArity[2]:
             op = operators.opsByArity[2][op]
@@ -175,7 +175,7 @@ def bubble(exprTree):
     # There is no right operand yet
     op = exprTree[0]
     left = exprTree[1]
-    if type(left) is list:
+    if isinstance(left, list):
         nextOp = left[0]
         if (nextOp.arity in (2, 3)
             and (nextOp.precedence < op.precedence
@@ -206,21 +206,21 @@ def bubble(exprTree):
 
 def parseOperand(tokenList):
     "Parse a name, literal, unary expression, or parenthesized expression."
-    if type(tokenList[0]) is tokens.Name:
+    if isinstance(tokenList[0], tokens.Name):
         # For a Name token, just return it
         return tokenList.pop(0)
-    elif type(tokenList[0]) is tokens.String:
+    elif isinstance(tokenList[0], tokens.String):
         # Strip the double-quotes off a literal string
         return ptypes.Scalar(tokenList.pop(0)[1:-1])
-    elif type(tokenList[0]) is tokens.Pattern:
+    elif isinstance(tokenList[0], tokens.Pattern):
         # Strip off backticks and simplify \` inside
         # `\1\\\`2\\` -> \1\\`2\\
         rawPattern = tokenList.pop(0)[1:-1].replace("\\`", "`")
         return ptypes.Pattern(rawPattern)
-    elif type(tokenList[0]) is tokens.Char:
+    elif isinstance(tokenList[0], tokens.Char):
         # Single-quoted character
         return ptypes.Scalar(tokenList.pop(0)[1])
-    elif type(tokenList[0]) is tokens.EscapedString:
+    elif isinstance(tokenList[0], tokens.EscapedString):
         # \"String\" that allows for double quotes and limited interpolation
         # Strip off \" delimiters
         rawText = tokenList.pop(0)[2:-2]
@@ -242,7 +242,7 @@ def parseOperand(tokenList):
                 literal = litOrInterpolation.pop(0)
                 expression.append(ptypes.Scalar(literal.replace(r"\\", "\\")))
             return [operators.paren, [joinOp, expression]]
-    elif type(tokenList[0]) is tokens.Number:
+    elif isinstance(tokenList[0], tokens.Number):
         return ptypes.Scalar(tokenList.pop(0))
     elif tokenList[0] == "(":
         # Parse a parenthesized expression: nil, grouped expr, or send-expr
@@ -330,7 +330,7 @@ def unparse(tree, statementSep=""):
             # A parse tree
             if isinstance(statement[0], operators.Operator):
                 code += unparseExpr(statement, statementSep)
-            elif type(statement[0]) is operators.Command:
+            elif isinstance(statement[0], operators.Command):
                 code += str(statement[0])
                 for i, argtype in enumerate(statement[0].argtypes):
                     arg = statement[1+i]
@@ -351,7 +351,7 @@ def unparse(tree, statementSep=""):
 def unparseExpr(tree, statementSep):
     "Convert parse tree of expression back to string of code."
     #!print("Unparsing expr", tree)
-    if type(tree) is list:
+    if isinstance(tree, list):
         op = tree[0]
         if op == "PAREN":
             code = "(" + unparseExpr(tree[1], statementSep) + ")"

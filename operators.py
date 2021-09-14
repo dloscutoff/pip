@@ -29,15 +29,9 @@ class Operator(tokens.Token):
         # The default argument represents the value when folding an empty list
         # with this operator. For economy of space, defaults are specified as
         # Python objects in the operator table; convert them to Pip types here.
-        if type(default) in (ptypes.Nil, ptypes.Scalar, ptypes.List):
-            self.default = default
-        elif default is None:
-            self.default = ptypes.nil
-        elif type(default) in (int, float, str):
-            self.default = ptypes.Scalar(default)
-        elif type(default) is list:
-            self.default = ptypes.List(default)
-        else:
+        try:
+            self.default = ptypes.toPipType(default)
+        except TypeError:
             print("Unsupported default value type for operator "
                   f"{token} ({function}):", type(default))
             self.default = ptypes.nil

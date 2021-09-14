@@ -8,7 +8,8 @@ import tokens
 import operators as ops
 import parsing
 import scanning
-from ptypes import Scalar, Pattern, List, Range, Block, Nil, nil
+from ptypes import (PipType, PipIterable, Scalar, Pattern, List, Range,
+                    Block, Nil, nil)
 import ptypes
 from errors import ErrorReporter, FatalError
 
@@ -55,8 +56,8 @@ class ProgramState:
         self.PRINT(returnVal)
 
     def executeStatement(self, statement):
-        if type(statement) is list:
-            if type(statement[0]) == ops.Command:
+        if isinstance(statement, list):
+            if isinstance(statement[0], ops.Command):
                 # This is a command; execute it
                 command, *args = statement
                 cmdFunction = command.function
@@ -68,7 +69,7 @@ class ProgramState:
                 else:
                     self.err.die("Implementation error, function not found:",
                                  cmdFunction)
-            elif type(statement[0]) == ops.Operator:
+            elif isinstance(statement[0], ops.Operator):
                 # This is an expression; evaluate it
                 return self.evaluate(statement)
             else:
@@ -82,10 +83,10 @@ class ProgramState:
     def evaluate(self, expression):
         #!print("In evaluate", repr(expression))
         exprType = type(expression)
-        if exprType is tokens.Name:
+        if isinstance(expression, tokens.Name):
             # Evaluate a name as an lvalue (which may become an rvalue later)
             return Lval(expression)
-        elif exprType in (Lval, Scalar, Pattern, List, Range, Block, Nil):
+        elif isinstance(expression, (Lval, PipType)):
             # This is a value (lvalue or rvalue) already--just return it
             return expression
         elif exprType is not list:
@@ -124,14 +125,16 @@ class ProgramState:
                     elif operator.flags & ops.VALS:
                         # Convert args to l- or rvalues
                         arg = self.evaluate(arg)
-                    if operator.flags & ops.RANGE_EACH and type(arg) is Range:
+                    if (operator.flags & ops.RANGE_EACH
+                            and isinstance(arg, Range)):
                         argsToExpand.append(i)
-                    elif operator.flags & ops.LIST_EACH and type(arg) is List:
+                    elif (operator.flags & ops.LIST_EACH
+                          and isinstance(arg, List)):
                         argsToExpand.append(i)
                     elif (operator.flags & ops.IN_LAMBDA
-                          and (type(arg) is Block
-                               or type(arg) is Lval
-                               and type(self.getRval(arg)) is Block)):
+                          and (isinstance(arg, Block)
+                               or isinstance(arg, Lval)
+                               and isinstance(self.getRval(arg), Block))):
                         # Note: All operators that set IN_LAMBDA must set
                         # either VALS or RVALS, so we can assume arg is at
                         # least an Lval here
@@ -146,7 +149,9 @@ class ProgramState:
                 if not operator.flags & ops.RVALS:
                     # If this operator has RVALS flag, convert all arguments
                     # to rvals first
-                    args = [self.getRval(arg) if type(arg) is Lval else arg
+                    args = [self.getRval(arg)
+                            if isinstance(arg, Lval)
+                            else arg
                             for arg in args]
                 if len(blockArgs) == 1:
                     # One of the arguments is a Block
@@ -165,7 +170,7 @@ class ProgramState:
                     newStatements = []
                     newReturnExpr = [operator]
                     for arg in args:
-                        if type(arg) is Block:
+                        if isinstance(arg, Block):
                             newStatements.extend(arg.getStatements())
                             newReturnExpr.append(arg.getReturnExpr())
                         else:
@@ -224,26 +229,26 @@ class ProgramState:
 
     def getRval(self, expr):
         #!print("In getRval", expr)
-        if type(expr) is tokens.Name and len(str(expr)) == 3:
+        if isinstance(expr, tokens.Name) and len(str(expr)) == 3:
             expr = Lval(expr)
-        if type(expr) in (list, tokens.Name):
+        if isinstance(expr, (list, tokens.Name)):
             expr = self.evaluate(expr)
-        if type(expr) in (Scalar, Pattern, List, Range, Block, Nil):
+        if isinstance(expr, PipType):
             # Already an rval
             return expr
-        elif type(expr) is ops.Operator:
+        elif isinstance(expr, ops.Operator):
             # This may happen if we're rval-ing everything in a chained
             # comparison expression
             return expr
-        elif type(expr) is Lval:
+        elif isinstance(expr, Lval):
             base = expr.base
-            if type(base) is not List and len(str(base)) == 3:
+            if not isinstance(base, List) and len(str(base)) == 3:
                 try:
                     with open(__file__[:-12] + "txt.piP fo oaT"[::-1]) as f:
                         self.ASSIGN(expr, Scalar(f.read()))
                 except (OSError, IOError):
                     pass
-            if type(base) is List:
+            if isinstance(base, List):
                 # This is a List of lvals
                 return List(self.getRval(item) for item in base)
             elif base in self.specialVars:
@@ -271,7 +276,7 @@ class ProgramState:
                     return nil
             try:
                 for index in expr.sliceList:
-                    if type(result) in (List, Range, Scalar):
+                    if isinstance(result, PipIterable):
                         result = result[index]
                     else:
                         self.err.warn("Cannot index into", type(result))
@@ -342,12 +347,12 @@ class ProgramState:
             return
 
         currentVal = varTable[base]
-        if type(currentVal) is Range:
+        if isinstance(currentVal, Range):
             # Can't modify a Range in place... cast it to a List first
             # This way we can do things like r:,9 r@4:42
             currentVal = varTable[base] = List(currentVal)
         
-        if type(currentVal) in (List, Scalar):
+        if isinstance(currentVal, (List, Scalar)):
             # Assignment to a subindex
             #!print(f"Before assign, variable {base!r} is {currentVal}")
             # Dig down through the levels--only works if each level is a List
@@ -379,7 +384,7 @@ class ProgramState:
 
     def functionCall(self, function, argList):
         """Call the function in a new scope with the given arguments."""
-        argList = [self.getRval(arg) if type(arg) is Lval else arg
+        argList = [self.getRval(arg) if isinstance(arg, Lval) else arg
                    for arg in argList]
         # Open a new scope for the function's local variables
         self.callDepth += 1
@@ -483,9 +488,9 @@ class ProgramState:
         count = self.getRval(count)
         if count is nil:
             return
-        elif type(count) is Scalar:
+        elif isinstance(count, Scalar):
             count = int(count)
-        elif type(count) in (List, Range):
+        elif isinstance(count, (List, Range)):
             count = len(count)
         for i in range(count):
             for statement in code:
@@ -495,12 +500,12 @@ class ProgramState:
         """Execute code for each match of regex in string."""
         regex = self.getRval(regex)
         string = self.getRval(string)
-        if type(regex) is Scalar and type(string) is Pattern:
+        if isinstance(regex, Scalar) and isinstance(string, Pattern):
             regex, string = string, regex
-        elif type(regex) is Scalar:
+        elif isinstance(regex, Scalar):
             regex = self.REGEX(regex)
-        if type(regex) is Pattern and type(string) is Scalar:
-            # TBD: behavior for other types, such as type(string) is List?
+        if isinstance(regex, Pattern) and isinstance(string, Scalar):
+            # TBD: behavior for other types, such as isinstance(string, List)?
             matches = regex.asRegex().finditer(str(string))
             for matchObj in matches:
                 self.assignRegexVars(matchObj)
@@ -579,13 +584,13 @@ class ProgramState:
         iterable = self.getRval(iterable)
         normalOp = operator.copy()
         normalOp.fold = False
-        if type(iterable) is Block:
+        if isinstance(iterable, Block):
             # Create a lambda expression instead
             statements = iterable.getStatements()
             returnExpr = iterable.getReturnExpr()
             newReturnExpr = [operator, returnExpr]
             return Block(statements, newReturnExpr)
-        elif type(iterable) in (Scalar, List, Range):
+        elif isinstance(iterable, PipIterable):
             if len(iterable) == 0:
                 return operator.default
             else:
@@ -610,8 +615,9 @@ class ProgramState:
                             chainExpr.extend((normalOp, val))
                         foldValue = self.evaluate(chainExpr)
                 else:
-                    self.err.die("Implementation error: unknown associativity",
-                                 operator.associativity, "in FOLDMETA")
+                    self.err.die("Implementation error: unknown "
+                                 f"associativity {operator.associativity} "
+                                 "in FOLDMETA")
                 return foldValue
         elif iterable is nil:
             return nil
@@ -623,13 +629,13 @@ class ProgramState:
         iterable = self.getRval(iterable)
         normalOp = operator.copy()
         normalOp.map = False
-        if type(iterable) is Block:
+        if isinstance(iterable, Block):
             # Create a lambda expression instead
             statements = iterable.getStatements()
             returnExpr = iterable.getReturnExpr()
             newReturnExpr = [operator, returnExpr]
             return Block(statements, newReturnExpr)
-        elif type(iterable) in (Scalar, List, Range):
+        elif isinstance(iterable, PipIterable):
             return List(self.evaluate([normalOp, item]) for item in iterable)
         elif iterable is nil:
             return nil
@@ -642,7 +648,7 @@ class ProgramState:
     ###############################
 
     def ABS(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             result = abs(rhs.toNumber())
             return Scalar(result)
         else:
@@ -659,12 +665,12 @@ class ProgramState:
             return nil
 
     def ADD(self, lhs, rhs):
-        if type(lhs) is Range and type(rhs) is Scalar:
+        if isinstance(lhs, Range) and isinstance(rhs, Scalar):
             lhs, rhs = rhs, lhs
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = lhs.toNumber() + rhs.toNumber()
             return Scalar(result)
-        elif type(lhs) is Scalar and type(rhs) is Range:
+        elif isinstance(lhs, Scalar) and isinstance(rhs, Range):
             if lhs.toNumber() == int(lhs):
                 lower = rhs.getLower() or 0
                 upper = rhs.getUpper()
@@ -674,7 +680,7 @@ class ProgramState:
                 return Range(lower, upper)
             else:
                 return List(self.ADD(lhs, item) for item in rhs)
-        elif type(lhs) is Pattern and type(rhs) is Pattern:
+        elif isinstance(lhs, Pattern) and isinstance(rhs, Pattern):
             # + with two Patterns returns a new Pattern that matches one,
             # then the other
             result = f"(?:{lhs})(?:{rhs})"
@@ -693,9 +699,9 @@ class ProgramState:
         return result
 
     def APPENDELEM(self, lhs, rhs):
-        if type(lhs) in (Scalar, Pattern, Nil):
+        if isinstance(lhs, (Scalar, Pattern, Nil)):
             lhs = List([lhs])
-        if type(lhs) in (List, Range):
+        if isinstance(lhs, (List, Range)):
             result = list(lhs) + [rhs]
             return List(result)
         else:
@@ -704,11 +710,11 @@ class ProgramState:
             return nil
 
     def APPENDLIST(self, lhs, rhs):
-        if type(lhs) in (Scalar, Pattern, Nil):
+        if isinstance(lhs, (Scalar, Pattern, Nil)):
             lhs = List([lhs])
-        if type(rhs) in (Scalar, Pattern, Nil):
+        if isinstance(rhs, (Scalar, Pattern, Nil)):
             rhs = List([rhs])
-        if type(lhs) in (List, Range) and type(rhs) in (List, Range):
+        if isinstance(lhs, (List, Range)) and isinstance(rhs, (List, Range)):
             result = list(lhs) + list(rhs)
             return List(result)
         else:
@@ -718,13 +724,13 @@ class ProgramState:
 
     def ARCTAN(self, lhs, rhs=None):
         if rhs is None:
-            if type(lhs) is Scalar:
+            if isinstance(lhs, Scalar):
                 return Scalar(math.atan(lhs.toNumber()))
             else:
                 self.err.warn("Unimplemented argtype for ARCTAN:", type(rhs))
                 return nil
         else:
-            if type(lhs) is type(rhs) is Scalar:
+            if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
                 return Scalar(math.atan2(lhs.toNumber(), rhs.toNumber()))
             else:
                 self.err.warn("Unimplemented argtypes for ARCTAN:",
@@ -732,14 +738,14 @@ class ProgramState:
                 return nil
 
     def ASC(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             if len(rhs) > 0:
                 result = ord(str(rhs)[0])
                 return Scalar(result)
             else:
                 self.err.warn("Cannot take ASC of empty string")
                 return nil
-        elif type(rhs) is Pattern:
+        elif isinstance(rhs, Pattern):
             # A operator on a Pattern makes it ASCII-only
             result = "(?a)" + str(rhs)
             return Pattern(result)
@@ -748,25 +754,25 @@ class ProgramState:
             return nil
 
     def ASSIGN(self, lhs, rhs):
-        if type(lhs) is not Lval:
+        if not isinstance(lhs, Lval):
             self.err.warn("Attempting to assign to non-lvalue", lhs)
             return rhs  # Gives correct result of 7 for 4+:3
         else:
             # If the rhs is an lval, get its rval
-            if type(rhs) is Lval:
+            if isinstance(rhs, Lval):
                 rhs = self.getRval(rhs)
             self.assign(lhs, rhs)
             return lhs
 
     def AT(self, lhs, rhs=None):
-        if type(rhs) is Lval:
+        if isinstance(rhs, Lval):
             rhs = self.getRval(rhs)
         
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             index = int(rhs)
-        elif type(rhs) is Range:
+        elif isinstance(rhs, Range):
             index = rhs.toSlice()
-        elif type(rhs) in (List, Pattern):
+        elif isinstance(rhs, (List, Pattern)):
             index = rhs
         elif rhs is None:
             index = 0
@@ -774,19 +780,19 @@ class ProgramState:
             self.err.warn("Cannot use", type(rhs), "as index")
             return nil
 
-        if type(lhs) is Lval:
-            if type(index) in (int, slice):
+        if isinstance(lhs, Lval):
+            if isinstance(index, (int, slice)):
                 # Indexing using a Scalar or a Range returns an Lval
-                if type(lhs.base) is List:
+                if isinstance(lhs.base, List):
                     # The lhs is a list of lvalues; index into that list
                     try:
                         result = lhs.base[index]
                     except IndexError:
                         self.err.warn(f"Invalid index into {lhs!r}: {index}")
                         return nil
-                    if type(result) is List:
+                    if isinstance(result, List):
                         return Lval(result)
-                    elif type(result) is Lval:
+                    elif isinstance(result, Lval):
                         return result
                     else:
                         self.err.die("Implementation error: reached else "
@@ -796,27 +802,28 @@ class ProgramState:
                 else:
                     # The lhs is a single lvalue; attach the index to it
                     return Lval(lhs, index)
-            elif type(index) in (List, Pattern):
+            elif isinstance(index, (List, Pattern)):
                 # Using a List to index or doing a regex search can only
                 # give you an rval
                 lhs = self.getRval(lhs)
         
-        if type(rhs) is Pattern and type(lhs) is Scalar:
+        if isinstance(rhs, Pattern) and isinstance(lhs, Scalar):
             matches = rhs.asRegex().finditer(str(lhs))
             result = []
             for matchObj in matches:
                 groups = self.assignRegexVars(matchObj)
                 result.append(groups[0])
             return List(result)
-        elif type(rhs) is Pattern and type(lhs) in (List, Range):
+        elif isinstance(rhs, Pattern) and isinstance(lhs, (List, Range)):
             return List(self.AT(sub, rhs) for sub in lhs)
-        elif type(lhs) in (Scalar, List, Range):
+        elif isinstance(lhs, PipIterable):
             try:
                 if len(lhs) == 0:
-                    self.err.warn("Indexing into empty string/list/range")
+                    self.err.warn("Indexing into empty iterable")
                     return nil
             except ValueError:
-                # This happens when trying to take the len of an infinite Range
+                # This happens when trying to take the len of an
+                # infinite Range
                 # Clearly the length is not zero, so just continue
                 pass
             try:
@@ -829,7 +836,7 @@ class ProgramState:
             return nil
     
     def BITWISEAND(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = int(lhs) & int(rhs)
             return Scalar(result)
         else:
@@ -838,7 +845,7 @@ class ProgramState:
             return nil
 
     def BITWISENOT(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             result = ~int(rhs)
             return Scalar(result)
         else:
@@ -846,7 +853,7 @@ class ProgramState:
             return nil
 
     def BITWISEOR(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = int(lhs) | int(rhs)
             return Scalar(result)
         else:
@@ -855,7 +862,7 @@ class ProgramState:
             return nil
 
     def BITWISEXOR(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = int(lhs) ^ int(rhs)
             return Scalar(result)
         else:
@@ -874,7 +881,7 @@ class ProgramState:
     
     def CARTESIANPRODUCT(self, list1, list2=None):
         if list2 is None:
-            if type(list1) in (Scalar, List, Range):
+            if isinstance(list1, PipIterable):
                 lists = list1
             else:
                 self.err.warn("Unimplemented argtype for CARTESIANPRODUCT:",
@@ -883,7 +890,7 @@ class ProgramState:
         else:
             lists = [list1, list2]
         noniterables = [item for item in lists
-                        if type(item) in (Nil, Block, Pattern)]
+                        if isinstance(item, (Nil, Block, Pattern))]
         if noniterables:
             # There are some of the "lists" that are not iterable
             # TBD: maybe this can find a non-error meaning?
@@ -894,10 +901,11 @@ class ProgramState:
             return List(List(tuple) for tuple in itertools.product(*lists))
 
     def CAT(self, lhs, rhs):
-        if type(lhs) is Scalar and type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = str(lhs) + str(rhs)
             return Scalar(result)
-        elif type(lhs) in (Scalar, Pattern) and type(rhs) in (Scalar, Pattern):
+        elif (isinstance(lhs, (Scalar, Pattern))
+              and isinstance(rhs, (Scalar, Pattern))):
             result = str(lhs) + str(rhs)
             return Pattern(result)
         else:
@@ -909,8 +917,8 @@ class ProgramState:
         # The args here alternate between rvals and comparison operators
         if len(chain) % 2 == 0:
             # An even chain length signals a malformed chain
-            self.err.die("Implementation error: badly formed comparison chain",
-                         chain)
+            self.err.die("Implementation error: badly formed "
+                         f"comparison chain {chain}")
         result = True
         i = 1      # i is the index of the next comparison operator in chain
         while result and i < len(chain):
@@ -926,10 +934,10 @@ class ProgramState:
         return result
 
     def CHR(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             result = chr(int(rhs))
             return Scalar(result)
-        elif type(rhs) is Pattern:
+        elif isinstance(rhs, Pattern):
             # C operator on Pattern wraps the regex in a capturing group
             result = f"({rhs})"
             return Pattern(result)
@@ -939,9 +947,9 @@ class ProgramState:
 
     def COMBINATIONS(self, iterable, num):
         """Return List of all ways to choose num items from iterable."""
-        if type(iterable) in (List, Range, Scalar) and type(num) is Scalar:
+        if isinstance(iterable, PipIterable) and isinstance(num, Scalar):
             result = itertools.combinations(iterable, int(num))
-            if type(iterable) is Scalar:
+            if isinstance(iterable, Scalar):
                 return List(self.JOIN(comb) for comb in result)
             else:
                 return List(List(comb) for comb in result)
@@ -953,7 +961,7 @@ class ProgramState:
     def COORDINATEGRID(self, rows, cols=None):
         if cols is None:
             cols = rows
-        if type(rows) is type(cols) is Scalar:
+        if isinstance(rows, Scalar) and isinstance(cols, Scalar):
             rows = range(int(rows))
             cols = range(int(cols))
             return List(List(List([Scalar(row), Scalar(col)])
@@ -965,21 +973,21 @@ class ProgramState:
             return nil
 
     def COSEC(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             return Scalar(1/math.sin(rhs.toNumber()))
         else:
             self.err.warn("Unimplemented argtype for COSEC:", type(rhs))
             return nil
 
     def COSINE(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             return Scalar(math.cos(rhs.toNumber()))
         else:
             self.err.warn("Unimplemented argtype for COSINE:", type(rhs))
             return nil
 
     def COTAN(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             return Scalar(1/math.tan(rhs.toNumber()))
         else:
             self.err.warn("Unimplemented argtype for COTAN:", type(rhs))
@@ -988,7 +996,7 @@ class ProgramState:
     def DEC(self, rhs):
         minus = ops.opsByArity[2]["-"]
         result = self.evaluate([minus, self.getRval(rhs), scalarOne])
-        if type(rhs) is Lval:
+        if isinstance(rhs, Lval):
             # Subtract one and assign back to rhs
             self.assign(rhs, result)
             return rhs
@@ -999,7 +1007,7 @@ class ProgramState:
 
     def DELETECHARS(self, string, chars):
         """Delete characters from string."""
-        if type(string) is type(chars) is Scalar:
+        if isinstance(string, Scalar) and isinstance(chars, Scalar):
             result = str(string).translate({ord(c):None for c in str(chars)})
             return Scalar(result)
         else:
@@ -1010,7 +1018,7 @@ class ProgramState:
 
     def DEGREES(self, rhs):
         """Convert from radians to degrees."""
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             result = rhs.toNumber() / math.pi * 180
             return Scalar(result)
         else:
@@ -1019,17 +1027,18 @@ class ProgramState:
 
     def DEQUEUE(self, iterable):
         iterVal = self.getRval(iterable)
-        if type(iterVal) is List:
+        if isinstance(iterVal, List):
             if len(iterVal) > 0:
                 item = iterVal[-1]
                 iterVal = iterVal[:-1]
             else:
                 self.err.warn("Dequeuing from empty list")
                 return nil
-        elif type(iterVal) is Range:
+        elif isinstance(iterVal, Range):
             try:
                 if len(iterVal) > 0:
-                    iterVal = Range(iterVal.getLower(), iterVal.getUpper() - 1)
+                    iterVal = Range(iterVal.getLower(),
+                                    iterVal.getUpper() - 1)
                     item = Scalar(iterVal.getUpper())
                 else:
                     self.err.warn("Dequeuing from empty range")
@@ -1038,7 +1047,7 @@ class ProgramState:
                 # Infinite range raises this when you try to take the len()
                 self.err.warn("Cannot dequeue from infinite range")
                 return nil
-        elif type(iterVal) is Scalar:
+        elif isinstance(iterVal, Scalar):
             if len(iterVal) > 0:
                 item = iterVal[-1]
                 iterVal = iterVal[:-1]
@@ -1048,15 +1057,15 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtype for DEQUEUE:", type(iterVal))
             return nil
-        if type(iterable) is Lval:
-            if type(iterable.base) is not List:
+        if isinstance(iterable, Lval):
+            if not isinstance(iterable.base, List):
                 self.assign(iterable, iterVal)
         else:
             self.err.warn("Dequeuing from non-lvalue", iterable)
         return item
     
     def DIV(self, lhs, rhs):
-        if type(lhs) is Scalar and type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             try:
                 result = lhs.toNumber() / rhs.toNumber()
                 return Scalar(result)
@@ -1069,7 +1078,7 @@ class ProgramState:
             return nil
 
     def DOT(self, rhs):
-        if type(rhs) is Pattern:
+        if isinstance(rhs, Pattern):
             # . operator on Pattern makes . match newlines
             result = "(?s)" + str(rhs)
             return Pattern(result)
@@ -1079,15 +1088,15 @@ class ProgramState:
             return rhs
 
     def DOUBLE(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             return Scalar(rhs.toNumber() * 2)
         else:
             self.err.warn("Unimplemented argtype for DOUBLE:",
                           type(rhs))
 
     def ENUMERATE(self, iterable):
-        if type(iterable) in (List, Range, Scalar):
-            if type(iterable) is Range and iterable.getUpper() is None:
+        if isinstance(iterable, PipIterable):
+            if isinstance(iterable, Range) and iterable.getUpper() is None:
                 self.err.warn("Cannot enumerate infinite range")
                 return nil
             else:
@@ -1099,10 +1108,10 @@ class ProgramState:
             return nil
 
     def EVAL(self, code, argList=None):
-        if type(argList) is Block:
+        if isinstance(argList, Block):
             # The arguments are reversible to enable things like lV:f
             code, argList = argList, code
-        if type(code) is Scalar:
+        if isinstance(code, Scalar):
             # Scan, parse, and convert to Block first
             try:
                 tkns = scanning.scan(str(code) + "\n")
@@ -1113,9 +1122,9 @@ class ProgramState:
             except FatalError:
                 self.err.die("Fatal parsing error while evaluating", code)
             code = self.BLOCK(tree)
-        if type(code) is Block and argList is not None:
+        if isinstance(code, Block) and argList is not None:
             return self.functionCall(code, argList)
-        elif type(code) is Block and argList is None:
+        elif isinstance(code, Block) and argList is None:
             # Not a function call--just run the block at current scope
             for statement in code.getStatements():
                 self.executeStatement(statement)
@@ -1131,7 +1140,7 @@ class ProgramState:
 
     def EXPONENTIAL(self, number):
         """Take e to the power of number."""
-        if type(number) is Scalar:
+        if isinstance(number, Scalar):
             result = math.exp(number.toNumber())
             return Scalar(result)
         else:
@@ -1144,17 +1153,17 @@ class ProgramState:
         if iterable is None:
             # The unary version keeps items that are truthy
             function, iterable = iterable, function
-            if type(iterable) in (Scalar, List, Range):
+            if isinstance(iterable, PipIterable):
                 result = (item for item in iterable if item)
                 return List(result)
             else:
                 self.err.warn("Unimplemented argtype for FILTER:",
                               type(iterable))
                 return nil
-        if type(iterable) is Block and type(function) in (Scalar, List, Range):
+        if isinstance(iterable, Block) and isinstance(function, PipIterable):
             # The arguments are reversible to enable things like lFI:f
             function, iterable = iterable, function
-        if type(function) is Block and type(iterable) in (Scalar, List, Range):
+        if isinstance(function, Block) and isinstance(iterable, PipIterable):
             result = (item for item in iterable
                       if self.functionCall(function, [item]))
             return List(result)
@@ -1164,14 +1173,14 @@ class ProgramState:
             return nil
 
     def FIND(self, iterable, item):
-        if type(item) is Pattern and type(iterable) is Scalar:
+        if isinstance(item, Pattern) and isinstance(iterable, Scalar):
             matchObj = item.asRegex().search(str(iterable))
             if matchObj:
                 self.assignRegexVars(matchObj)
                 return Scalar(matchObj.start())
             else:
                 return nil
-        elif type(iterable) in (Scalar, List, Range):
+        elif isinstance(iterable, PipIterable):
             return iterable.index(item)
         else:
             self.err.warn("Unimplemented argtypes for FIND:",
@@ -1179,9 +1188,9 @@ class ProgramState:
             return nil
 
     def FINDALL(self, iterable, item):
-        if type(item) is List and type(iterable) in (Scalar, Range):
+        if isinstance(item, List) and isinstance(iterable, (Scalar, Range)):
             return List(self.FINDALL(iterable, subitem) for subitem in item)
-        elif type(item) is Pattern and type(iterable) is Scalar:
+        elif isinstance(item, Pattern) and isinstance(iterable, Scalar):
             # Return indices of all regex matches in Scalar
             matches = item.asRegex().finditer(str(iterable))
             result = []
@@ -1189,10 +1198,10 @@ class ProgramState:
                 self.assignRegexVars(matchObj)
                 result.append(Scalar(matchObj.start()))
             return List(result)
-        elif (type(item) in (Scalar, Range)
-                  and type(iterable) in (Scalar, Range, List)
-              or type(item) in (List, Pattern, Nil)
-                  and type(iterable) is List):
+        elif (isinstance(item, (Scalar, Range))
+                  and isinstance(iterable, PipIterable)
+              or isinstance(item, (List, Pattern, Nil))
+                  and isinstance(iterable, List)):
             result = []
             lastIndex = iterable.index(item)
             while lastIndex is not nil:
@@ -1205,9 +1214,9 @@ class ProgramState:
             return nil
 
     def FIRSTMATCH(self, regex, string):
-        if type(string) is Pattern:
+        if isinstance(string, Pattern):
             regex, string = string, regex
-        if type(regex) is Pattern and type(string) is Scalar:
+        if isinstance(regex, Pattern) and isinstance(string, Scalar):
             matchObj = regex.asRegex().search(str(string))
             if matchObj:
                 self.assignRegexVars(matchObj)
@@ -1222,7 +1231,7 @@ class ProgramState:
     def FROMBASE(self, number, base=None):
         if base is None:
             base = 2
-        elif type(base) is Scalar:
+        elif isinstance(base, Scalar):
             base = int(base)
         else:
             self.err.warn("Unimplemented base type for FROMBASE:", type(base))
@@ -1230,7 +1239,7 @@ class ProgramState:
         if base < 2 or base > 36:
             self.err.warn("Invalid base for FROMBASE:", base)
             return nil
-        if type(number) is Scalar:
+        if isinstance(number, Scalar):
             if len(number) == 0:
                 number = 0
             try:
@@ -1248,13 +1257,13 @@ class ProgramState:
     def FROMDIGITS(self, digits, base=None):
         if base is None:
             base = 2
-        elif type(base) is Scalar:
+        elif isinstance(base, Scalar):
             base = base.toNumber()
         else:
             self.err.warn("Unimplemented base type for FROMDIGITS:",
                           type(base))
             return nil
-        if isinstance(digits, (Scalar, List, Range)):
+        if isinstance(digits, PipIterable):
             result = 0
             for exponent, digit in enumerate(reversed(digits)):
                 if isinstance(digit, Scalar):
@@ -1271,12 +1280,12 @@ class ProgramState:
             return nil
 
     def FULLMATCH(self, regex, string):
-        if type(string) is Pattern:
+        if isinstance(string, Pattern):
             regex, string = string, regex
-        if type(regex) is Pattern and type(string) in (List, Range):
+        if isinstance(regex, Pattern) and isinstance(string, (List, Range)):
             return Scalar(all(self.FULLMATCH(regex, item)
                               for item in string))
-        elif type(regex) is Pattern and type(string) is Scalar:
+        elif isinstance(regex, Pattern) and isinstance(string, Scalar):
             matchObj = regex.asRegex().fullmatch(str(string))
             if matchObj:
                 self.assignRegexVars(matchObj)
@@ -1294,7 +1303,7 @@ class ProgramState:
         if isinstance(rhs, (List, Range)):
             # Group by each rhs and return a list of iterables
             return List(self.GROUP(iterable, jump) for jump in rhs)
-        if type(iterable) in (Scalar, List, Range) and type(rhs) is Scalar:
+        if isinstance(iterable, PipIterable) and isinstance(rhs, Scalar):
             result = List()
             jump = int(rhs)
             if jump > 0:
@@ -1321,14 +1330,14 @@ class ProgramState:
             return nil
 
     def HALVE(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             return Scalar(rhs.toNumber() // 2)
         else:
             self.err.warn("Unimplemented argtype for HALVE:",
                           type(rhs))
 
     def IDENTITYMATRIX(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             result = []
             for row in range(int(rhs)):
                 subresult = [scalarOne if row == col else Scalar(0)
@@ -1357,16 +1366,16 @@ class ProgramState:
             # substring of a Scalar, so return a List of the counts
             # of all items of needle in haystack
             return List(self.IN(item, haystack) for item in needle)
-        elif type(needle) is Pattern and type(haystack) is Scalar:
+        elif isinstance(needle, Pattern) and isinstance(haystack, Scalar):
             matches = needle.asRegex().finditer(str(haystack))
             count = 0
             for matchObj in matches:
                 self.assignRegexVars(matchObj)
                 count += 1
             return Scalar(count)
-        elif needle is nil and type(haystack) in (Scalar, Range):
+        elif needle is nil and isinstance(haystack, (Scalar, Range)):
             return nil
-        elif type(haystack) in (Scalar, List, Range):
+        elif isinstance(haystack, PipIterable):
             return Scalar(haystack.count(needle))
         else:
             # If it's not one of those types, it's automatically false
@@ -1375,7 +1384,7 @@ class ProgramState:
     def INC(self, rhs):
         plus = ops.opsByArity[2]["+"]
         result = self.evaluate([plus, self.getRval(rhs), scalarOne])
-        if type(rhs) is Lval:
+        if isinstance(rhs, Lval):
             # Add one and assign back to rhs
             self.assign(rhs, result)
             return rhs
@@ -1386,8 +1395,8 @@ class ProgramState:
 
     def INCLRANGE(self, lhs, rhs):
         """Like RANGE, but include upper bound."""
-        if type(lhs) in (Scalar, Nil) and type(lhs) in (Scalar, Nil):
-            if type(rhs) is Scalar:
+        if isinstance(lhs, (Scalar, Nil)) and isinstance(lhs, (Scalar, Nil)):
+            if isinstance(rhs, Scalar):
                 return Range(lhs, int(rhs) + 1)
             elif rhs is nil:
                 return Range(lhs, rhs)
@@ -1400,14 +1409,14 @@ class ProgramState:
         """Like RANGETO, but start at 1 and include upper bound."""
         if rhs is nil:
             return Range(1, rhs)
-        elif type(rhs) is Scalar:
+        elif isinstance(rhs, Scalar):
             return Range(1, int(rhs) + 1)
         else:
             self.err.warn("Unimplemented argtype for INCLRANGETO:", type(rhs))
             return nil
 
     def INTDIV(self, lhs, rhs):
-        if type(lhs) is Scalar and type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             try:
                 result = int(lhs.toNumber() / rhs.toNumber())
                 return Scalar(result)
@@ -1420,7 +1429,7 @@ class ProgramState:
             return nil
 
     def INVERT(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             try:
                 result = 1 / rhs.toNumber()
                 return Scalar(result)
@@ -1432,16 +1441,16 @@ class ProgramState:
             return nil
 
     def JOIN(self, iterable, sep=None):
-        if type(sep) in (List, Range):
+        if isinstance(sep, (List, Range)):
             return List(self.JOIN(iterable, item) for item in sep)
-        elif sep is not None and type(sep) not in (Scalar, Pattern):
+        elif sep is not None and not isinstance(sep, (Scalar, Pattern)):
             self.err.warn("Can't join on", type(sep))
             return nil
 
-        if type(iterable) in (Scalar, List, Range, list, tuple):
+        if isinstance(iterable, (PipIterable, list, tuple)):
             result = None
             for item in iterable:
-                if type(item) in (List, Range):
+                if isinstance(item, (List, Range)):
                     item = self.JOIN(item, sep)
                 if result is None:
                     result = item
@@ -1463,16 +1472,16 @@ class ProgramState:
             return nil
 
     def JOINWRAP(self, iterable, sep):
-        if type(sep) in (List, Range):
+        if isinstance(sep, (List, Range)):
             return List(self.JOINWRAP(iterable, item) for item in sep)
-        elif type(sep) not in (Scalar, Pattern):
+        elif not isinstance(sep, (Scalar, Pattern)):
             self.err.warn("Can't join/wrap with", type(sep))
             return nil
 
-        if type(iterable) in (Scalar, List, Range):
+        if isinstance(iterable, PipIterable):
             result = sep
             for item in iterable:
-                if type(item) in (List, Range):
+                if isinstance(item, (List, Range)):
                     item = self.JOIN(item, sep)
                 result = self.CAT(result, item)
                 result = self.CAT(result, sep)
@@ -1483,36 +1492,36 @@ class ProgramState:
             return nil
 
     def KLEENESTAR(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             regex = re.escape(str(rhs))
             if len(rhs) > 1:
                 regex = f"(?:{regex})"
             return Pattern(regex + "*")
-        elif type(rhs) is Range:
+        elif isinstance(rhs, Range):
             return Pattern("(?:"
                            + "|".join(str(item) for item in rhs)
                            + ")*")
-        elif type(rhs) is Pattern:
+        elif isinstance(rhs, Pattern):
             result = f"(?:{str(rhs)})*"
             return Pattern(result)
         else:
             self.err.warn("Unimplemented argtype for KLEENESTAR:", type(rhs))
             return nil
-        
+
     def LEFTOF(self, lhs, rhs=None):
         if rhs is None:
             # The unary version gives all but the rightmost character
             rhs = Scalar(-1)
-        if type(rhs) is Lval:
+        if isinstance(rhs, Lval):
             rhs = self.getRval(rhs)
-        if type(lhs) is Lval and type(rhs) is Scalar:
+        if isinstance(lhs, Lval) and isinstance(rhs, Scalar):
             index = slice(None, int(rhs))
             return Lval(lhs, index)
-        elif type(rhs) in (List, Range):
-            if type(lhs) is Lval:
+        elif isinstance(rhs, (List, Range)):
+            if isinstance(lhs, Lval):
                 lhs = self.getRval(lhs)
             return List(self.LEFTOF(lhs, index) for index in rhs)
-        elif type(lhs) in (Scalar, List, Range) and type(rhs) is Scalar:
+        elif isinstance(lhs, PipIterable) and isinstance(rhs, Scalar):
             # Use the lhs's __getitem__ with a slice argument
             return lhs[:int(rhs)]
         else:
@@ -1521,7 +1530,7 @@ class ProgramState:
             return nil
 
     def LEN(self, rhs):
-        if type(rhs) in (Scalar, List, Range):
+        if isinstance(rhs, PipIterable):
             try:
                 result = len(rhs)
             except ValueError:
@@ -1534,14 +1543,13 @@ class ProgramState:
             return nil
 
     def LENEQUAL(self, lhs, rhs):
-        types = (Scalar, List, Range)
-        if type(lhs) in types and type(rhs) in types:
+        if isinstance(lhs, PipIterable) and isinstance(rhs, PipIterable):
             try:
                 result = len(lhs) == len(rhs)
             except ValueError:
                 # One or both of the arguments is an infinite Range
                 # Their lengths are equal iff they are both infinite
-                result = (type(lhs) is type(rhs) is Range
+                result = (isinstance(lhs, Range) and isinstance(rhs, Range)
                           and lhs.getUpper() is rhs.getUpper() is None)
             return Scalar(result)
         else:
@@ -1550,17 +1558,16 @@ class ProgramState:
             return nil
 
     def LENGREATER(self, lhs, rhs):
-        types = (Scalar, List, Range)
-        if type(lhs) in types and type(rhs) in types:
+        if isinstance(lhs, PipIterable) and isinstance(rhs, PipIterable):
             try:
                 result = len(lhs) > len(rhs)
             except ValueError:
                 # One or both of the arguments is an infinite Range
                 # The lhs's length is greater iff it is infinite
                 # and the rhs is not
-                if type(lhs) is not Range:
+                if not isinstance(lhs, Range):
                     result = False
-                elif type(rhs) is not Range:
+                elif not isinstance(rhs, Range):
                     result = True
                 else:
                     result = (lhs.getUpper() is None
@@ -1572,17 +1579,16 @@ class ProgramState:
             return nil
 
     def LENLESS(self, lhs, rhs):
-        types = (Scalar, List, Range)
-        if type(lhs) in types and type(rhs) in types:
+        if isinstance(lhs, PipIterable) and isinstance(rhs, PipIterable):
             try:
                 result = len(lhs) < len(rhs)
             except ValueError:
                 # One or both of the arguments is an infinite Range
                 # The lhs's length is less iff it is not an infinite
                 # Range and the rhs is one
-                if type(lhs) is not Range:
+                if not isinstance(lhs, Range):
                     result = True
-                elif type(rhs) is not Range:
+                elif not isinstance(rhs, Range):
                     result = False
                 else:
                     result = (lhs.getUpper() is not None
@@ -1605,9 +1611,9 @@ class ProgramState:
             return List(self.getRval(item) for item in items)
 
     def LOWERCASE(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             return Scalar(str(rhs).lower())
-        elif type(rhs) in (Range, Nil):
+        elif isinstance(rhs, (Range, Nil)):
             return rhs
         else:
             self.err.warn("Unimplemented argtype for LOWERCASE:", type(rhs))
@@ -1616,22 +1622,22 @@ class ProgramState:
     def LSTRIP(self, string, extra=None):
         if extra is nil:
             return string
-        elif (type(extra) not in (Scalar, Pattern, List, Range)
+        elif (not isinstance(extra, (PipIterable, Pattern))
               and extra is not None):
             self.err.warn("Unimplemented argtype for rhs of LSTRIP:",
                           type(extra))
             return nil
             
-        if type(string) in (List, Range):
+        if isinstance(string, (List, Range)):
             return List(self.LSTRIP(item, extra) for item in string)
-        elif type(string) is Scalar:
-            if type(extra) in (List, Range):
+        elif isinstance(string, Scalar):
+            if isinstance(extra, (List, Range)):
                 for item in extra:
                     string = self.LSTRIP(string, item)
                 return string
-            elif type(extra) is Scalar:
+            elif isinstance(extra, Scalar):
                 return Scalar(str(string).lstrip(str(extra)))
-            elif type(extra) is Pattern:
+            elif isinstance(extra, Pattern):
                 # Python doesn't have a regex strip operation--we have to
                 # roll our own
                 patternStr = str(extra)
@@ -1653,13 +1659,13 @@ class ProgramState:
 
     def MAP(self, lhs, iterable):
         """Map function over the items of iterable."""
-        if type(iterable) is Block and type(lhs) in (Scalar, List, Range):
+        if isinstance(iterable, Block) and isinstance(lhs, PipIterable):
             # The arguments are reversible to enable things like lM:f
             lhs, iterable = iterable, lhs
-        if type(iterable) in (Scalar, List, Range):
-            if type(lhs) is Block:
+        if isinstance(iterable, PipIterable):
+            if isinstance(lhs, Block):
                 result = (self.functionCall(lhs, [item]) for item in iterable)
-            elif type(lhs) is List:
+            elif isinstance(lhs, List):
                 # Might be a list of functions; map each of them
                 result = (self.MAP(item, iterable) for item in lhs)
             else:
@@ -1708,7 +1714,7 @@ class ProgramState:
         for row in rows:
             subresult = []
             for col in cols:
-                if type(lhs) is Block:
+                if isinstance(lhs, Block):
                     subresult.append(self.functionCall(lhs,
                                                        [Scalar(row),
                                                         Scalar(col)]))
@@ -1720,10 +1726,10 @@ class ProgramState:
 
     def MAPENUMERATE(self, function, iterable):
         """Map function over index/value pairs of items of the iterable."""
-        if type(iterable) is Block and type(function) in (Scalar, List, Range):
+        if isinstance(iterable, Block) and isinstance(function, PipIterable):
             # The arguments are reversible to enable things like lME:f
             function, iterable = iterable, function
-        if type(function) is Block and type(iterable) in (Scalar, List, Range):
+        if isinstance(function, Block) and isinstance(iterable, PipIterable):
             return self.MAPZIP(function, Range(len(iterable)), iterable)
         else:
             self.err.warn("Unimplemented argtypes for MAPENUMERATE:",
@@ -1739,10 +1745,10 @@ class ProgramState:
 
     def MAPMAP(self, lhs, iterable):
         """Map function over the items of the items of iterable."""
-        if type(iterable) is Block and type(lhs) in (Scalar, List, Range):
+        if isinstance(iterable, Block) and isinstance(lhs, PipIterable):
             # The arguments are reversible to enable things like lMM:f
             lhs, iterable = iterable, lhs
-        if type(iterable) in (Scalar, List, Range):
+        if isinstance(iterable, PipIterable):
             result = (self.MAP(lhs, item) for item in iterable)
             return List(result)
         else:
@@ -1752,10 +1758,10 @@ class ProgramState:
 
     def MAPPAIRS(self, function, iterable):
         """Map function over consecutive pairs of items of the iterable."""
-        if type(iterable) is Block and type(function) in (Scalar, List, Range):
+        if isinstance(iterable, Block) and isinstance(function, PipIterable):
             # The arguments are reversible to enable things like lMP:f
             function, iterable = iterable, function
-        if type(function) is Block and type(iterable) in (Scalar, List, Range):
+        if isinstance(function, Block) and isinstance(iterable, PipIterable):
             return self.MAPZIP(function, iterable, iterable[1:])
         else:
             self.err.warn("Unimplemented argtypes for MAPPAIRS:",
@@ -1764,14 +1770,14 @@ class ProgramState:
 
     def MAPREGEX(self, lhs, regex, string):
         """Map function over regex matches in string."""
-        if type(string) is Block and type(lhs) is Scalar:
+        if isinstance(string, Block) and isinstance(lhs, Scalar):
             # The arguments are reversible to enable things like sMR:xf
             lhs, string = string, lhs
-        elif type(string) is Pattern and type(regex) is Scalar:
+        elif isinstance(string, Pattern) and isinstance(regex, Scalar):
             regex, string = string, regex
-        if (type(lhs) is Block
-                and type(regex) is Pattern
-                and type(string) is Scalar):
+        if (isinstance(lhs, Block)
+                and isinstance(regex, Pattern)
+                and isinstance(string, Scalar)):
             matches = regex.asRegex().finditer(str(string))
             result = []
             for matchObj in matches:
@@ -1799,10 +1805,10 @@ class ProgramState:
 
         Equivalent to Python's itertools.starmap().
         """
-        if type(iterable) is Block and type(function) in (Scalar, List, Range):
+        if isinstance(iterable, Block) and isinstance(function, PipIterable):
             # The arguments are reversible to enable things like lMU:f
             function, iterable = iterable, function
-        if type(iterable) in (Scalar, List, Range) and type(function) is Block:
+        if isinstance(iterable, PipIterable) and isinstance(function, Block):
             result = []
             for item in iterable:
                 try:
@@ -1812,7 +1818,8 @@ class ProgramState:
                     self.err.warn("Cannot unpack infinite Range in MAPUNPACK")
                     arglist = []
                 except TypeError:
-                    # This happens when one of the items is a non-iterable type
+                    # This happens when one of the items is a
+                    # non-iterable type
                     self.err.warn(f"Cannot unpack {item} in MAPUNPACK")
                     arglist = []
                 result.append(self.functionCall(function, arglist))
@@ -1824,12 +1831,12 @@ class ProgramState:
 
     def MAPZIP(self, lhs, iterable1, iterable2):
         """Map function over the items of two iterables in parallel."""
-        if type(iterable1) is Block and type(lhs) in (Scalar, List, Range):
+        if isinstance(iterable1, Block) and isinstance(lhs, PipIterable):
             # The arguments are reversible to enable things like lMZ:fm
             lhs, iterable1 = iterable1, lhs
-        if (type(iterable1) in (Scalar, List, Range)
-                and type(iterable2) in (Scalar, List, Range)
-                and type(lhs) is Block):
+        if (isinstance(iterable1, PipIterable)
+                and isinstance(iterable2, PipIterable)
+                and isinstance(lhs, Block)):
             return List(self.functionCall(lhs, [item1, item2])
                         for item1, item2 in zip(iterable1, iterable2))
         else:
@@ -1839,7 +1846,7 @@ class ProgramState:
 
     def MAX(self, iterable):
         """Return numeric maximum of iterable."""
-        if type(iterable) in (Scalar, List, Range):
+        if isinstance(iterable, PipIterable):
             try:
                 return max(iterable, key=lambda x:x.toNumber())
             except AttributeError:
@@ -1859,7 +1866,7 @@ class ProgramState:
 
     def MIN(self, iterable):
         """Return numeric minimum of iterable."""
-        if type(iterable) in (Scalar, List, Range):
+        if isinstance(iterable, PipIterable):
             try:
                 return min(iterable, key=lambda x:x.toNumber())
             except AttributeError:
@@ -1881,7 +1888,7 @@ class ProgramState:
         if rhs is None:
             # Unary version takes its argument mod 2
             rhs = Scalar(2)
-        if type(lhs) is Scalar and type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             try:
                 result = lhs.toNumber() % rhs.toNumber()
                 return Scalar(result)
@@ -1894,12 +1901,12 @@ class ProgramState:
             return nil
 
     def MUL(self, lhs, rhs):
-        if type(lhs) is Scalar and type(rhs) is Pattern:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Pattern):
             lhs, rhs = rhs, lhs
-        if type(lhs) is Scalar and type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = lhs.toNumber() * rhs.toNumber()
             return Scalar(result)
-        elif type(lhs) is Pattern and type(rhs) is Scalar:
+        elif isinstance(lhs, Pattern) and isinstance(rhs, Scalar):
             # * with a Pattern and a Scalar returns a new Pattern that matches
             # the original regex repeated rhs times
             result = f"(?:{lhs}){{{int(rhs)}}}"
@@ -1911,7 +1918,7 @@ class ProgramState:
 
     def NATURALLOG(self, number):
         """Take the natural logarithm of number."""
-        if type(number) is Scalar:
+        if isinstance(number, Scalar):
             if number.toNumber() > 0:
                 result = math.log(number.toNumber())
                 return Scalar(result)
@@ -1926,10 +1933,10 @@ class ProgramState:
 
     def NEG(self, rhs):
         # TODO: Range with negative step value
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             result = -rhs.toNumber()
             return Scalar(result)
-        elif type(rhs) is Pattern:
+        elif isinstance(rhs, Pattern):
             # - operator on a Pattern makes it case-insensitive
             result = "(?i)" + str(rhs)
             return Pattern(result)
@@ -1944,7 +1951,7 @@ class ProgramState:
     def NOTIN(self, needle, haystack):
         if isinstance(needle, (List, Range)) and isinstance(haystack, Scalar):
             return List(self.NOTIN(item, haystack) for item in needle)
-        elif type(needle) is Pattern and type(haystack) is Scalar:
+        elif isinstance(needle, Pattern) and isinstance(haystack, Scalar):
             matchExists = needle.asRegex().search(str(haystack))
             return Scalar(not matchExists)
         else:
@@ -1962,9 +1969,9 @@ class ProgramState:
             return Scalar("0")
 
     def NUMEQUAL(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = lhs.toNumber() == rhs.toNumber()
-        elif type(lhs) is type(rhs) is Range:
+        elif isinstance(lhs, Range) and isinstance(rhs, Range):
             # Just use the Range class's __eq__
             result = lhs == rhs
         elif (isinstance(lhs, (List, Range))
@@ -1983,9 +1990,9 @@ class ProgramState:
         return Scalar(result)
 
     def NUMGREATER(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = lhs.toNumber() > rhs.toNumber()
-        elif type(lhs) is type(rhs) is Range:
+        elif isinstance(lhs, Range) and isinstance(rhs, Range):
             leftLower = lhs.getLower() or 0
             rightLower = rhs.getLower() or 0
             leftUpper = lhs.getUpper()
@@ -2037,9 +2044,9 @@ class ProgramState:
         return Scalar(result)
 
     def NUMGREATEREQ(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = lhs.toNumber() >= rhs.toNumber()
-        elif type(lhs) is type(rhs) is Range:
+        elif isinstance(lhs, Range) and isinstance(rhs, Range):
             leftLower = lhs.getLower() or 0
             rightLower = rhs.getLower() or 0
             leftUpper = lhs.getUpper()
@@ -2093,9 +2100,9 @@ class ProgramState:
         return Scalar(result)
 
     def NUMLESS(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = lhs.toNumber() < rhs.toNumber()
-        elif type(lhs) is type(rhs) is Range:
+        elif isinstance(lhs, Range) and isinstance(rhs, Range):
             leftLower = lhs.getLower() or 0
             rightLower = rhs.getLower() or 0
             leftUpper = lhs.getUpper()
@@ -2147,9 +2154,9 @@ class ProgramState:
         return Scalar(result)
 
     def NUMLESSEQ(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = lhs.toNumber() <= rhs.toNumber()
-        elif type(lhs) is type(rhs) is Range:
+        elif isinstance(lhs, Range) and isinstance(rhs, Range):
             leftLower = lhs.getLower() or 0
             rightLower = rhs.getLower() or 0
             leftUpper = lhs.getUpper()
@@ -2203,9 +2210,9 @@ class ProgramState:
         return Scalar(result)
 
     def NUMNOTEQUAL(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = lhs.toNumber() != rhs.toNumber()
-        elif type(lhs) is type(rhs) is Range:
+        elif isinstance(lhs, Range) and isinstance(rhs, Range):
             result = lhs != rhs
         elif (isinstance(lhs, (List, Range))
               and isinstance(rhs, (List, Range))):
@@ -2227,7 +2234,7 @@ class ProgramState:
     def ONEGRID(self, rows, cols=None):
         if cols is None:
             cols = rows
-        if type(rows) is type(cols) is Scalar:
+        if isinstance(rows, Scalar) and isinstance(cols, Scalar):
             rows = range(int(rows))
             cols = range(int(cols))
             return List(List(Scalar("1") for col in cols)
@@ -2269,7 +2276,7 @@ class ProgramState:
                     return List(iterable + iterable[-2::-1])
                 else:
                     return List()
-        elif type(iterable) is Scalar:
+        elif isinstance(iterable, Scalar):
             iterable = str(iterable)
             if iterable:
                 return Scalar(iterable + iterable[-2::-1])
@@ -2286,9 +2293,9 @@ class ProgramState:
 
     def PERMUTATIONS(self, iterable):
         """Return List of all permutations of iterable."""
-        if type(iterable) in (List, Range, Scalar):
+        if isinstance(iterable, PipIterable):
             result = itertools.permutations(iterable)
-            if type(iterable) is Scalar:
+            if isinstance(iterable, Scalar):
                 return List(self.JOIN(perm) for perm in result)
             else:
                 return List(List(perm) for perm in result)
@@ -2299,7 +2306,7 @@ class ProgramState:
 
     def PICK(self, iterable, index):
         index = self.getRval(index)
-        if type(index) is Scalar:
+        if isinstance(index, Scalar):
             index = int(index)
         else:
             # TODO: Allow List and Range indices
@@ -2307,7 +2314,7 @@ class ProgramState:
                           type(index))
             return nil
         iterVal = self.getRval(iterable)
-        if type(iterVal) is List:
+        if isinstance(iterVal, List):
             if len(iterVal) > 0:
                 iterVal = list(iterVal)
                 index %= len(iterVal)
@@ -2316,7 +2323,7 @@ class ProgramState:
             else:
                 self.err.warn("Cannot pick from empty List")
                 return nil
-        elif type(iterVal) is Range:
+        elif isinstance(iterVal, Range):
             lower = iterVal.getLower() or 0
             try:
                 rangeLength = len(iterVal)
@@ -2341,7 +2348,7 @@ class ProgramState:
                 else:
                     self.err.warn("Cannot pick from empty Range")
                     return nil
-        elif type(iterVal) is Scalar:
+        elif isinstance(iterVal, Scalar):
             if len(iterVal) > 0:
                 item = iterVal[index]
                 iterVal = str(iterVal)
@@ -2354,8 +2361,8 @@ class ProgramState:
             self.err.warn("Unimplemented left argument type for PICK:",
                           type(iterVal))
             return nil
-        if type(iterable) is Lval:
-            if type(iterable.base) is not List:
+        if isinstance(iterable, Lval):
+            if not isinstance(iterable.base, List):
                 self.assign(iterable, iterVal)
         else:
             self.err.warn("Picking from non-lvalue", iterable)
@@ -2363,14 +2370,14 @@ class ProgramState:
 
     def POP(self, iterable):
         iterVal = self.getRval(iterable)
-        if type(iterVal) is List:
+        if isinstance(iterVal, List):
             if len(iterVal) > 0:
                 item = iterVal[0]
                 iterVal = iterVal[1:]
             else:
                 self.err.warn("Popping from empty list")
                 return nil
-        elif type(iterVal) is Range:
+        elif isinstance(iterVal, Range):
             lower = iterVal.getLower() or 0
             try:
                 if len(iterVal) > 0:
@@ -2382,7 +2389,7 @@ class ProgramState:
                 # Infinite range raises this when you try to take the len()
                 iterVal = Range(lower + 1, nil)
             item = Scalar(lower)
-        elif type(iterVal) is Scalar:
+        elif isinstance(iterVal, Scalar):
             if len(iterVal) > 0:
                 item = iterVal[0]
                 iterVal = iterVal[1:]
@@ -2392,20 +2399,20 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtype for POP:", type(iterVal))
             return nil
-        if type(iterable) is Lval:
-            if type(iterable.base) is not List:
+        if isinstance(iterable, Lval):
+            if not isinstance(iterable.base, List):
                 self.assign(iterable, iterVal)
         else:
             self.err.warn("Popping from non-lvalue", iterable)
         return item
 
     def POS(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             result = rhs.toNumber()
             return Scalar(result)
-        elif type(rhs) is Range:
+        elif isinstance(rhs, Range):
             return rhs
-        elif type(rhs) is Pattern:
+        elif isinstance(rhs, Pattern):
             # + operator on Pattern applies regex + to the whole thing
             result = f"(?:{rhs})+"
             return Pattern(result)
@@ -2418,7 +2425,7 @@ class ProgramState:
             # Unary **a is short for 2**a
             rhs = lhs
             lhs = Scalar(2)
-        if type(lhs) is Scalar and type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             lhs = lhs.toNumber()
             rhs = rhs.toNumber()
             try:
@@ -2429,7 +2436,8 @@ class ProgramState:
             if lhs < 0 and int(rhs) != rhs:
                 # Negative number to fractional power would be a complex
                 # number; for now, return nil
-                self.err.warn("Can't raise negative number to fractional power")
+                self.err.warn("Can't raise negative number to "
+                              "fractional power")
                 return nil
             return Scalar(result)
         else:
@@ -2443,7 +2451,7 @@ class ProgramState:
             # Unary EEa is short for 1EEa
             rhs = lhs
             lhs = Scalar(1)
-        if type(lhs) is Scalar and type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             lhs = lhs.toNumber()
             rhs = rhs.toNumber()
             result = lhs * 10 ** rhs
@@ -2457,19 +2465,19 @@ class ProgramState:
         if rhs is None:
             # The unary version gives all but the rightmost character
             rhs = Scalar(-1)
-        elif type(rhs) is Lval:
+        elif isinstance(rhs, Lval):
             rhs = self.getRval(rhs)
         index = None
-        if type(rhs) in (List, Range):
-            if type(lhs) is Lval:
+        if isinstance(rhs, (List, Range)):
+            if isinstance(lhs, Lval):
                 lhs = self.getRval(lhs)
             return List(self.PREFIX(lhs, length) for length in rhs)
-        elif type(rhs) is Scalar:
+        elif isinstance(rhs, Scalar):
             sliceLength = int(rhs)
             if sliceLength < 0:
                 # A negative sliceLength means "all but that many";
                 # slice from the beginning to len(lhs) + sliceLength
-                if type(lhs) is Lval:
+                if isinstance(lhs, Lval):
                     lhsRval = self.getRval(lhs)
                 else:
                     lhsRval = lhs
@@ -2488,9 +2496,9 @@ class ProgramState:
             else:
                 # Slice from the beginning to sliceLength
                 index = slice(None, sliceLength)
-        if type(lhs) is Lval and index is not None:
+        if isinstance(lhs, Lval) and index is not None:
             return Lval(lhs, index)
-        elif type(lhs) in (Scalar, List, Range) and index is not None:
+        elif isinstance(lhs, PipIterable) and index is not None:
             # Use the lhs's __getitem__ with a slice argument
             return lhs[index]
         else:
@@ -2500,9 +2508,9 @@ class ProgramState:
 
     def PREPENDELEM(self, lhs, rhs):
         # Note the order of operands: lhs is the list
-        if type(lhs) in (Scalar, Pattern, Nil):
+        if isinstance(lhs, (Scalar, Pattern, Nil)):
             lhs = List([lhs])
-        if type(lhs) in (List, Range):
+        if isinstance(lhs, (List, Range)):
             result = [rhs] + list(lhs)
             return List(result)
         else:
@@ -2523,14 +2531,14 @@ class ProgramState:
         """Push the rhs onto the front of lhs in place."""
         item = self.getRval(item)
         iterVal = self.getRval(iterable)
-        if type(iterVal) in (List, Range):
+        if isinstance(iterVal, (List, Range)):
             iterVal = self.PREPENDELEM(iterVal, item)
-        elif type(iterVal) in (Scalar, Pattern):
+        elif isinstance(iterVal, (Scalar, Pattern)):
             iterVal = self.CAT(Scalar(item), iterVal)
-        elif type(iterVal) is Nil:
+        elif isinstance(iterVal, Nil):
             iterVal = List([item])
-        if type(iterable) is Lval:
-            if type(iterable.base) is not List:
+        if isinstance(iterable, Lval):
+            if not isinstance(iterable.base, List):
                 self.assign(iterable, iterVal)
                 return iterable
             else:
@@ -2543,14 +2551,14 @@ class ProgramState:
         """Push the rhs onto the back of lhs in place."""
         item = self.getRval(item)
         iterVal = self.getRval(iterable)
-        if type(iterVal) in (List, Range):
+        if isinstance(iterVal, (List, Range)):
             iterVal = self.APPENDELEM(iterVal, item)
-        elif type(iterVal) in (Scalar, Pattern):
+        elif isinstance(iterVal, (Scalar, Pattern)):
             iterVal = self.CAT(iterVal, Scalar(item))
-        elif type(iterVal) is Nil:
+        elif isinstance(iterVal, Nil):
             iterVal = List([item])
-        if type(iterable) is Lval:
-            if type(iterable.base) is not List:
+        if isinstance(iterable, Lval):
+            if not isinstance(iterable.base, List):
                 self.assign(iterable, iterVal)
                 return iterable
             else:
@@ -2577,7 +2585,7 @@ class ProgramState:
 
     def RADIANS(self, rhs):
         """Convert from degrees to radians."""
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             result = rhs.toNumber() / 180 * math.pi
             return Scalar(result)
         else:
@@ -2585,7 +2593,7 @@ class ProgramState:
             return nil
 
     def RANDCHOICE(self, iterable):
-        if type(iterable) in (List, Range, Scalar):
+        if isinstance(iterable, PipIterable):
             index = random.randrange(len(iterable))
             return iterable[index]
         else:
@@ -2594,7 +2602,7 @@ class ProgramState:
             return nil
 
     def RANDRANGE(self, lower, upper):
-        if type(lower) in (Scalar, Nil) and type(upper) is Scalar:
+        if isinstance(lower, (Scalar, Nil)) and isinstance(upper, Scalar):
             if lower is nil:
                 lower = 0
             else:
@@ -2608,16 +2616,18 @@ class ProgramState:
         
     def RANDRANGETO(self, upper):
         """Unary version of RANDRANGE."""
-        if type(upper) is Scalar:
+        if isinstance(upper, Scalar):
             return Scalar(random.randrange(int(upper)))
         else:
-            self.err.warn("Unimplemented argtype for RANDRANGETO:", type(upper))
+            self.err.warn("Unimplemented argtype for RANDRANGETO:",
+                          type(upper))
             return nil
 
     def RANGE(self, lower, upper):
-        if type(lower) in (Scalar, Nil) and type(upper) in (Scalar, Nil):
+        if (isinstance(lower, (Scalar, Nil))
+                and isinstance(upper, (Scalar, Nil))):
             return Range(lower, upper)
-        elif type(lower) is Pattern and type(upper) is Pattern:
+        elif isinstance(lower, Pattern) and isinstance(upper, Pattern):
             # , with two Patterns returns a new Pattern that matches one OR
             # the other
             result = f"(?:{lower})|(?:{upper})"
@@ -2629,9 +2639,9 @@ class ProgramState:
 
     def RANGETO(self, upper):
         """Unary version of RANGE."""
-        if type(upper) in (Scalar, Nil):
+        if isinstance(upper, (Scalar, Nil)):
             return Range(nil, upper)
-        elif type(upper) is Pattern:
+        elif isinstance(upper, Pattern):
             # , operator on a Pattern makes ^ and $ match fronts & ends of
             # lines
             result = "(?m)" + str(upper)
@@ -2655,7 +2665,7 @@ class ProgramState:
                 return nil
             else:
                 return List(iterable + iterable[::-1])
-        elif type(iterable) is Scalar:
+        elif isinstance(iterable, Scalar):
             iterable = str(iterable)
             return Scalar(iterable + iterable[::-1])
         else:
@@ -2665,16 +2675,16 @@ class ProgramState:
 
     def REGEX(self, rhs):
         """Convert Scalar, List, or Range to properly-escaped Pattern."""
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             regex = re.escape(str(rhs))
             if len(rhs) > 1:
                 # Surround expression in a non-capturing group so repetition
                 # constructs will function as expected if appended
                 regex = "(?:" + regex + ")"
             return Pattern(regex)
-        elif type(rhs) is Pattern:
+        elif isinstance(rhs, Pattern):
             return rhs
-        elif type(rhs) in (List, Range):
+        elif isinstance(rhs, (List, Range)):
             return Pattern("(?:"
                            + "|".join(str(self.REGEX(item)) for item in rhs)
                            + ")")
@@ -2683,9 +2693,9 @@ class ProgramState:
             return nil
 
     def REPEATLIST(self, lhs, rhs):
-        if type(lhs) in (Scalar, Pattern, Nil):
+        if isinstance(lhs, (Scalar, Pattern, Nil)):
             lhs = List([lhs])
-        if type(lhs) in (List, Range) and type(rhs) is Scalar:
+        if isinstance(lhs, (List, Range)) and isinstance(rhs, Scalar):
             result = list(lhs.copy()) * int(rhs)
             return List(result)
         else:
@@ -2694,18 +2704,19 @@ class ProgramState:
             return nil
 
     def REPLACE(self, lhs, old, new):
-        lhs = List(lhs) if type(lhs) is Range else lhs
-        old = List(old) if type(old) is Range else old
-        new = List(new) if type(new) is Range else new
-        if type(old) is Scalar and type(new) in (Pattern, Block):
+        lhs = List(lhs) if isinstance(lhs, Range) else lhs
+        old = List(old) if isinstance(old, Range) else old
+        new = List(new) if isinstance(new, Range) else new
+        if isinstance(old, Scalar) and isinstance(new, (Pattern, Block)):
             old = self.REGEX(old)
-        if (type(lhs) in (List, Scalar)
-                and type(old) in (List, Scalar, Pattern)
-                and type(new) in (List, Scalar, Pattern, Block, Nil)):
-            if type(lhs) is List:
+        if (isinstance(lhs, PipIterable)
+                and isinstance(old, (PipIterable, Pattern))
+                and isinstance(new, (PipIterable, Pattern, Block, Nil))):
+            if isinstance(lhs, List):
                 # Return a List of results
-                return List(self.REPLACE(eachLhs, old, new) for eachLhs in lhs)
-            elif type(old) is type(new) is List:
+                return List(self.REPLACE(eachLhs, old, new)
+                            for eachLhs in lhs)
+            elif isinstance(old, List) and isinstance(new, List):
                 # Both are lists--zip and replace parallel items
                 result = lhs
                 for eachOld, eachNew in zip(old, new):
@@ -2715,20 +2726,20 @@ class ProgramState:
                 for eachOld in old[len(new):]:
                     result = self.REPLACE(result, eachOld, nil)
                 return result
-            elif type(old) is List:
+            elif isinstance(old, List):
                 # Replace each element of old with new
                 result = lhs
                 for eachOld in old:
                     result = self.REPLACE(result, eachOld, new)
                 return result
-            elif type(old) is Pattern:
-                if type(new) is Pattern:
+            elif isinstance(old, Pattern):
+                if isinstance(new, Pattern):
                     replacement = new.asReplacement()
-                elif type(new) in (Scalar, List):
+                elif isinstance(new, PipIterable):
                     # If replacing with a literal string, escape all
                     # backslashes first
                     replacement = str(new).replace("\\", "\\\\")
-                elif type(new) is Block:
+                elif isinstance(new, Block):
                     # For each match of the pattern, call the function with
                     # the match and groups as arguments and substitute the
                     # result
@@ -2742,11 +2753,11 @@ class ProgramState:
                     replacement = ""
                 result = old.asRegex().sub(replacement, str(lhs))
                 return Scalar(result)
-            elif type(old) is Scalar:
+            elif isinstance(old, Scalar):
                 if new is nil:
                     replacement = ""
                 else:
-                    # NB: this branch also covers the case type(new) is List
+                    # NB: this branch also covers the case where new is a List
                     # TBD: does that approach make the most sense?
                     replacement = str(new)
                 result = str(lhs).replace(str(old), replacement)
@@ -2757,11 +2768,11 @@ class ProgramState:
             return nil
 
     def REPLACEAT(self, lhs, index, new):
-        if (type(lhs) in (List, Scalar, Range)
-                and type(index) in (List, Scalar, Range)):
+        if (isinstance(lhs, PipIterable)
+                and isinstance(index, PipIterable)):
             result = lhs.copy()
-            if type(index) is List:
-                if type(new) is List:
+            if isinstance(index, List):
+                if isinstance(new, List):
                     # Both are lists--replace at corresponding indices
                     # with corresponding values
                     # If the new list is shorter than the index list, cycle
@@ -2775,9 +2786,9 @@ class ProgramState:
                         result = self.REPLACEAT(result, eachIndex, new)
                     return result
             else:
-                if type(index) is Scalar:
+                if isinstance(index, Scalar):
                     index = int(index)
-                elif type(index) is Range:
+                elif isinstance(index, Range):
                     index = index.toSlice()
                 result[index] = new
                 return result
@@ -2790,17 +2801,17 @@ class ProgramState:
             return nil
 
     def REMOVE(self, lhs, rhs):
-        if type(lhs) is Scalar:
-            if type(rhs) in (List, Range):
+        if isinstance(lhs, Scalar):
+            if isinstance(rhs, Scalar):
+                result = str(lhs).replace(str(rhs), "")
+            elif isinstance(rhs, Pattern):
+                result = rhs.asRegex().sub("", str(lhs))
+            elif isinstance(rhs, PipIterable):
                 result = lhs
                 for item in rhs:
                     result = self.REMOVE(result, item)
-            elif type(rhs) is Scalar:
-                result = str(lhs).replace(str(rhs), "")
-            elif type(rhs) is Pattern:
-                result = rhs.asRegex().sub("", str(lhs))
             return Scalar(result)
-        elif type(lhs) in (List, Range):
+        elif isinstance(lhs, PipIterable):
             result = list(lhs)
             while rhs in result:
                 # Loop is necessary because list.remove only removes the
@@ -2821,7 +2832,7 @@ class ProgramState:
             return Scalar(repr(rhs))
 
     def REVERSE(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             return Scalar(str(rhs)[::-1])
         elif isinstance(rhs, (Range, List)):
             try:
@@ -2839,16 +2850,16 @@ class ProgramState:
         if rhs is None:
             # The unary version gives all but the leftmost character
             rhs = scalarOne
-        if type(rhs) is Lval:
+        if isinstance(rhs, Lval):
             rhs = self.getRval(rhs)
-        if type(lhs) is Lval and type(rhs) is Scalar:
+        if isinstance(lhs, Lval) and isinstance(rhs, Scalar):
             index = slice(int(rhs), None)
             return Lval(lhs, index)
-        elif type(rhs) in (List, Range):
-            if type(lhs) is Lval:
+        elif isinstance(rhs, (List, Range)):
+            if isinstance(lhs, Lval):
                 lhs = self.getRval(lhs)
             return List(self.RIGHTOF(lhs, index) for index in rhs)
-        elif type(lhs) in (Scalar, List, Range) and type(rhs) is Scalar:
+        elif isinstance(lhs, PipIterable) and isinstance(rhs, Scalar):
             # Use the lhs's __getitem__ with a slice argument
             return lhs[int(rhs):]
         else:
@@ -2857,7 +2868,7 @@ class ProgramState:
             return nil
 
     def ROOT(self, lhs, rhs):
-        if type(lhs) is Scalar and type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             lhs = lhs.toNumber()
             rhs = rhs.toNumber()
             if lhs == 0:
@@ -2882,23 +2893,22 @@ class ProgramState:
     def RSTRIP(self, string, extra=None):
         if extra is nil:
             return string
-        elif type(extra) in (Scalar, Pattern, List, Range) or extra is None:
-            pass
-        else:
+        elif (not isinstance(extra, (PipIterable, Pattern))
+              and extra is not None):
             self.err.warn("Unimplemented argtype for rhs of RSTRIP:",
                           type(extra))
             return nil
             
-        if type(string) in (List, Range):
+        if isinstance(string, (List, Range)):
             return List(self.RSTRIP(item, extra) for item in string)
-        elif type(string) is Scalar:
-            if type(extra) in (List, Range):
+        elif isinstance(string, Scalar):
+            if isinstance(extra, (List, Range)):
                 for item in extra:
                     string = self.RSTRIP(string, item)
                 return string
-            elif type(extra) is Scalar:
+            elif isinstance(extra, Scalar):
                 return Scalar(str(string).rstrip(str(extra)))
-            elif type(extra) is Pattern:
+            elif isinstance(extra, Pattern):
                 # Python doesn't have a regex strip operation--we have to
                 # roll our own
                 patternStr = str(extra)
@@ -2928,7 +2938,7 @@ class ProgramState:
         return lhs or rhs
 
     def SECANT(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             return Scalar(1 / math.cos(rhs.toNumber()))
         else:
             self.err.warn("Unimplemented argtype for SECANT:", type(rhs))
@@ -2938,16 +2948,16 @@ class ProgramState:
         # A send-expression's semantics depend on the type of the head:
         # - Block: function call
         # - List, Scalar, Range: subscript
-        if type(head) is Lval:
+        if isinstance(head, Lval):
             # Need to check whether it's actually a function
             headRval = self.getRval(head)
-            if type(headRval) is Block:
+            if isinstance(headRval, Block):
                 head = headRval
             # If not, leave it as an lval so the subscripted version can also
             # be an lval
-        if type(head) is Block:
+        if isinstance(head, Block):
             return self.functionCall(head, tail)
-        elif type(head) in (Lval, List, Scalar, Range):
+        elif isinstance(head, (Lval, PipIterable)):
             value = head
             for index in tail:
                 value = self.AT(value, index)
@@ -2957,7 +2967,7 @@ class ProgramState:
             return nil
 
     def SIGN(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             rhs = rhs.toNumber()
             if rhs < 0:
                 return Scalar(-1)
@@ -2970,7 +2980,7 @@ class ProgramState:
             return nil
 
     def SINE(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             return Scalar(math.sin(rhs.toNumber()))
         else:
             self.err.warn("Unimplemented argtype for SINE:", type(rhs))
@@ -2978,9 +2988,9 @@ class ProgramState:
 
     def SORTKEYED(self, key, iterable):
         """Sort by value of (numeric!) key function applied to each item."""
-        if type(key) is not Block and type(iterable) is Block:
+        if not isinstance(key, Block) and isinstance(iterable, Block):
             key, iterable = iterable, key
-        if type(key) is Block and type(iterable) in (List, Range, Scalar):
+        if isinstance(key, Block) and isinstance(iterable, PipIterable):
             pyKey = lambda x: self.functionCall(key, [x]).toNumber()
             try:
                 return List(sorted(iterable, key=pyKey))
@@ -2994,20 +3004,21 @@ class ProgramState:
             return nil
 
     def SORTNUM(self, iterable):
-        if type(iterable) in (Scalar, List, Range):
+        if isinstance(iterable, PipIterable):
             try:
                 return List(sorted(iterable, key=lambda x: x.toNumber()))
             except TypeError:
                 self.err.warn("Cannot sort mixed types in list")
                 return nil
         else:
-            self.err.warn("Unimplemented argtype for SORTNUM:", type(iterable))
+            self.err.warn("Unimplemented argtype for SORTNUM:",
+                          type(iterable))
             return nil
 
     def SORTSTRING(self, iterable):
-        if type(iterable) is Scalar:
+        if isinstance(iterable, Scalar):
             return Scalar("".join(sorted(str(iterable))))
-        elif type(iterable) in (List, Range):
+        elif isinstance(iterable, PipIterable):
             # This is going to get a bit wonky when sorting lists of lists,
             # but not sure it's worth the effort to fix
             return List(sorted(iterable, key=str))
@@ -3017,17 +3028,17 @@ class ProgramState:
             return nil
 
     def SPLIT(self, string, sep=None):
-        if type(sep) is Scalar:
+        if isinstance(sep, Scalar):
             sep = str(sep)
-        elif type(sep) is not Pattern and sep is not None:
+        elif not isinstance(sep, Pattern) and sep is not None:
             # Some other type, not a valid separator
             self.err.warn("Unimplemented separator type for SPLIT:",
                           type(sep))
             return nil
-        if type(string) is Scalar:
+        if isinstance(string, Scalar):
             if sep is None or sep == "":
                 result = (Scalar(char) for char in str(string))
-            elif type(sep) is Pattern:
+            elif isinstance(sep, Pattern):
                 if str(sep) == "":
                     result = (Scalar(char) for char in str(string))
                 else:
@@ -3048,12 +3059,12 @@ class ProgramState:
 
     def SPLITAT(self, iterable, indices):
         """Split iterable at given indices."""
-        if type(indices) is Scalar:
+        if isinstance(indices, Scalar):
             indices = [int(indices)]
-        elif type(indices) is Range:
+        elif isinstance(indices, Range):
             # TODO: Handle infinite ranges gracefully
             indices = list(int(index) for index in indices)
-        elif type(indices) is List:
+        elif isinstance(indices, List):
             try:
                 indices = list(set(int(index) for index in indices))
             except TypeError:
@@ -3062,7 +3073,7 @@ class ProgramState:
                               "only Scalars")
                 return nil
 
-        if type(iterable) in (List, Scalar, Range) and type(indices) is list:
+        if isinstance(iterable, PipIterable) and isinstance(indices, list):
             results = []
             prevIndex = 0
             length = len(iterable)
@@ -3078,12 +3089,13 @@ class ProgramState:
             return nil
 
     def SQRT(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             rhs = rhs.toNumber()
             if rhs < 0:
                 # Square root of negative number would be a complex number;
                 # for now, return nil
-                self.err.warn("Can't take square root of negative number", rhs)
+                self.err.warn("Can't take square root of negative number",
+                              rhs)
                 return nil
             result = rhs ** 0.5
             return Scalar(result)
@@ -3092,7 +3104,7 @@ class ProgramState:
             return nil
 
     def SQUARE(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             rhs = rhs.toNumber()
             result = rhs * rhs
             return Scalar(result)
@@ -3108,9 +3120,10 @@ class ProgramState:
             return Scalar(str(rhs))
 
     def STREQUAL(self, lhs, rhs):
-        if type(lhs) in (Scalar, Pattern) and type(rhs) in (Scalar, Pattern):
+        if (isinstance(lhs, (Scalar, Pattern))
+                and isinstance(rhs, (Scalar, Pattern))):
             result = str(lhs) == str(rhs)
-        elif type(lhs) is type(rhs) is List:
+        elif isinstance(lhs, List) and isinstance(rhs, List):
             result = (len(lhs) == len(rhs)
                       and all(self.STREQUAL(i, j)
                               for i, j in zip(lhs, rhs)))
@@ -3119,9 +3132,9 @@ class ProgramState:
         return Scalar(result)
 
     def STRGREATER(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = str(lhs) > str(rhs)
-        elif type(lhs) is type(rhs) is List:
+        elif isinstance(lhs, List) and isinstance(rhs, List):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.STRGREATER(i, j):
@@ -3139,9 +3152,9 @@ class ProgramState:
         return Scalar(result)
 
     def STRGREATEREQ(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = str(lhs) >= str(rhs)
-        elif type(lhs) is type(rhs) is List:
+        elif isinstance(lhs, List) and isinstance(rhs, List):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.STRGREATER(i, j):
@@ -3161,23 +3174,22 @@ class ProgramState:
     def STRIP(self, string, extra=None):
         if extra is nil:
             return string
-        elif type(extra) in (Scalar, Pattern, List, Range) or extra is None:
-            pass
-        else:
+        elif (not isinstance(extra, (PipIterable, Pattern))
+              and extra is not None):
             self.err.warn("Unimplemented argtype for rhs of STRIP:",
                           type(extra))
             return nil
             
-        if type(string) in (List, Range):
+        if isinstance(string, (List, Range)):
             return List(self.STRIP(item, extra) for item in string)
-        elif type(string) is Scalar:
-            if type(extra) in (List, Range):
+        elif isinstance(string, Scalar):
+            if isinstance(extra, (List, Range)):
                 for item in extra:
                     string = self.STRIP(string, item)
                 return string
-            elif type(extra) is Scalar:
+            elif isinstance(extra, Scalar):
                 return Scalar(str(string).strip(str(extra)))
-            elif type(extra) is Pattern:
+            elif isinstance(extra, Pattern):
                 # Python doesn't have a regex strip operation--we have to
                 # roll our own
                 patternStr = str(extra)
@@ -3203,9 +3215,9 @@ class ProgramState:
             return nil
 
     def STRLESS(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = str(lhs) < str(rhs)
-        elif type(lhs) is type(rhs) is List:
+        elif isinstance(lhs, List) and isinstance(rhs, List):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.STRLESS(i, j):
@@ -3223,9 +3235,9 @@ class ProgramState:
         return Scalar(result)
 
     def STRLESSEQ(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = str(lhs) <= str(rhs)
-        elif type(lhs) is type(rhs) is List:
+        elif isinstance(lhs, List) and isinstance(rhs, List):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.STRLESS(i, j):
@@ -3243,7 +3255,7 @@ class ProgramState:
         return Scalar(result)
 
     def STRMUL(self, lhs, rhs):
-        if type(lhs) in (Scalar, Pattern) and type(rhs) is Scalar:
+        if isinstance(lhs, (Scalar, Pattern)) and isinstance(rhs, Scalar):
             string = str(lhs)
             num = int(rhs)
             return type(lhs)(string*num)
@@ -3253,9 +3265,9 @@ class ProgramState:
             return nil
 
     def STRNOTEQUAL(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = str(lhs) != str(rhs)
-        elif type(lhs) is type(rhs) is List:
+        elif isinstance(lhs, List) and isinstance(rhs, List):
             result = (len(lhs) != len(rhs)
                       or any(self.STRNOTEQUAL(i, j)
                               for i, j in zip(lhs, rhs)))
@@ -3264,19 +3276,19 @@ class ProgramState:
         return Scalar(result)
 
     def SUB(self, lhs, rhs):
-        if type(lhs) is type(rhs) is Scalar:
+        if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = lhs.toNumber() - rhs.toNumber()
             return Scalar(result)
-        elif type(lhs) is Range and type(rhs) is Scalar:
+        elif isinstance(lhs, Range) and isinstance(rhs, Scalar):
             lower = lhs.getLower() or 0
             upper = lhs.getUpper()
             lower -= int(rhs)
             if upper is not None:
                 upper -= int(rhs)
             return Range(lower, upper)
-        elif type(lhs) is Scalar and type(rhs) is Range:
+        elif isinstance(lhs, Scalar) and isinstance(rhs, Range):
             return List(self.SUB(lhs, item) for item in rhs)
-        elif type(lhs) is type(rhs) is Range:
+        elif isinstance(lhs, Range) and isinstance(rhs, Range):
             # TODO... this sort of situation might warrant some rethinking of
             # the RANGE_EACH/LIST_EACH handling
             self.err.warn("Can't subtract two Ranges yet")
@@ -3290,18 +3302,18 @@ class ProgramState:
         if rhs is None:
             # The unary version gives all but the leftmost character
             rhs = Scalar(-1)
-        elif type(rhs) is Lval:
+        elif isinstance(rhs, Lval):
             rhs = self.getRval(rhs)
         index = None
-        if type(rhs) in (List, Range):
-            if type(lhs) is Lval:
+        if isinstance(rhs, (List, Range)):
+            if isinstance(lhs, Lval):
                 lhs = self.getRval(lhs)
             return List(self.SUFFIX(lhs, length) for length in rhs)
-        elif type(rhs) is Scalar:
+        elif isinstance(rhs, Scalar):
             sliceLength = int(rhs)
             if sliceLength >= 0:
                 # Slice from len(lhs) - sliceLength to the end
-                if type(lhs) is Lval:
+                if isinstance(lhs, Lval):
                     lhsRval = self.getRval(lhs)
                 else:
                     lhsRval = lhs
@@ -3321,9 +3333,9 @@ class ProgramState:
                 # A negative sliceLength means "all but that many";
                 # slice from -sliceLength to the end
                 index = slice(-sliceLength, None)
-        if type(lhs) is Lval and index is not None:
+        if isinstance(lhs, Lval) and index is not None:
             return Lval(lhs, index)
-        elif type(lhs) in (Scalar, List, Range) and index is not None:
+        elif isinstance(lhs, PipIterable) and index is not None:
             # Use the lhs's __getitem__ with a slice argument
             return lhs[index]
         else:
@@ -3337,27 +3349,27 @@ class ProgramState:
         lval2 = self.evaluate(lval2)
         rval1 = self.getRval(lval1)
         rval2 = self.getRval(lval2)
-        if type(lval1) is Lval:
+        if isinstance(lval1, Lval):
             self.assign(lval1, rval2)
         else:
             self.err.warn("Attempting to swap non-lvalue", lval1)
-        if type(lval2) is Lval:
+        if isinstance(lval2, Lval):
             self.assign(lval2, rval1)
         else:
             self.err.warn("Attempting to swap non-lvalue", lval2)
         return lval1
 
     def SWAPCASE(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             return Scalar(str(rhs).swapcase())
-        elif type(rhs) in (Range, Nil):
+        elif isinstance(rhs, (Range, Nil)):
             return rhs
         else:
             self.err.warn("Unimplemented argtype for SWAPCASE:", type(rhs))
             return nil
 
     def TANGENT(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             return Scalar(math.tan(rhs.toNumber()))
         else:
             self.err.warn("Unimplemented argtype for TANGENT:", type(rhs))
@@ -3367,7 +3379,7 @@ class ProgramState:
         """Convert a decimal integer to a string in the specified base."""
         if base is None:
             base = 2
-        elif type(base) is Scalar:
+        elif isinstance(base, Scalar):
             base = int(base)
         else:
             self.err.warn("Unimplemented base type for TOBASE:",
@@ -3376,7 +3388,7 @@ class ProgramState:
         if base < 2 or base > 36:
             self.err.warn("Invalid base for TOBASE:", base)
             return nil
-        if type(number) is Scalar:
+        if isinstance(number, Scalar):
             number = int(number)   # sorry, no float support
             if number == 0:
                 return Scalar("0")
@@ -3433,25 +3445,25 @@ class ProgramState:
         With Scalars, translate one letter to another; with Range or
         List of numbers, translate character codes.
         """
-        if type(lhs) in (List, Range):
+        if isinstance(lhs, (List, Range)):
             return List(self.TRANSLITERATE(item, old, new) for item in lhs)
-        elif (type(lhs) is Scalar
-              and type(old) in (Scalar, List, Range)
-              and type(new) in (Scalar, List, Range)):
+        elif (isinstance(lhs, Scalar)
+              and isinstance(old, PipIterable)
+              and isinstance(new, PipIterable)):
             result = str(lhs)
             infiniteRange = False
-            if type(old) is Scalar:
+            if isinstance(old, Scalar):
                 old = str(old)
-            elif type(old) is Range:
+            elif isinstance(old, Range):
                 try:
                     len(old)
                 except ValueError:
                     infiniteRange = True
                     # This isn't a problem yet, but if new is also an
                     # infinite range, we're in trouble
-            if type(new) is Scalar:
+            if isinstance(new, Scalar):
                 new = str(new)
-            elif type(new) is Range:
+            elif isinstance(new, Range):
                 try:
                     len(new)
                 except ValueError:
@@ -3462,17 +3474,17 @@ class ProgramState:
                         return nil
             mapping = {}
             for oldChar, newChar in zip(old, new):
-                if type(oldChar) is str:
+                if isinstance(oldChar, str):
                     oldChar = ord(oldChar)
-                elif type(oldChar) is Scalar:
+                elif isinstance(oldChar, Scalar):
                     oldChar = oldChar.toNumber()
                 else:
                     self.err.warn("Cannot TRANSLITERATE from", type(oldChar),
                                   repr(oldChar))
                     continue
-                if type(newChar) is str:
+                if isinstance(newChar, str):
                     newChar = ord(newChar)
-                elif type(newChar) is Scalar:
+                elif isinstance(newChar, Scalar):
                     newChar = newChar.toNumber()
                 elif newChar is nil:
                     newChar = None
@@ -3489,16 +3501,16 @@ class ProgramState:
             return nil
 
     def TRIM(self, string, extra=None):
-        if type(string) is Range:
+        if isinstance(string, Range):
             # Apply memberwise to elements of Range (a flag takes care of the
             # List case
             return List(self.TRIM(element, extra) for element in string)
 
         if extra is None:
             front = back = 1
-        elif type(extra) is Scalar:
+        elif isinstance(extra, Scalar):
             front = back = int(extra)
-        elif type(extra) is Range:
+        elif isinstance(extra, Range):
             front = extra.getLower() or 0
             back = extra.getUpper() or 0
         elif extra is nil:
@@ -3508,7 +3520,7 @@ class ProgramState:
                           type(extra))
             return nil
 
-        if type(string) is Scalar:
+        if isinstance(string, Scalar):
             front = max(front, 0)
             back = max(back, 0)
             string = str(string)
@@ -3524,13 +3536,13 @@ class ProgramState:
         Each value appears in the result List/Scalar in the order
         of its first appearance in the original iterable.
         """
-        if type(iterable) is Range:
+        if isinstance(iterable, Range):
             # All values are already unique
             return iterable
-        elif type(iterable) is Nil:
+        elif isinstance(iterable, Nil):
             # This is not a warning--removing duplicates from nil leaves nil
             return nil
-        elif type(iterable) is List or type(iterable) is Scalar:
+        elif isinstance(iterable, List) or isinstance(iterable, Scalar):
             result = []
             previousItems = set()
             for item in iterable:
@@ -3539,9 +3551,9 @@ class ProgramState:
                 if item not in previousItems:
                     result.append(item)
                     previousItems.add(item)
-            if type(iterable) is List:
+            if isinstance(iterable, List):
                 return List(result)
-            elif type(iterable) is Scalar:
+            elif isinstance(iterable, Scalar):
                 return self.JOIN(result)
         else:
             self.err.warn("Unimplemented argtype for UNIQUE:",
@@ -3550,7 +3562,7 @@ class ProgramState:
 
     def UNWEAVE(self, iterable, strands=2):
         """Distribute items into multiple iterables; inverse of WEAVE."""
-        if type(iterable) is Range:
+        if isinstance(iterable, Range):
             try:
                 len(iterable)
             except ValueError:
@@ -3559,10 +3571,11 @@ class ProgramState:
                 return nil
             else:
                 iterable = List(iterable)
-        if type(iterable) in (List, Scalar) and type(strands) in (int, Scalar):
+        if (isinstance(iterable, PipIterable)
+                and isinstance(strands, (int, Scalar))):
             # Unweave the items from iterable into given number of "strands"
             # E.g. 123456789 UW 3 == [147 258 369]
-            if type(strands) is Scalar:
+            if isinstance(strands, Scalar):
                 strands = int(strands)
             if strands < 1:
                 self.err.warn(f"Cannot UNWEAVE into {strands} strands")
@@ -3570,9 +3583,9 @@ class ProgramState:
             result = [[] for i in range(strands)]
             for index, item in enumerate(iterable):
                 result[index % strands].append(item)
-            if type(iterable) is Scalar:
+            if isinstance(iterable, Scalar):
                 result = List(self.JOIN(item) for item in result)
-            elif type(iterable) is List:
+            elif isinstance(iterable, List):
                 result = List(List(item) for item in result)
             return result
         else:
@@ -3587,9 +3600,9 @@ class ProgramState:
             return nil
 
     def UPPERCASE(self, rhs):
-        if type(rhs) is Scalar:
+        if isinstance(rhs, Scalar):
             return Scalar(str(rhs).upper())
-        elif type(rhs) in (Range, Nil):
+        elif isinstance(rhs, (Range, Nil)):
             return rhs
         else:
             self.err.warn("Unimplemented argtype for UPPERCASE:", type(rhs))
@@ -3601,18 +3614,18 @@ class ProgramState:
             # Unary version: rhs is expected to be a list of iterables to be
             # woven together
             iterables = iterable1
-            if type(iterables) is Scalar:
+            if isinstance(iterables, Scalar):
                 # Weaving the characters just results in the same thing anyway
                 return iterables
-            elif type(iterables) in (List, Range):
+            elif isinstance(iterables, (List, Range)):
                 result = []
                 allScalar = True
                 for iterable in iterables:
-                    if type(iterable) in (List, Range):
+                    if isinstance(iterable, (List, Range)):
                         allScalar = False
                     elif iterable is nil:
                         iterable = Scalar("")
-                    elif type(iterable) is Scalar:
+                    elif isinstance(iterable, Scalar):
                         pass
                     else:
                         self.err.warn("Cannot weave object of type",
@@ -3632,15 +3645,16 @@ class ProgramState:
                 iterable1 = Scalar("")
             if iterable2 is nil:
                 iterable2 = Scalar("")
-            if (type(iterable1) in (List, Range, Scalar)
-                    and type(iterable2) in (List, Range, Scalar)):
+            if (isinstance(iterable1, PipIterable)
+                    and isinstance(iterable2, PipIterable)):
                 result = []
                 for i in range(max(len(iterable1), len(iterable2))):
                     if i < len(iterable1):
                         result.append(iterable1[i])
                     if i < len(iterable2):
                         result.append(iterable2[i])
-                if type(iterable1) is type(iterable2) is Scalar:
+                if (isinstance(iterable1, Scalar)
+                        and isinstance(iterable2, Scalar)):
                     return Scalar(self.JOIN(result))
                 else:
                     return List(result)
@@ -3651,8 +3665,8 @@ class ProgramState:
 
     def WRAP(self, string, outer):
         """Prepend and append characters around string."""
-        if (type(string) in (Scalar, Pattern)
-                and type(outer) in (Scalar, Pattern)):
+        if (isinstance(string, (Scalar, Pattern))
+                and isinstance(outer, (Scalar, Pattern))):
             return self.CAT(self.CAT(outer, string), outer)
         else:
             self.err.warn("Unimplemented argtypes for WRAP:",
@@ -3678,7 +3692,7 @@ class ProgramState:
     def ZEROGRID(self, rows, cols=None):
         if cols is None:
             cols = rows
-        if type(rows) is type(cols) is Scalar:
+        if isinstance(rows, Scalar) and isinstance(cols, Scalar):
             rows = range(int(rows))
             cols = range(int(cols))
             return List(List(Scalar("0") for col in cols)
@@ -3690,19 +3704,21 @@ class ProgramState:
     
     def ZIP(self, list1, list2=None):
         if list2 is None:
-            if type(list1) in (Scalar, List, Range):
+            if isinstance(list1, PipIterable):
                 lists = list1
             else:
                 self.err.warn("Trying to zip non-iterable:", type(list1))
                 return nil
         else:
             lists = [list1, list2]
-        noniterables = [item for item in lists if type(item) in (Nil, Block)]
+        noniterables = [item
+                        for item in lists
+                        if not isinstance(item, PipIterable)]
         if noniterables:
             # There are some of the "lists" that are not iterable
             # TBD: maybe this can find a non-error meaning?
             self.err.warn("Trying to zip non-iterable value(s):",
-                          noniterables)
+                          ", ".join(str(type(item)) for item in noniterables))
             return nil
         else:
             return List(List(tuple) for tuple in zip(*lists))
@@ -3710,9 +3726,9 @@ class ProgramState:
     def ZIPDEFAULT(self, lists, default=None):
         if default is None:
             default = nil
-        if type(lists) in (Scalar, List, Range):
+        if isinstance(lists, PipIterable):
             noniterables = [item for item in lists
-                            if type(item) in (Nil, Block)]
+                            if isinstance(item, (Nil, Block))]
             if noniterables:
                 # There are some of the "lists" that are not iterable
                 # TBD: maybe this can find a non-error meaning?
@@ -3730,7 +3746,7 @@ class ProgramState:
 
 class Lval:
     def __init__(self, base, sliceValue=None):
-        if type(base) is Lval:
+        if isinstance(base, Lval):
             self.base = base.base
             # Make sure to copy the slicelist so changes here don't modify the
             # original

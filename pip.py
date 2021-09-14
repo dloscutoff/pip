@@ -10,7 +10,7 @@ from ptypes import Scalar
 from execution import ProgramState
 from errors import FatalError
 
-VERSION = "0.21.09.13"
+VERSION = "0.21.09.14"
 
 def pip(code=None, argv=None, interactive=True):
     if code is not None or argv is not None:
@@ -21,17 +21,15 @@ def pip(code=None, argv=None, interactive=True):
         argv = input()
     if argv is not None:
         # Artificial command-line input was provided
-        if type(argv) is int:
-            argv = str(argv)
-        if type(argv) is list:
+        if isinstance(argv, list):
             # Args are already in list form, just make sure each one
             # is a string
             argv = [str(arg) for arg in argv]
-        elif type(argv) is str:
+        else:
             # Parse the fake command-line input, simplistically accepting
             # single- and double-quoted strings (with no escapes or shell
             # expansion)
-            argv_string = argv + " "
+            argv_string = str(argv) + " "
             argv = []
             quote = None
             buffer = None

@@ -4,15 +4,12 @@
 import re
 import itertools
 import sys
+import types
 
 zeroRgx = re.compile(r"^(0+(\.0*)?|0*\.0+)$")
 floatRgx = re.compile(r"-?\d+\.\d*|\.\d+")
 properFloatRgx = re.compile(r"-?\d+\.\d+")
 intRgx = re.compile(r"-?\d+")
-
-# Store the <generator> type in a variable, since it apparently doesn't have
-# a built-in name
-generator = type(i for i in [])
 
 
 class PipType:
@@ -22,15 +19,20 @@ class PipType:
         return hash(repr(self))
 
 
-class Scalar(PipType):
+class PipIterable(PipType):
+    """Base class for all iterable Pip types."""
+    pass
+
+
+class Scalar(PipIterable):
     """Represents a string or number."""
     
     def __init__(self, value=""):
         # Store the value as a Python string
-        if type(value) is bool:
+        if isinstance(value, bool):
             # Convert to an integer first
             value = int(value)
-        elif type(value) is float and int(value) == value:
+        elif isinstance(value, float) and int(value) == value:
             # Convert float with no fractional part to integer
             value = int(value)
         self._value = str(value)
@@ -67,9 +69,7 @@ class Scalar(PipType):
         return self._value != "" and not zeroRgx.match(self._value)
 
     def __eq__(self, rhs):
-        return type(rhs) == type(self) and self._value == rhs._value
-
-    __hash__ = PipType.__hash__
+        return type(self) is type(rhs) and self._value == rhs._value
     
     def __len__(self):
         return len(self._value)
@@ -87,26 +87,26 @@ class Scalar(PipType):
         return 0
 
     def __contains__(self, item):
-        if type(item) in (str, Scalar):
+        if isinstance(item, (str, Scalar)):
             return str(item) in self._value
         else:
             return False
 
     def __getitem__(self, index):
-        if type(index) is List:
+        if isinstance(index, List):
             return List(self[i] for i in index)
-        elif type(index) is Scalar:
+        elif isinstance(index, Scalar):
             index = int(index)
-        elif type(index) is Range:
+        elif isinstance(index, Range):
             index = index.toSlice()
         
-        if type(index) is int:
+        if isinstance(index, int):
             if self._value == "":
                 raise IndexError("Cannot index into empty string.")
             else:
                 index %= len(self._value)
                 return Scalar(self._value[index])
-        elif type(index) is slice:
+        elif isinstance(index, slice):
             if self._value == "":
                 # Slicing the empty string gives empty string
                 return self
@@ -132,7 +132,7 @@ class Scalar(PipType):
 
     def __setitem__(self, index, item):
         # Behold! Mutable strings!
-        if type(index) is int:
+        if isinstance(index, int):
             index %= len(self._value)
         value = list(self._value)
         value.__setitem__(index, str(item))
@@ -143,19 +143,19 @@ class Scalar(PipType):
             yield Scalar(char)
 
     def count(self, substring):
-        if type(substring) is Scalar:
+        if isinstance(substring, Scalar):
             return self._value.count(substring._value)
         else:
             return nil
 
     def index(self, searchItem, startIndex=0):
-        if type(searchItem) is Scalar:
+        if isinstance(searchItem, Scalar):
             try:
                 return Scalar(self._value.index(searchItem._value,
                                                 startIndex))
             except ValueError:
                 return nil
-        elif type(searchItem) in (List, Range):
+        elif isinstance(searchItem, (List, Range)):
             return List(self.index(subitem, startIndex)
                         for subitem in searchItem)
         else:
@@ -221,8 +221,6 @@ class Pattern(PipType):
 
     def __eq__(self, rhs):
         return type(rhs) == type(self) and self._raw == rhs._raw
-
-    __hash__ = PipType.__hash__
     
     def __len__(self):
         return len(self._raw)
@@ -235,7 +233,7 @@ class Pattern(PipType):
             yield Scalar(char)
 
 
-class List(PipType):
+class List(PipIterable):
     """Represents a list of objects."""
 
     # How to format a list when outputting it
@@ -251,18 +249,18 @@ class List(PipType):
 
     def __init__(self, value=None):
         # TODO: make this more robust to handle infinite Range or range
-        if type(value) in (Range,
-                           tuple,
-                           set,
-                           generator,
-                           map,
-                           zip,
-                           itertools.starmap,
-                           ):
+        if isinstance(value, (Range,
+                              tuple,
+                              set,
+                              types.GeneratorType,
+                              map,
+                              zip,
+                              itertools.starmap,
+                              )):
             self._value = [item for item in value]
-        elif type(value) in (List, list):
+        elif isinstance(value, (List, list)):
             self._value = [item.copy() for item in value]
-        elif type(value) is range:
+        elif isinstance(value, range):
             self._value = [Scalar(item) for item in value]
         elif value is None:
             self._value = []
@@ -287,7 +285,7 @@ class List(PipType):
         elif self.outFormat == "l":
             # Each item in the list is a line, which in turn is joined on
             # empty string
-            return "\n".join(i.joined("") if type(i) is List else str(i)
+            return "\n".join(i.joined("") if isinstance(i, List) else str(i)
                              for i in self._value)
         elif self.outFormat == "P":
             # Each item in the list is a line, which in turn is repr'd
@@ -295,11 +293,13 @@ class List(PipType):
         elif self.outFormat == "S":
             # Each item in the list is a line, which in turn is joined on
             # space
-            return "\n".join(i.joined(" ") if type(i) is List else str(i)
+            return "\n".join(i.joined(" ") if isinstance(i, List) else str(i)
                              for i in self._value)
 
     def joined(self, separator):
-        return separator.join(i.joined(separator) if type(i) is List else str(i)
+        return separator.join(i.joined(separator)
+                              if isinstance(i, List)
+                              else str(i)
                               for i in self._value)
 
     def __repr__(self):
@@ -310,8 +310,6 @@ class List(PipType):
 
     def __eq__(self, rhs):
         return type(rhs) == type(self) and self._value == rhs._value
-
-    __hash__ = PipType.__hash__
 
     def __len__(self):
         return len(self._value)
@@ -324,20 +322,20 @@ class List(PipType):
         return item in self._value
 
     def __getitem__(self, index):
-        if type(index) is List:
+        if isinstance(index, List):
             return List(self[i] for i in index)
-        elif type(index) is Scalar:
+        elif isinstance(index, Scalar):
             index = int(index)
-        elif type(index) is Range:
+        elif isinstance(index, Range):
             index = index.toSlice()
         
-        if type(index) is int:
+        if isinstance(index, int):
             if self._value == []:
                 raise IndexError("Cannot index into empty list.")
             else:
                 index %= len(self._value)
                 return self._value[index]
-        elif type(index) is slice:
+        elif isinstance(index, slice):
             if self._value == []:
                 # Slicing the empty list gives empty list
                 return self
@@ -362,7 +360,7 @@ class List(PipType):
             raise TypeError(f"Cannot use {type(index)} to index List")
 
     def __setitem__(self, index, item):
-        if type(index) is int:
+        if isinstance(index, int):
             index %= len(self._value)
         self._value.__setitem__(index, item)
 
@@ -389,28 +387,28 @@ class List(PipType):
             return nil
 
 
-class Range(PipType):
+class Range(PipIterable):
     """Represents a range of integer values."""
     # TODO: add a step parameter
 
     def __init__(self, value, upperVal=None):
-        if type(value) is Scalar:
+        if isinstance(value, Scalar):
             value = int(value)
-        elif type(value) in (range, slice):
+        elif isinstance(value, (range, slice)):
             # Convert from Python range or slice object
             upperVal = value.stop
             value = value.start
         elif value is nil:
             value = None
-        if type(upperVal) is Scalar:
+        if isinstance(upperVal, Scalar):
             upperVal = int(upperVal)
         
-        if type(value) is int or value is None:
+        if isinstance(value, int) or value is None:
             if upperVal is None:
                 # A single argument is actually the upper value
                 self._lower = None
                 self._upper = value
-            elif type(upperVal) in (int, Nil):
+            elif isinstance(upperVal, (int, Nil)):
                 self._lower = value
                 self._upper = upperVal if upperVal is not nil else None
             else:
@@ -450,8 +448,6 @@ class Range(PipType):
                 and self._lower == rhs._lower
                 and self._upper == rhs._upper)
 
-    __hash__ = PipType.__hash__
-
     def __len__(self):
         lower = self._lower or 0
         if self._upper is not None:
@@ -472,7 +468,7 @@ class Range(PipType):
     def __contains__(self, item):
         # TBD: Should this return true only for ints, or for any number
         # between lower and upper?
-        if type(item) is Scalar:
+        if isinstance(item, Scalar):
             if self._upper is None:
                 return (self._lower or 0) <= item.toNumber()
             else:
@@ -506,15 +502,15 @@ class Range(PipType):
                 i += 1
 
     def __getitem__(self, index):
-        if type(index) is List:
+        if isinstance(index, List):
             return List(self[i] for i in index)
-        elif type(index) is Scalar:
+        elif isinstance(index, Scalar):
             index = int(index)
-        elif type(index) is Range:
+        elif isinstance(index, Range):
             index = index.toSlice()
         
         lower = self._lower or 0
-        if type(index) is int:
+        if isinstance(index, int):
             if self._upper is not None:
                 length = len(self)
                 if length == 0:
@@ -530,7 +526,7 @@ class Range(PipType):
                     return nil
                 else:
                     return Scalar(lower + index)
-        elif type(index) is slice:
+        elif isinstance(index, slice):
             start, stop = index.start, index.stop
             if self._upper is not None:
                 length = len(self)
@@ -573,7 +569,7 @@ class Range(PipType):
                     return Range(newLower, newUpper)
     
     def count(self, number):
-        if type(number) is Scalar:
+        if isinstance(number, Scalar):
             if self._upper is None:
                 return (self._lower or 0) <= number.toNumber()
             else:
@@ -586,7 +582,7 @@ class Range(PipType):
                 return Scalar(index)
             else:
                 return nil
-        elif type(searchItem) in (List, Range):
+        elif isinstance(searchItem, (List, Range)):
             return List(self.index(subitem) for subitem in searchItem)
         else:
             return nil
@@ -595,7 +591,7 @@ class Range(PipType):
 class Block(PipType):
     """Represents a Pip function object."""
 
-    def __init__(self, statements, returnExpr):
+    def __init__(self, statements, returnExpr=None):
         self._statements = statements
         if returnExpr is None:
             self._returnExpr = nil
@@ -627,8 +623,6 @@ class Block(PipType):
         return (isinstance(rhs, Block)
                 and self._statements == rhs._statements
                 and self._returnExpr == rhs._returnExpr)
-
-    __hash__ = PipType.__hash__
 
     def toNumber(self):
         return 0
@@ -665,8 +659,6 @@ class Nil(PipType):
     def __eq__(self, rhs):
         return self is rhs
 
-    __hash__ = PipType.__hash__
-
     def toNumber(self):
         return 0
     
@@ -678,9 +670,12 @@ nil = Nil()
 
 
 def toPipType(pyObj):
-    if isinstance(pyObj, (str, int, float, bool)):
+    if isinstance(pyObj, PipType):
+        # The argument is already a Pip type, no need for conversion
+        return pyObj
+    elif isinstance(pyObj, (str, int, float, bool)):
         return Scalar(pyObj)
-    elif isinstance(pyObj, (list, tuple, set, generator, map)):
+    elif isinstance(pyObj, (list, tuple, set, types.GeneratorType, map)):
         return List(pyObj)
     elif isinstance(pyObj, (range, slice)):
         return Range(pyObj)

@@ -130,7 +130,7 @@ def scan(code):
 def addSpaces(code):
     """Returns a string of code with spaces between tokens.
 Useful for debugging."""
-    if type(code) is str:
+    if isinstance(code, str):
         tokens = tokenize(code)
     else:
         # Assume it's already tokenized
