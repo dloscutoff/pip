@@ -91,7 +91,7 @@ class ProgramState:
         elif exprType is not list:
             # ?!
             self.err.die("Implementation error: reached else branch of "
-                         "evaluate(%s)" % expression)
+                         f"evaluate({expression})")
 
         # If none of the above were true, then we're dealing with a parse tree
         # in the form of a list: [operator, arg1, arg2, ...]
@@ -208,7 +208,7 @@ class ProgramState:
                     result = opFunction(*args)
             except TypeError as e:
                 # Probably the wrong number of args
-                errMsg = "evaluate(%s) raised TypeError" % expression
+                errMsg = f"evaluate({expression}) raised TypeError"
                 self.err.die("Implementation error:", errMsg, e)
         #!print(fnName, "returned", result)
         return result
@@ -257,8 +257,8 @@ class ProgramState:
                     # in the Lval in case it gets evaluated again
                     result = expr.evaluated = self.specialVars[base]["get"]()
                 else:
-                    self.err.warn("Special var %s does not implement 'get'"
-                                  % base)
+                    self.err.warn(f"Special var {base} does not "
+                                  "implement 'get'")
                     return nil
             else:
                 # Get the variable from the appropriate variable table, nil if
@@ -277,9 +277,9 @@ class ProgramState:
                         self.err.warn("Cannot index into", type(result))
                         return nil
             except IndexError:
-                self.err.warn("Invalid index into %r:" % result, index)
+                self.err.warn(f"Invalid index into {result!r}:", index)
                 return nil
-            #!print("Return %r from getRval()" % result)
+            #!print(f"Return {result!r} from getRval()")
             return result.copy()
         else:
             self.err.die("Implementation error: unexpected type",
@@ -325,7 +325,7 @@ class ProgramState:
                 self.err.warn("Cannot assign to index/slice of special var",
                               base)
             elif "set" not in self.specialVars[base]:
-                self.err.warn("Special var %s does not implement 'set'" % base)
+                self.err.warn(f"Special var {base} does not implement 'set'")
             else:
                 self.specialVars[base]["set"](rval)
             return
@@ -349,14 +349,14 @@ class ProgramState:
         
         if type(currentVal) in (List, Scalar):
             # Assignment to a subindex
-            #!print("Before assign, variable %r is" % base, currentVal)
+            #!print(f"Before assign, variable {base!r} is {currentVal}")
             # Dig down through the levels--only works if each level is a List
             # and each index is a single number
             for index in lval.sliceList[:-1]:
                 try:
                     currentVal = currentVal[index]
                 except IndexError:
-                    self.err.warn("Invalid index into %r: %s" % (result, index))
+                    self.err.warn(f"Invalid index into {result!r}: {index}")
                     return
                 
             # Final level--do the assignment
@@ -408,7 +408,7 @@ class ProgramState:
         self.assign(Lval("$$"), List(groups[1:]))
         # Assign specific groups to variables $0 through $9
         for i in range(10):
-            matchVar = Lval("$%d" % i)
+            matchVar = Lval(f"${i}")
             if i < len(groups):
                 self.assign(matchVar, groups[i])
             else:
@@ -677,7 +677,7 @@ class ProgramState:
         elif type(lhs) is Pattern and type(rhs) is Pattern:
             # + with two Patterns returns a new Pattern that matches one,
             # then the other
-            result = "(?:%s)(?:%s)" % (lhs, rhs)
+            result = f"(?:{lhs})(?:{rhs})"
             return Pattern(result)
         else:
             self.err.warn("Unimplemented argtypes for ADD:",
@@ -782,8 +782,7 @@ class ProgramState:
                     try:
                         result = lhs.base[index]
                     except IndexError:
-                        self.err.warn("Invalid index into %r: %s"
-                                      % (lhs, index))
+                        self.err.warn(f"Invalid index into {lhs!r}: {index}")
                         return nil
                     if type(result) is List:
                         return Lval(result)
@@ -823,7 +822,7 @@ class ProgramState:
             try:
                 return lhs[index]
             except IndexError:
-                self.err.warn("Invalid index into %r: %s" % (lhs, index))
+                self.err.warn(f"Invalid index into {lhs!r}: {index}")
                 return nil
         else:
             self.err.warn("Cannot index into", type(lhs))
@@ -932,7 +931,7 @@ class ProgramState:
             return Scalar(result)
         elif type(rhs) is Pattern:
             # C operator on Pattern wraps the regex in a capturing group
-            result = "(%s)" % str(rhs)
+            result = f"({rhs})"
             return Pattern(result)
         else:
             self.err.warn("Unimplemented argtype for CHR:", type(rhs))
@@ -1487,14 +1486,14 @@ class ProgramState:
         if type(rhs) is Scalar:
             regex = re.escape(str(rhs))
             if len(rhs) > 1:
-                regex = "(?:%s)" % regex
+                regex = f"(?:{regex})"
             return Pattern(regex + "*")
         elif type(rhs) is Range:
             return Pattern("(?:"
                            + "|".join(str(item) for item in rhs)
                            + ")*")
         elif type(rhs) is Pattern:
-            result = "(?:%s)*" % str(rhs)
+            result = f"(?:{str(rhs)})*"
             return Pattern(result)
         else:
             self.err.warn("Unimplemented argtype for KLEENESTAR:", type(rhs))
@@ -1814,7 +1813,7 @@ class ProgramState:
                     arglist = []
                 except TypeError:
                     # This happens when one of the items is a non-iterable type
-                    self.err.warn("Cannot unpack %s in MAPUNPACK" % item)
+                    self.err.warn(f"Cannot unpack {item} in MAPUNPACK")
                     arglist = []
                 result.append(self.functionCall(function, arglist))
             return List(result)
@@ -1903,7 +1902,7 @@ class ProgramState:
         elif type(lhs) is Pattern and type(rhs) is Scalar:
             # * with a Pattern and a Scalar returns a new Pattern that matches
             # the original regex repeated rhs times
-            result = "(?:%s){%s}" % (lhs, int(rhs))
+            result = f"(?:{lhs}){{{int(rhs)}}}"
             return Pattern(result)
         else:
             self.err.warn("Unimplemented argtypes for MUL:",
@@ -2408,7 +2407,7 @@ class ProgramState:
             return rhs
         elif type(rhs) is Pattern:
             # + operator on Pattern applies regex + to the whole thing
-            result = "(?:%s)+" % rhs
+            result = f"(?:{rhs})+"
             return Pattern(result)
         else:
             self.err.warn("Unimplemented argtype for POS:", type(rhs))
@@ -2621,7 +2620,7 @@ class ProgramState:
         elif type(lower) is Pattern and type(upper) is Pattern:
             # , with two Patterns returns a new Pattern that matches one OR
             # the other
-            result = "(?:%s)|(?:%s)" % (lower, upper)
+            result = f"(?:{lower})|(?:{upper})"
             return Pattern(result)
         else:
             self.err.warn("Unimplemented argtypes for RANGE:",
@@ -3389,7 +3388,7 @@ class ProgramState:
             alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             result = ""
             while number > 0:
-                result = alphabet[number%base] + result
+                result = alphabet[number % base] + result
                 number //= base
             return Scalar(sign + result)
         else:
@@ -3566,11 +3565,11 @@ class ProgramState:
             if type(strands) is Scalar:
                 strands = int(strands)
             if strands < 1:
-                self.err.warn("Cannot UNWEAVE into %d strands" % strands)
+                self.err.warn(f"Cannot UNWEAVE into {strands} strands")
                 return nil
             result = [[] for i in range(strands)]
             for index, item in enumerate(iterable):
-                result[index%strands].append(item)
+                result[index % strands].append(item)
             if type(iterable) is Scalar:
                 result = List(self.JOIN(item) for item in result)
             elif type(iterable) is List:

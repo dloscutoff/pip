@@ -440,13 +440,13 @@ for precedence, (arity, associativity, *entries) in enumerate(precedenceTable):
             # TODO: proper implementation error message
             msg = ("Current implementation cannot handle LIST_EACH or "
                    "RANGE_EACH for operators\n of arity greater than 2 "
-                   "(like %s)" % text)
+                   f"(like {text})")
             print(msg)
             flags = flags & ~LIST_EACH & ~RANGE_EACH
         if flags & IN_LAMBDA and not flags & (VALS | RVALS):
             # TODO: proper implementation error message
-            msg = "IN_LAMBDA may not be set for operators that do not also"
-            msg += "set VALS or RVALS\n (%s)" % text
+            msg = ("IN_LAMBDA may not be set for operators that do not "
+                   f"also set VALS or RVALS\n ({text})")
             print(msg)
             flags = flags & ~IN_LAMBDA
         op = Operator(text,

@@ -128,7 +128,7 @@ class Scalar(PipType):
                 repString += self._value
             return Scalar(repString[start:stop])
         else:
-            raise TypeError("Cannot use %s to index Scalar" % type(index))
+            raise TypeError(f"Cannot use {type(index)} to index Scalar")
 
     def __setitem__(self, index, item):
         # Behold! Mutable strings!
@@ -173,7 +173,7 @@ class Pattern(PipType):
     def asRegex(self):
         if not self._compiled:
             # Add an extra <all> capture group around the whole thing
-            pyRegex = "(?P<all>%s)" % self._raw
+            pyRegex = f"(?P<all>{self._raw})"
             # Increment the numbers of all back-references
             pyRegex = re.sub(r"(?<!\\)((?:\\{2})*)\\([1-9]\d?)",
                              lambda m: (m.group(1)
@@ -268,7 +268,7 @@ class List(PipType):
             self._value = []
         else:
             self._value = []
-            raise TypeError("Cannot convert %s to List" % type(value))
+            raise TypeError(f"Cannot convert {type(value)} to List")
 
     def copy(self):
         return List(item.copy() for item in self._value)
@@ -359,7 +359,7 @@ class List(PipType):
                 repList += self._value
             return List(repList[start:stop])
         else:
-            raise TypeError("Cannot use %s to index List" % type(index))
+            raise TypeError(f"Cannot use {type(index)} to index List")
 
     def __setitem__(self, index, item):
         if type(index) is int:
@@ -414,9 +414,9 @@ class Range(PipType):
                 self._lower = value
                 self._upper = upperVal if upperVal is not nil else None
             else:
-                raise TypeError("Cannot convert %s to Range" % type(upperVal))
+                raise TypeError(f"Cannot convert {type(upperVal)} to Range")
         else:
-            raise TypeError("Cannot convert %s to Range" % type(value))
+            raise TypeError(f"Cannot convert {type(value)} to Range")
 
     def copy(self):
         return Range(self._lower,
@@ -439,7 +439,7 @@ class Range(PipType):
     def __repr__(self):
         lower = self._lower if self._lower is not None else "()"
         upper = self._upper if self._upper is not None else "()"
-        return "(%s,%s)" % (lower, upper)
+        return f"({lower},{upper})"
 
     def __bool__(self):
         # TBD: can this ever return false?
@@ -687,5 +687,5 @@ def toPipType(pyObj):
     elif pyObj is None:
         return nil
     else:
-        raise TypeError("Cannot convert %s to Pip type" % type(pyObj))
+        raise TypeError(f"Cannot convert {type(pyObj)} to Pip type")
 
