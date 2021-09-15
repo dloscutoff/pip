@@ -4,6 +4,7 @@ import math
 import random
 import re
 
+import version
 import tokens
 import operators as ops
 import parsing
@@ -561,6 +562,8 @@ class ProgramState:
             "CZ": Scalar("bcdfghjklmnpqrstvwxyz"),
             "PA": Scalar("".join(chr(i) for i in range(32, 127))),
             "PI": Scalar(math.pi),
+            "VD": Scalar(version.COMMIT_DATE),
+            "VN": Scalar(version.VERSION),
             "VW": Scalar("aeiou"),
             "VY": Scalar("aeiouy"),
             "XA": Pattern("[A-Za-z]"),

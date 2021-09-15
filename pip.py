@@ -4,19 +4,19 @@ import sys
 import argparse
 import pprint
 
+import version
 from scanning import scan, addSpaces
 from parsing import parse
 from ptypes import Scalar
 from execution import ProgramState
 from errors import FatalError
 
-VERSION = "0.21.09.14"
 
 def pip(code=None, argv=None, interactive=True):
     if code is not None or argv is not None:
         interactive = False
     if interactive:
-        print(f"=== Welcome to Pip, version {VERSION} ===")
+        print(f"=== Welcome to Pip, version {version.VERSION} ===")
         print("Enter command-line args, terminated by newline (-h for help):")
         argv = input()
     if argv is not None:
@@ -131,7 +131,7 @@ def pip(code=None, argv=None, interactive=True):
     #!print(options)
 
     if options.version:
-        print(f"Pip {VERSION}")
+        print(f"Pip {version.VERSION} (updated {version.COMMIT_DATE})")
         return
     if options.debug:
         options.warnings = options.verbose = options.repr = True
