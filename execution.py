@@ -14,8 +14,10 @@ from ptypes import (PipType, PipIterable, Scalar, Pattern, List, Range,
 import ptypes
 from errors import ErrorReporter, FatalError
 
-# Generate a Scalar constant 1 now to make (in|de)crements more efficient
-scalarOne = Scalar(1)
+# Generate some Scalar constants now to make certain operations more efficient
+SCALAR_EMPTY = Scalar("")
+SCALAR_ONE = Scalar("1")
+SCALAR_TWO = Scalar("2")
 
 
 class ProgramState:
@@ -539,7 +541,7 @@ class ProgramState:
             "_": Block([], tokens.Name("a")),
             "h": Scalar("100"),
             "i": Scalar("0"),
-            #j
+            #j is reserved for complex numbers
             "k": Scalar(", "),
             "l": List([]),
             "m": Scalar("1000"),
@@ -611,7 +613,7 @@ class ProgramState:
                 elif operator.associativity == "C":
                     # Chaining fold for chaining operators
                     if len(iterable) == 1:
-                        foldValue = scalarOne
+                        foldValue = Scalar("1")
                     else:
                         chainExpr = [ops.chain, iterable[0]]
                         for val in iterable[1:]:
@@ -998,7 +1000,7 @@ class ProgramState:
         
     def DEC(self, rhs):
         minus = ops.opsByArity[2]["-"]
-        result = self.evaluate([minus, self.getRval(rhs), scalarOne])
+        result = self.evaluate([minus, self.getRval(rhs), SCALAR_ONE])
         if isinstance(rhs, Lval):
             # Subtract one and assign back to rhs
             self.assign(rhs, result)
@@ -1292,7 +1294,7 @@ class ProgramState:
             matchObj = regex.asRegex().fullmatch(str(string))
             if matchObj:
                 self.assignRegexVars(matchObj)
-                return scalarOne
+                return Scalar("1")
             else:
                 return Scalar("0")
         else:
@@ -1302,7 +1304,7 @@ class ProgramState:
 
     def GROUP(self, iterable, rhs=None):
         if rhs is None:
-            rhs = Scalar(2)
+            rhs = SCALAR_TWO
         if isinstance(rhs, (List, Range)):
             # Group by each rhs and return a list of iterables
             return List(self.GROUP(iterable, jump) for jump in rhs)
@@ -1343,7 +1345,7 @@ class ProgramState:
         if isinstance(rhs, Scalar):
             result = []
             for row in range(int(rhs)):
-                subresult = [scalarOne if row == col else Scalar(0)
+                subresult = [Scalar("1" if row == col else "0")
                              for col in range(int(rhs))]
                 result.append(List(subresult))
             return List(result)
@@ -1386,7 +1388,7 @@ class ProgramState:
 
     def INC(self, rhs):
         plus = ops.opsByArity[2]["+"]
-        result = self.evaluate([plus, self.getRval(rhs), scalarOne])
+        result = self.evaluate([plus, self.getRval(rhs), SCALAR_ONE])
         if isinstance(rhs, Lval):
             # Add one and assign back to rhs
             self.assign(rhs, result)
@@ -1797,7 +1799,7 @@ class ProgramState:
 
         a MS b == $+(a M b)
         """
-        result = Scalar(0)
+        result = Scalar("0")
         plus = ops.opsByArity[2]["+"]
         for item in self.MAP(function, iterable):
             result = self.evaluate([plus, result, item])
@@ -1890,7 +1892,7 @@ class ProgramState:
     def MOD(self, lhs, rhs=None):
         if rhs is None:
             # Unary version takes its argument mod 2
-            rhs = Scalar(2)
+            rhs = SCALAR_TWO
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             try:
                 result = lhs.toNumber() % rhs.toNumber()
@@ -1965,7 +1967,7 @@ class ProgramState:
         # 0 if equal, 1 if lhs > rhs
         # Here we can just piggyback off the Pip numeric comparison operators
         if self.NUMGREATER(lhs, rhs):
-            return scalarOne
+            return Scalar("1")
         elif self.NUMLESS(lhs, rhs):
             return Scalar("-1")
         else:
@@ -2427,7 +2429,7 @@ class ProgramState:
         if rhs is None:
             # Unary **a is short for 2**a
             rhs = lhs
-            lhs = Scalar(2)
+            lhs = SCALAR_TWO
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             lhs = lhs.toNumber()
             rhs = rhs.toNumber()
@@ -2453,7 +2455,7 @@ class ProgramState:
         if rhs is None:
             # Unary EEa is short for 1EEa
             rhs = lhs
-            lhs = Scalar(1)
+            lhs = SCALAR_ONE
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             lhs = lhs.toNumber()
             rhs = rhs.toNumber()
@@ -2852,7 +2854,7 @@ class ProgramState:
     def RIGHTOF(self, lhs, rhs=None):
         if rhs is None:
             # The unary version gives all but the leftmost character
-            rhs = scalarOne
+            rhs = SCALAR_ONE
         if isinstance(rhs, Lval):
             rhs = self.getRval(rhs)
         if isinstance(lhs, Lval) and isinstance(rhs, Scalar):
@@ -2973,11 +2975,11 @@ class ProgramState:
         if isinstance(rhs, Scalar):
             rhs = rhs.toNumber()
             if rhs < 0:
-                return Scalar(-1)
+                return Scalar("-1")
             elif rhs > 0:
-                return scalarOne
+                return Scalar("1")
             else:
-                return Scalar(0)
+                return Scalar("0")
         else:
             self.err.warn("Unimplemented argtype for SIGN:", type(rhs))
             return nil
@@ -3623,11 +3625,12 @@ class ProgramState:
             elif isinstance(iterables, (List, Range)):
                 result = []
                 allScalar = True
-                for iterable in iterables:
+                for i, iterable in enumerate(iterables):
                     if isinstance(iterable, (List, Range)):
                         allScalar = False
                     elif iterable is nil:
-                        iterable = Scalar("")
+                        # Replace nil with empty string
+                        iterables[i] = SCALAR_EMPTY
                     elif isinstance(iterable, Scalar):
                         pass
                     else:
@@ -3645,9 +3648,9 @@ class ProgramState:
         else:
             # Binary version: two iterables to be woven together
             if iterable1 is nil:
-                iterable1 = Scalar("")
+                iterable1 = SCALAR_EMPTY
             if iterable2 is nil:
-                iterable2 = Scalar("")
+                iterable2 = SCALAR_EMPTY
             if (isinstance(iterable1, PipIterable)
                     and isinstance(iterable2, PipIterable)):
                 result = []
