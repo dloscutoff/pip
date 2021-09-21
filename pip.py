@@ -176,6 +176,13 @@ def pip(code=None, argv=None, interactive=True):
                 program += input() + "\n"
         except EOFError:
             pass
+        if program:
+            program = program[:-1]
+    if options.verbose:
+        charcount = len(program)
+        bytecount = len(program.encode("utf-8"))
+        print(f"{bytecount} bytes (UTF-8), {charcount} characters")
+        print()
     try:
         tokens = scan(program)
     except FatalError:
