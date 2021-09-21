@@ -392,9 +392,8 @@ class ProgramState:
         # Open a new scope for the function's local variables
         self.callDepth += 1
         self.locals.append({})
-        for i, arg in enumerate(argList[:5]):
-            variable = Lval("abcde"[i])
-            self.assign(variable, arg)
+        for name, arg in zip("abcde", argList):
+            self.assign(Lval(name), arg)
         self.assign(Lval("f"), function)
         self.assign(Lval("g"), List(argList))
         for statement in function.getStatements():
