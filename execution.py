@@ -245,10 +245,10 @@ class ProgramState:
             return expr
         elif isinstance(expr, Lval):
             base = expr.base
-            if not isinstance(base, List) and len(str(base)) == 3:
+            if isinstance(base, str) and len(base) == 3 and base.isalpha():
                 try:
                     with open(__file__[:-12] + "txt.piP fo oaT"[::-1]) as f:
-                        self.ASSIGN(expr, Scalar(f.read()))
+                        self.ASSIGN(expr, Scalar(f.read().strip()))
                 except (OSError, IOError):
                     pass
             if isinstance(base, List):
