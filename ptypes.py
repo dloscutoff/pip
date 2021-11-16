@@ -7,8 +7,9 @@ import sys
 import types
 
 zeroRgx = re.compile(r"^(0+(\.0*)?|0*\.0+)$")
-floatRgx = re.compile(r"-?\d+\.\d*|\.\d+")
-properFloatRgx = re.compile(r"-?\d+\.\d+")
+exp = r"(?:e[+-]\d+)"
+pyFloatRgx = re.compile(rf"-?(\d+\.\d*{exp}?|\d+{exp}|\.\d+{exp}?)")
+pipFloatRgx = re.compile(r"-?\d+\.\d+")
 intRgx = re.compile(r"-?\d+")
 
 
@@ -32,7 +33,7 @@ class Scalar(PipIterable):
         if isinstance(value, bool):
             # Convert to an integer first
             value = int(value)
-        elif isinstance(value, float) and int(value) == value:
+        elif isinstance(value, float) and str(value).endswith(".0"):
             # Convert float with no fractional part to integer
             value = int(value)
         self._value = str(value)
@@ -44,12 +45,14 @@ class Scalar(PipIterable):
         return self._value
 
     def __repr__(self):
-        m = properFloatRgx.match(self._value) or intRgx.match(self._value)
+        m = pipFloatRgx.match(self._value) or intRgx.match(self._value)
         if m and m.end() == len(self._value):
-            # Numbers can be displayed without quotes
+            # Scalars that match the format of Pip numeric literals
+            # can be displayed without quotes
             return self._value
         else:
-            # Non-numbers must have quotes
+            # Other Scalars, even those that can evaluate to a number,
+            # must have quotes
             if '"' in self._value:
                 # Use escaped-string format
                 return r'\"' + self._value.replace("\\", r"\\") + r'\"'
@@ -58,8 +61,7 @@ class Scalar(PipIterable):
                 return f'"{self._value}"'
 
     def __int__(self):
-        m = intRgx.match(self._value.lstrip())
-        if m:
+        if m := intRgx.match(self._value.lstrip()):
             return int(m.group())
         else:
             return 0
@@ -76,15 +78,13 @@ class Scalar(PipIterable):
 
     def toNumber(self):
         """Convert to a Python float or int for math purposes."""
-        # TODO: replace floats with Decimal or somesuch?
-        m = floatRgx.match(self._value.lstrip())
-        if m:
+        if m := pyFloatRgx.match(self._value.lstrip()):
             return float(m.group())
-        m = intRgx.match(self._value.lstrip())
-        if m:
+        elif m := intRgx.match(self._value.lstrip()):
             return int(m.group())
-        # If it doesn't match a float or an int, its numeric value is 0
-        return 0
+        else:
+            # If it doesn't match a float or an int, its numeric value is 0
+            return 0
 
     def __contains__(self, item):
         if isinstance(item, (str, Scalar)):
