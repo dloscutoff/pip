@@ -1,5 +1,7 @@
 
 import sys
+import re
+
 
 class FatalError(Exception):
     """Class for throwing fatal errors."""
@@ -14,16 +16,15 @@ class ErrorReporter:
     
     def warn(self, *message):
         """Print a nonfatal error if warnings are turned on."""
-        # Covert built-in Pip types in the message to strings of their names
-        message = (str(item)[15:-2] if "ptypes" in str(item) else item
-                   for item in message)
         if self._warnings:
-            print(*message, file=sys.stderr)
+            print(*map(rewritePtypes, message), file=sys.stderr)
 
     def die(self, *message):
         """Print a fatal error and exit."""
-        # Covert built-in Pip types in the message to strings of their names
-        message = (str(item)[15:-2] if "ptypes" in str(item) else item
-                   for item in message)
-        print(*message, file=sys.stderr)
+        print(*map(rewritePtypes, message), file=sys.stderr)
         raise FatalError()
+
+
+def rewritePtypes(message):
+    """Convert references to Pip types in a message to just their names."""
+    return re.sub(r"<class 'ptypes\.(\w+)'>", r"\1", str(message))
