@@ -216,8 +216,8 @@ class ProgramState:
                     result = opFunction(*args)
             except TypeError as e:
                 # Probably the wrong number of args
-                errMsg = f"evaluate({expression}) raised TypeError"
-                self.err.die("Implementation error:", errMsg, e)
+                self.err.die(f"Implementation error: evaluate({expression}) "
+                             "raised TypeError:", e)
         #!print(fnName, "returned", result)
         return result
 
@@ -819,7 +819,9 @@ class ProgramState:
                 result.append(groups[0])
             return List(result)
         elif isinstance(rhs, Pattern) and isinstance(lhs, (List, Range)):
-            return List(self.AT(sub, rhs) for sub in lhs)
+            return List(self.AT(item, rhs) for item in lhs)
+        elif isinstance(rhs, List) and isinstance(lhs, PipIterable):
+            return List(self.AT(lhs, item) for item in rhs)
         elif isinstance(lhs, PipIterable):
             try:
                 if len(lhs) == 0:
