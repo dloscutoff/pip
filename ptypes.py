@@ -72,7 +72,9 @@ class Scalar(PipIterable):
 
     def __eq__(self, rhs):
         return type(self) is type(rhs) and self._value == rhs._value
-    
+
+    __hash__ = PipIterable.__hash__
+
     def __len__(self):
         return len(self._value)
 
@@ -221,7 +223,9 @@ class Pattern(PipType):
 
     def __eq__(self, rhs):
         return type(rhs) == type(self) and self._raw == rhs._raw
-    
+
+    __hash__ = PipType.__hash__
+
     def __len__(self):
         return len(self._raw)
 
@@ -310,6 +314,8 @@ class List(PipIterable):
 
     def __eq__(self, rhs):
         return type(rhs) == type(self) and self._value == rhs._value
+
+    __hash__ = PipIterable.__hash__
 
     def __len__(self):
         return len(self._value)
@@ -447,6 +453,8 @@ class Range(PipIterable):
         return (type(self) is type(rhs)
                 and self._lower == rhs._lower
                 and self._upper == rhs._upper)
+
+    __hash__ = PipIterable.__hash__
 
     def __len__(self):
         lower = self._lower or 0
@@ -624,6 +632,8 @@ class Block(PipType):
                 and self._statements == rhs._statements
                 and self._returnExpr == rhs._returnExpr)
 
+    __hash__ = PipType.__hash__
+
     def toNumber(self):
         return 0
 
@@ -658,6 +668,8 @@ class Nil(PipType):
 
     def __eq__(self, rhs):
         return self is rhs
+
+    __hash__ = PipType.__hash__
 
     def toNumber(self):
         return 0
