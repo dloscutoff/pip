@@ -2480,28 +2480,8 @@ class ProgramState:
             return List(self.PREFIX(lhs, length) for length in rhs)
         elif isinstance(rhs, Scalar):
             sliceLength = int(rhs)
-            if sliceLength < 0:
-                # A negative sliceLength means "all but that many";
-                # slice from the beginning to len(lhs) + sliceLength
-                if isinstance(lhs, Lval):
-                    lhsRval = self.getRval(lhs)
-                else:
-                    lhsRval = lhs
-                try:
-                    lhsLength = len(lhsRval)
-                except ValueError:
-                    self.err.warn("In PREFIX, cannot index from end "
-                                  "of infinite Range")
-                    return nil
-                except TypeError:
-                    self.err.warn("Unimplemented argtypes for PREFIX:",
-                                  type(lhsRval), "and", type(rhs))
-                    return nil
-                else:
-                    index = slice(None, lhsLength + sliceLength)
-            else:
-                # Slice from the beginning to sliceLength
-                index = slice(None, sliceLength)
+            # Slice from the beginning to sliceLength
+            index = slice(None, sliceLength)
         if isinstance(lhs, Lval) and index is not None:
             return Lval(lhs, index)
         elif isinstance(lhs, PipIterable) and index is not None:
@@ -3317,27 +3297,11 @@ class ProgramState:
             return List(self.SUFFIX(lhs, length) for length in rhs)
         elif isinstance(rhs, Scalar):
             sliceLength = int(rhs)
-            if sliceLength >= 0:
-                # Slice from len(lhs) - sliceLength to the end
-                if isinstance(lhs, Lval):
-                    lhsRval = self.getRval(lhs)
-                else:
-                    lhsRval = lhs
-                try:
-                    lhsLength = len(lhsRval)
-                except ValueError:
-                    self.err.warn("In SUFFIX, cannot index from end "
-                                  "of infinite Range")
-                    return nil
-                except TypeError:
-                    self.err.warn("Unimplemented argtypes for SUFFIX:",
-                                  type(lhsRval), "and", type(rhs))
-                    return nil
-                else:
-                    index = slice(lhsLength - sliceLength, None)
+            if sliceLength == 0:
+                # A sliceLength of 0 gives an empty slice
+                index = slice(0, 0)
             else:
-                # A negative sliceLength means "all but that many";
-                # slice from -sliceLength to the end
+                # Slice from -sliceLength to the end
                 index = slice(-sliceLength, None)
         if isinstance(lhs, Lval) and index is not None:
             return Lval(lhs, index)
