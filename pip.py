@@ -69,6 +69,10 @@ def pip(code=None, argv=None, interactive=True):
                              "--stdin",
                              help="execute code read from stdin",
                              action="store_true")
+    codeSources.add_argument("-R",
+                             "--repl",
+                             help="run as a read-eval-print loop",
+                             action="store_true")
     listFormats.add_argument("-l",
                              "--lines",
                              help=("output list items on separate lines, "
@@ -142,6 +146,9 @@ def pip(code=None, argv=None, interactive=True):
                   "n" if options.newline else
                   "l" if options.lines else
                   None)
+    if options.repl:
+        repl()
+        sys.exit(0)
     if (code is None and options.execute is None and options.file is None
             and not options.stdin):
         if interactive:
@@ -261,6 +268,43 @@ def pip(code=None, argv=None, interactive=True):
     except KeyboardInterrupt:
         print("Program terminated by user.", file=sys.stderr)
         sys.exit(1)
+
+def repl():
+    print(f"Pip {version.VERSION}")
+    state = ProgramState()   # TODO: list format & warnings flag
+    try:
+        while True:
+            code = input(">> ") + "\n"
+            while True:
+                try:
+                    tokens = scan(code)
+                    parse_tree = parse(tokens)
+                except FatalError:
+                    # Error while scanning or parsing; assume that this is
+                    # due to an incomplete string/expression/command and
+                    # read another line
+                    code += input(".. ") + "\n"
+                else:
+                    # Code scanned and parsed correctly, so break out of
+                    # this loop and execute it
+                    break
+            if code.lower().strip() in (";quit", ";q", ";exit", ";x"):
+                break
+            try:
+                for statement in parse_tree:
+                    result = state.executeStatement(statement)
+                    state.PRINT(state.REPR(state.getRval(result)))
+            except FatalError:
+                print("Fatal error during execution.", file=sys.stderr)
+            except KeyboardInterrupt:
+                print("Execution interrupted by user.", file=sys.stderr)
+            except RuntimeError as err:
+                # Probably exceeded Python's max recursion depth
+                print("Fatal error:", err, file=sys.stderr)
+    except KeyboardInterrupt:
+        pass
+    print("Bye!")
+
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
