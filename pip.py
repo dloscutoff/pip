@@ -9,7 +9,7 @@ from scanning import scan, addSpaces
 from parsing import parse
 from ptypes import Scalar
 from execution import ProgramState
-from errors import FatalError
+from errors import FatalError, BadSyntax, IncompleteSyntax
 
 
 def pip(code=None, argv=None, interactive=True):
@@ -275,32 +275,37 @@ def repl():
     try:
         while True:
             code = input(">> ") + "\n"
-            while True:
-                try:
-                    tokens = scan(code)
-                    parse_tree = parse(tokens)
-                except FatalError:
-                    # Error while scanning or parsing; assume that this is
-                    # due to an incomplete string/expression/command and
-                    # read another line
-                    code += input(".. ") + "\n"
-                else:
-                    # Code scanned and parsed correctly, so break out of
-                    # this loop and execute it
-                    break
+            parse_tree = None
+            try:
+                while parse_tree is None:
+                    try:
+                        tokens = scan(code)
+                        parse_tree = parse(tokens)
+                    except IncompleteSyntax:
+                        # Error while scanning or parsing due to an
+                        # incomplete string/expression/command; read
+                        # another line, add it to the code, and try again
+                        code += input(".. ") + "\n"
+            except BadSyntax as err:
+                # Error while scanning or parsing that cannot be
+                # resolved by adding more code to the end; give up
+                # on this code and start over
+                print("Syntax error:", err, file=sys.stderr)
+                continue
+            # Some Pip comments are used as repl commands
             if code.lower().strip() in (";quit", ";q", ";exit", ";x"):
+                # Exit the repl
                 break
             try:
                 for statement in parse_tree:
                     result = state.executeStatement(statement)
                     state.PRINT(state.REPR(state.getRval(result)))
-            except FatalError:
-                print("Fatal error during execution.", file=sys.stderr)
+            except (FatalError, RuntimeError) as err:
+                # RuntimeError probably means we exceeded Python's
+                # max recursion depth
+                print("Fatal error:", err, file=sys.stderr)
             except KeyboardInterrupt:
                 print("Execution interrupted by user.", file=sys.stderr)
-            except RuntimeError as err:
-                # Probably exceeded Python's max recursion depth
-                print("Fatal error:", err, file=sys.stderr)
     except KeyboardInterrupt:
         pass
     print("Bye!")
