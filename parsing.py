@@ -5,7 +5,7 @@ import tokens
 import ptypes  # TBD: add another class or two to tokens and refactor this
                # dependency? Would allow ptypes to import isExpr, which might
                # be helpful for Blocks...?
-from errors import ErrorReporter
+from errors import ErrorReporter, BadSyntax, IncompleteSyntax
 
 assignOp = operators.opsByArity[2][":"]
 err = ErrorReporter(warnings=True)  # TODO: get this setting from the args?
@@ -23,7 +23,8 @@ def parse(tokenList):
 def parseStatement(tokenList):
     "Parse a statement from the beginning of the token list."
     if tokenList[0] is None:
-        err.die("Hit end of tokens while parsing statement")
+        err.die("Hit end of tokens while parsing statement",
+                errorClass=IncompleteSyntax)
     elif isinstance(tokenList[0], tokens.Command):
         token = tokenList.pop(0)
         command = operators.commands[token]
@@ -72,12 +73,14 @@ def parseNameList(tokenList):
         tokenList.pop(0)
         if len(nameList) == 1:
             # No names in the list, just the enlist operator
-            err.die("List of names in for-loop header cannot be empty")
+            err.die("List of names in for-loop header cannot be empty",
+                    errorClass=BadSyntax)
     elif tokenList[0] is None:
-        err.die("Unterminated list of names in for-loop header")
+        err.die("Unterminated list of names in for-loop header",
+                errorClass=IncompleteSyntax)
     else:
         err.die("For-loop header must be name or list of names, not",
-                tokenList[0])
+                tokenList[0], errorClass=BadSyntax)
     # A semicolon after the name list is unnecessary but legal
     if tokenList[0] == ";":
         tokenList.pop(0)
@@ -93,9 +96,10 @@ def parseBlock(tokenList):
         if tokenList[0] == "}":
             tokenList.pop(0)
         elif tokenList[0] is None:
-            err.die("Unterminated block")
+            err.die("Unterminated block", errorClass=IncompleteSyntax)
         else:
-            err.die("Expecting } at end of block, got", tokenList[0])
+            err.die("Expecting } at end of block, got", tokenList[0],
+                    errorClass=BadSyntax)
     else:
         # Single statement
         # Have to wrap it in a list to make it a code block
@@ -250,7 +254,8 @@ def parseOperand(tokenList):
         expressions = []
         while tokenList[0] != ")":
             if tokenList[0] is None:
-                err.die("Unterminated parenthesis")
+                err.die("Unterminated parenthesis",
+                        errorClass=IncompleteSyntax)
             else:
                 expressions.append(parseExpr(tokenList))
         # Remove the closing parenthesis
@@ -271,7 +276,7 @@ def parseOperand(tokenList):
         subExpression = [operators.enlist]
         while tokenList[0] != "]":
             if tokenList[0] is None:
-                err.die("Unterminated list")
+                err.die("Unterminated list", errorClass=IncompleteSyntax)
             else:
                 subExpression.append(parseExpr(tokenList))
         tokenList.pop(0)
@@ -292,9 +297,12 @@ def parseOperand(tokenList):
                 op = op.copy()
                 op.fold = True
                 op.arity = 1
+            elif tokenList[0] is None:
+                err.die("Missing operator for $ meta-operator",
+                        errorClass=IncompleteSyntax)
             else:
-                err.die("Missing/wrong operator for $ meta-operator: got",
-                        tokenList[0], "instead")
+                err.die("Wrong operator for $ meta-operator: got",
+                        tokenList[0], "instead", errorClass=BadSyntax)
         else:
             op = operators.opsByArity[1][token]
         # Check for the * and : meta-operators
@@ -314,12 +322,15 @@ def parseOperand(tokenList):
             
     # If control reaches here, we've got a problem
     if tokenList[0] is None:
-        err.die("Hit end of tokens while parsing expression")
+        err.die("Hit end of tokens while parsing expression",
+                errorClass=IncompleteSyntax)
     elif (tokenList[0] in operators.opsByArity[2] or
           tokenList[0] in operators.opsByArity[3]):
-        err.die(tokenList[0], "is not a unary operator")
+        err.die(tokenList[0], "is not a unary operator",
+                errorClass=BadSyntax)
     else:
-        err.die("Expected expression, got", repr(tokenList[0]))
+        err.die("Expected expression, got", repr(tokenList[0]),
+                errorClass=BadSyntax)
 
 
 def unparse(tree, statementSep=""):

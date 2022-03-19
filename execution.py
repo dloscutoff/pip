@@ -1121,12 +1121,14 @@ class ProgramState:
             # Scan, parse, and convert to Block first
             try:
                 tkns = scanning.scan(str(code) + "\n")
-            except FatalError:
-                self.err.die("Fatal scanning error while evaluating", code)
+            except FatalError as err:
+                self.err.die(f"Scanning error while evaluating {code!r}:",
+                             err)
             try:
                 tree = parsing.parse(tkns)
-            except FatalError:
-                self.err.die("Fatal parsing error while evaluating", code)
+            except FatalError as err:
+                self.err.die(f"Parsing error while evaluating {code!r}:",
+                             err)
             code = self.BLOCK(tree)
         if isinstance(code, Block) and argList is not None:
             return self.functionCall(code, argList)

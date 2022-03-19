@@ -5,6 +5,15 @@ import re
 
 class FatalError(Exception):
     """Class for throwing fatal errors."""
+    def __str__(self):
+        return " ".join(map(str, self.args))
+
+class BadSyntax(FatalError):
+    """Unrecoverable syntax error, e.g. starting with a binary operator."""
+    pass
+
+class IncompleteSyntax(FatalError):
+    """Recoverable syntax error, e.g. unmatched open parenthesis."""
     pass
 
 class ErrorReporter:
@@ -19,10 +28,9 @@ class ErrorReporter:
         if self._warnings:
             print(*map(rewritePtypes, message), file=sys.stderr)
 
-    def die(self, *message):
-        """Print a fatal error and exit."""
-        print(*map(rewritePtypes, message), file=sys.stderr)
-        raise FatalError()
+    def die(self, *message, errorClass=FatalError):
+        """Raise a fatal error."""
+        raise errorClass(*map(rewritePtypes, message))
 
 
 def rewritePtypes(message):

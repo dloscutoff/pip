@@ -185,18 +185,18 @@ def pip(code=None, argv=None, interactive=True):
         print()
     try:
         tokens = scan(program)
-    except FatalError:
-        print("Fatal error while scanning, execution aborted.",
-              file=sys.stderr)
+    except FatalError as err:
+        print("Fatal error while scanning:", err, file=sys.stderr)
+        print("Execution aborted.", file=sys.stderr)
         sys.exit(1)
     if options.verbose:
         print(addSpaces(tokens))
         print()
     try:
         parse_tree = parse(tokens)
-    except FatalError:
-        print("Fatal error while parsing, execution aborted.",
-              file=sys.stderr)
+    except FatalError as err:
+        print("Fatal error while parsing:", err, file=sys.stderr)
+        print("Execution aborted.", file=sys.stderr)
         sys.exit(1)
     if options.verbose:
         pprint.pprint(parse_tree)
@@ -217,35 +217,31 @@ def pip(code=None, argv=None, interactive=True):
         for arg in raw_args:
             try:
                 arg_tokens = scan(arg)
-            except FatalError:
-                print(f"Fatal error while scanning argument {arg!r}, "
-                      "execution aborted.",
-                      file = sys.stderr)
+            except FatalError as err:
+                print(f"Fatal error while scanning argument {arg!r}:",
+                      err, file=sys.stderr)
+                print("Execution aborted.", file=sys.stderr)
                 sys.exit(1)
             try:
                 arg_parse_tree = parse(arg_tokens)
-            except FatalError:
-                print(f"Fatal error while parsing argument {arg!r}, "
-                      "execution aborted.",
-                      file = sys.stderr)
+            except FatalError as err:
+                print(f"Fatal error while parsing argument {arg!r}:",
+                      err, file=sys.stderr)
+                print("Execution aborted.", file=sys.stderr)
                 sys.exit(1)
             parsed_arg = arg_parse_tree[0]
             try:
                 program_args.append(state.executeStatement(parsed_arg))
-            except FatalError:
-                print(f"Fatal error while evaluating argument {arg!r}, "
-                      "execution aborted.",
-                      file = sys.stderr)
+            except (FatalError, RuntimeError) as err:
+                # RuntimeError probably means we exceeded Python's
+                # max recursion depth
+                print(f"Fatal error while evaluating argument {arg!r}:",
+                      err, file=sys.stderr)
+                print("Execution aborted.", file=sys.stderr)
                 sys.exit(1)
             except KeyboardInterrupt:
                 print("Program terminated by user while evaluating "
                       f"argument {arg!r}.",
-                      file=sys.stderr)
-                sys.exit(1)
-            except RuntimeError as err:
-                # Probably exceeded Python's max recursion depth
-                print(f"Fatal error while evaluating argument {arg!r}:",
-                      err,
                       file=sys.stderr)
                 sys.exit(1)
     else:
@@ -255,16 +251,14 @@ def pip(code=None, argv=None, interactive=True):
         print("Executing...")
     try:
         state.executeProgram(parse_tree, program_args)
-    except FatalError:
-        print("Fatal error during execution, program terminated.",
-              file=sys.stderr)
+    except (FatalError, RuntimeError) as err:
+        # RuntimeError probably means we exceeded Python's max
+        # recursion depth
+        print("Fatal error during execution:", err, file=sys.stderr)
+        print("Program terminated.", file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:
         print("Program terminated by user.", file=sys.stderr)
-        sys.exit(1)
-    except RuntimeError as err:
-        # Probably exceeded Python's max recursion depth
-        print("Fatal error:", err, file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":

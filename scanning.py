@@ -2,7 +2,7 @@
 import re
 import tokens
 import operators
-from errors import ErrorReporter
+from errors import ErrorReporter, IncompleteSyntax
 
 
 err = ErrorReporter(warnings=True)  # TODO: get this setting from the args?
@@ -110,7 +110,7 @@ def tokenize(code):
             code = code[index:]
         elif code[0] in '"`\'' or code[:2] == '\\"':
             err.die("Unterminated string or pattern literal:",
-                    code.strip())
+                    code.strip(), errorClass=IncompleteSyntax)
         else:
             if code[0] == "j":
                 err.warn("While scanning, ignored 'j' "
