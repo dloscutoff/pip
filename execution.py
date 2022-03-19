@@ -75,7 +75,7 @@ class ProgramState:
                     cmdFunction = self.__getattribute__(cmdFunction)
                     cmdFunction(*args)
                     # Commands don't return anything
-                    return nil
+                    return None
                 else:
                     self.err.die("Implementation error, function not found:",
                                  cmdFunction)
@@ -92,17 +92,15 @@ class ProgramState:
     
     def evaluate(self, expression):
         #!print("In evaluate", repr(expression))
-        exprType = type(expression)
         if isinstance(expression, tokens.Name):
             # Evaluate a name as an lvalue (which may become an rvalue later)
             return Lval(expression)
         elif isinstance(expression, (Lval, PipType)):
             # This is a value (lvalue or rvalue) already--just return it
             return expression
-        elif exprType is not list:
-            # ?!
-            self.err.die("Implementation error: reached else branch of "
-                         f"evaluate({expression})")
+        elif (not isinstance(expression, list) or expression == []
+              or not isinstance(expression[0], ops.Operator)):
+            self.err.die("Not a valid expression")
 
         # If none of the above were true, then we're dealing with a parse tree
         # in the form of a list: [operator, arg1, arg2, ...]

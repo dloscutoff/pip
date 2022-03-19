@@ -239,7 +239,7 @@ def pip(code=None, argv=None, interactive=True):
                 sys.exit(1)
             parsed_arg = arg_parse_tree[0]
             try:
-                program_args.append(state.executeStatement(parsed_arg))
+                program_args.append(state.evaluate(parsed_arg))
             except (FatalError, RuntimeError) as err:
                 # RuntimeError probably means we exceeded Python's
                 # max recursion depth
@@ -299,7 +299,8 @@ def repl():
             try:
                 for statement in parse_tree:
                     result = state.executeStatement(statement)
-                    state.PRINT(state.REPR(state.getRval(result)))
+                    if result is not None:
+                        state.PRINT(state.REPR(state.getRval(result)))
             except (FatalError, RuntimeError) as err:
                 # RuntimeError probably means we exceeded Python's
                 # max recursion depth
