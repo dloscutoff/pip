@@ -142,7 +142,8 @@ def pip(code=None, argv=None, interactive=True):
                   "n" if options.newline else
                   "l" if options.lines else
                   None)
-    if code is None and not (options.execute or options.file or options.stdin):
+    if (code is None and options.execute is None and options.file is None
+            and not options.stdin):
         if interactive:
             options.stdin = True
             print("Enter your program, terminated by Ctrl-D or Ctrl-Z:")
@@ -155,10 +156,10 @@ def pip(code=None, argv=None, interactive=True):
     if code is not None:
         # Code is passed into function
         program = code
-    elif options.execute:
+    elif options.execute is not None:
         # Code is given as command-line argument
         program = options.execute
-    elif options.file:
+    elif options.file is not None:
         # Get code from specified file
         if interactive:
             print("Reading", options.file)
