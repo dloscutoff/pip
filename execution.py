@@ -1251,7 +1251,7 @@ class ProgramState:
             if len(number) == 0:
                 number = 0
             try:
-                result = int(str(number), base)
+                result = int(str(number).replace("_", " "), base)
                 return Scalar(result)
             except ValueError:
                 # TBD: make more robust? Or just let it stay nil

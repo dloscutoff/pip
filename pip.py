@@ -142,7 +142,7 @@ def pip(code=None, argv=None, interactive=True):
                   "n" if options.newline else
                   "l" if options.lines else
                   None)
-    if not (code or options.execute or options.file or options.stdin):
+    if code is None and not (options.execute or options.file or options.stdin):
         if interactive:
             options.stdin = True
             print("Enter your program, terminated by Ctrl-D or Ctrl-Z:")
@@ -152,7 +152,7 @@ def pip(code=None, argv=None, interactive=True):
         else:
             print(f"Type {sys.argv[0]} -h for usage information.")
             sys.exit(0)
-    if code:
+    if code is not None:
         # Code is passed into function
         program = code
     elif options.execute:

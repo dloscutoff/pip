@@ -82,6 +82,9 @@ def tokenize(code):
             # Discard block comments
             #!print("Block comment:", repr(m.group()))
             code = code[m.end():]
+        elif code[:2] == "{;":
+            err.die("Unterminated block comment:", code.strip(),
+                    errorClass=IncompleteSyntax)
         elif m := whitespaceRgx.match(code):
             # Discard leading whitespace
             #!print("Whitespace:", repr(m.group()))
