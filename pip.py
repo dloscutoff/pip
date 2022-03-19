@@ -151,7 +151,7 @@ def pip(code=None, argv=None, interactive=True):
             options.file = options.args.pop(0)
         else:
             print(f"Type {sys.argv[0]} -h for usage information.")
-            sys.exit(0)
+            return
     if code:
         # Code is passed into function
         program = code
