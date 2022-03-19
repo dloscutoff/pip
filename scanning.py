@@ -7,7 +7,11 @@ from errors import ErrorReporter, IncompleteSyntax
 
 err = ErrorReporter(warnings=True)  # TODO: get this setting from the args?
 
-nameRgx = re.compile(r"[A-Z]+|[a-ik-z_]|\$[][()$`'0-9]|\$[a-z][a-z0-9_]*")
+nameRgx = re.compile(r"[A-Z]+"
+                     r"|[a-ik-z_]"
+                     r"|\$[][()$`'0-9]"
+                     r"|\$[a-z][a-z0-9_]*"
+                     r"|\\[a-g]")
 stringRgx = re.compile(r'"[^"]*"')
 patternRgx = re.compile(r'`([^`\\]|\\.)*`')
 charRgx = re.compile(r"'(.|\n)")

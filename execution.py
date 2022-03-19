@@ -34,6 +34,8 @@ class ProgramState:
         # There is no maximum recursion depth, but in practice recursion is
         # severely limited by Python's maximum recursion depth. In one test,
         # the program crashed after 140 levels of recursion.
+        self.args = []
+        self.mainFunction = None
         # Set pre-initialized global variables
         self.WIPEGLOBALS()
         # Special "variables" which do something different when you get or
@@ -49,13 +51,18 @@ class ProgramState:
         if not statements:
             # Empty program does nothing
             return
-        if args is None:
-            args = []
-        # Convert the whole program to a block and execute a function call
-        # with args as the arguments and the return value PRINTed
-        # after execution
-        mainFunction = self.BLOCK(statements)
-        returnVal = self.functionCall(mainFunction, args)
+        if args is not None:
+            self.args = args
+        else:
+            self.args = []
+        # Convert the whole program to a Block
+        self.mainFunction = self.BLOCK(statements)
+        # Reset pre-initialized global variables, including args and
+        # main function this time
+        self.WIPEGLOBALS()
+        # Execute the main program as a function call with args as the
+        # arguments and the return value PRINTed after execution
+        returnVal = self.functionCall(self.mainFunction, self.args)
         self.PRINT(returnVal)
 
     def executeStatement(self, statement):
@@ -579,6 +586,13 @@ class ProgramState:
             "XX": Pattern("."),
             "XY": Pattern("[aeiouy]"),
             }
+        self.vars["\\g"] = List(self.args)
+        for name, arg in zip("abcde", self.args):
+            self.vars["\\" + name] = arg
+        if self.mainFunction is not None:
+            self.vars["\\f"] = self.mainFunction
+        else:
+            self.vars["\\f"] = nil
 
     ###############################
     ### Pip meta-operators      ###
