@@ -1426,7 +1426,7 @@ class ProgramState:
     def INTDIV(self, lhs, rhs):
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             try:
-                result = int(lhs.toNumber() / rhs.toNumber())
+                result = int(lhs.toNumber() // rhs.toNumber())
                 return Scalar(result)
             except ZeroDivisionError:
                 self.err.warn("Dividing by zero")
