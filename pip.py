@@ -12,6 +12,32 @@ from execution import ProgramState
 from errors import FatalError, BadSyntax, IncompleteSyntax
 
 
+REPL_HELP_TEXT = """
+Enter Pip statements at the prompt. Entering an expression displays
+its value. Incomplete statements/expressions can be continued on
+subsequent lines. $_, $__, and $___ store the values of the last
+three expressions.
+
+>> Fi,3Pi
+0
+1
+2
+>> 6*7
+42
+>> [$_
+..  '!]
+[42;"!"]
+
+REPL commands (abbreviated versions like ;h or ;he work too):
+
+;warnings   Toggle display of warning messages (can also be invoked
+            as ;warnings off or ;warnings on)
+;quit       Quit the REPL
+;exit       Identical to ;quit
+;help       Display this help message
+"""
+
+
 def pip(code=None, argv=None, interactive=True):
     if code is not None or argv is not None:
         interactive = False
@@ -271,6 +297,7 @@ def pip(code=None, argv=None, interactive=True):
 
 def repl(list_format=None, warnings=False):
     print(f"Pip {version.VERSION}")
+    print("Type ;help for more information.")
     state = ProgramState(list_format, warnings)
     try:
         while True:
@@ -300,6 +327,9 @@ def repl(list_format=None, warnings=False):
                         or repl_command == "x"):
                     # Exit the repl
                     break
+                elif "help".startswith(repl_command):
+                    # Show help text
+                    print(REPL_HELP_TEXT)
                 elif "warnings".startswith(repl_command):
                     # Turn warnings on/off
                     status_changed = False
