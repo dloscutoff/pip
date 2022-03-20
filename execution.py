@@ -3,6 +3,7 @@ import itertools
 import math
 import random
 import re
+import sys
 
 import version
 import tokens
@@ -79,16 +80,12 @@ class ProgramState:
                 else:
                     self.err.die("Implementation error, function not found:",
                                  cmdFunction)
-            elif isinstance(statement[0], ops.Operator):
-                # This is an expression; evaluate it
-                return self.evaluate(statement)
-            else:
+            elif not isinstance(statement[0], ops.Operator):
                 # Weird, this shouldn't happen
                 self.err.die("Implementation error: statement", statement,
                              "isn't command or expression")
-        else:
-            # If it's not a list, it's probably a single-item expression
-            return self.evaluate(statement)
+        # Anything else is probably an expression; evaluate it
+        return self.getRval(self.evaluate(statement))
     
     def evaluate(self, expression):
         #!print("In evaluate", repr(expression))
@@ -228,17 +225,18 @@ class ProgramState:
 
     def varTable(self, varName):
         """Return which table (local or global) a variable resides in."""
-        if varName in "abcdefg":
+        if varName in "abcdefg" or re.fullmatch(r"\$_+", varName):
             # Local variable
             return self.locals[self.callDepth]
         else:
             # Global variable
             return self.vars
 
+    def isDefined(self, varName):
+        return varName in self.varTable(varName)
+
     def getRval(self, expr):
         #!print("In getRval", expr)
-        if isinstance(expr, tokens.Name) and len(str(expr)) == 3:
-            expr = Lval(expr)
         if isinstance(expr, (list, tokens.Name)):
             expr = self.evaluate(expr)
         if isinstance(expr, PipType):
@@ -276,9 +274,9 @@ class ProgramState:
             else:
                 # Get the variable from the appropriate variable table, nil if
                 # it doesn't exist
-                try:
+                if self.isDefined(base):
                     result = self.varTable(base)[base]
-                except KeyError:
+                else:
                     self.err.warn("Referencing uninitialized variable",
                                   base)
                     return nil
@@ -402,7 +400,11 @@ class ProgramState:
         self.assign(Lval("f"), function)
         self.assign(Lval("g"), List(argList))
         for statement in function.getStatements():
-            self.executeStatement(statement)
+            statementValue = self.executeStatement(statement)
+            # If the statement was actually an expression, store its
+            # value in the history variables ($_ etc.)
+            if statementValue is not None:
+                self.updateHistoryVars(statementValue)
         returnExpr = function.getReturnExpr()
         if returnExpr is not None:
             returnVal = self.getRval(returnExpr)
@@ -412,6 +414,14 @@ class ProgramState:
         del self.locals[self.callDepth]
         self.callDepth -= 1
         return returnVal
+
+    def updateHistoryVars(self, newValue):
+        """Set $_ to new value and bump history vars down one spot."""
+        if self.isDefined("$_"):
+            if self.isDefined("$__"):
+                self.assign(Lval("$___"), self.getRval(Lval("$__")))
+            self.assign(Lval("$__"), self.getRval(Lval("$_")))
+        self.assign(Lval("$_"), newValue)
 
     def assignRegexVars(self, matchObj):
         """Set regex match vars given a Python match object."""

@@ -11,6 +11,7 @@ nameRgx = re.compile(r"[A-Z]+"
                      r"|[a-ik-z_]"
                      r"|\$[][()$`'0-9]"
                      r"|\$[a-z][a-z0-9_]*"
+                     r"|\$_{1,3}"
                      r"|\\[a-g]")
 stringRgx = re.compile(r'"[^"]*"')
 patternRgx = re.compile(r'`([^`\\]|\\.)*`')

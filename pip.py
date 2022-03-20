@@ -17,7 +17,7 @@ def pip(code=None, argv=None, interactive=True):
         interactive = False
     if interactive:
         print(f"=== Welcome to Pip, version {version.VERSION} ===")
-        print("Enter command-line args, terminated by newline (-h for help):")
+        print("Enter command-line args, terminated by newline (-h for help, -R for repl):")
         argv = input()
     if argv is not None:
         # Artificial command-line input was provided
@@ -300,7 +300,8 @@ def repl():
                 for statement in parse_tree:
                     result = state.executeStatement(statement)
                     if result is not None:
-                        state.PRINT(state.REPR(state.getRval(result)))
+                        state.PRINT(state.REPR(result))
+                        state.updateHistoryVars(result)
             except (FatalError, RuntimeError) as err:
                 # RuntimeError probably means we exceeded Python's
                 # max recursion depth
