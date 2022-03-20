@@ -147,7 +147,7 @@ def pip(code=None, argv=None, interactive=True):
                   "l" if options.lines else
                   None)
     if options.repl:
-        repl()
+        repl(listFormat, options.warnings)
         sys.exit(0)
     if (code is None and options.execute is None and options.file is None
             and not options.stdin):
@@ -269,9 +269,9 @@ def pip(code=None, argv=None, interactive=True):
         print("Program terminated by user.", file=sys.stderr)
         sys.exit(1)
 
-def repl():
+def repl(list_format=None, warnings=False):
     print(f"Pip {version.VERSION}")
-    state = ProgramState()   # TODO: list format & warnings flag
+    state = ProgramState(list_format, warnings)
     try:
         while True:
             code = input(">> ") + "\n"
@@ -293,9 +293,30 @@ def repl():
                 print("Syntax error:", err, file=sys.stderr)
                 continue
             # Some Pip comments are used as repl commands
-            if code.lower().strip() in (";quit", ";q", ";exit", ";x"):
-                # Exit the repl
-                break
+            if code.startswith(";") and len(code) >= 2:
+                repl_command, *repl_cmd_args = code[1:].lower().split()
+                if ("quit".startswith(repl_command)
+                        or "exit".startswith(repl_command)
+                        or repl_command == "x"):
+                    # Exit the repl
+                    break
+                elif "warnings".startswith(repl_command):
+                    # Turn warnings on/off
+                    status_changed = False
+                    if repl_cmd_args == ["on"]:
+                        state.err.warnings = True
+                        status_changed = True
+                    elif repl_cmd_args == ["off"]:
+                        state.err.warnings = False
+                        status_changed = True
+                    elif repl_cmd_args == []:
+                        # With no argument, toggle
+                        state.err.warnings = not state.err.warnings
+                        status_changed = True
+                    if status_changed:
+                        print("Warnings",
+                              "on" if state.err.warnings else "off",
+                              file=sys.stderr)
             try:
                 for statement in parse_tree:
                     result = state.executeStatement(statement)

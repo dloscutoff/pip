@@ -21,11 +21,11 @@ class ErrorReporter:
     def __init__(self, warnings=False):
         # The warnings parameter determines whether to print nonfatal
         # errors to stderr or suppress them
-        self._warnings = warnings
+        self.warnings = warnings
     
     def warn(self, *message):
         """Print a nonfatal error if warnings are turned on."""
-        if self._warnings:
+        if self.warnings:
             print(*map(rewritePtypes, message), file=sys.stderr)
 
     def die(self, *message, errorClass=FatalError):
