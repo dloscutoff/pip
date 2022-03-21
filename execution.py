@@ -728,8 +728,7 @@ class ProgramState:
         if isinstance(lhs, (Scalar, Pattern, Nil)):
             lhs = List([lhs])
         if isinstance(lhs, (List, Range)):
-            result = list(lhs) + [rhs]
-            return List(result)
+            return List(list(lhs) + [rhs])
         else:
             self.err.warn("Unimplemented argtypes for APPENDELEM:",
                           type(lhs), "and", type(rhs))
@@ -741,8 +740,7 @@ class ProgramState:
         if isinstance(rhs, (Scalar, Pattern, Nil)):
             rhs = List([rhs])
         if isinstance(lhs, (List, Range)) and isinstance(rhs, (List, Range)):
-            result = list(lhs) + list(rhs)
-            return List(result)
+            return List(list(lhs) + list(rhs))
         else:
             self.err.warn("Unimplemented argtypes for APPENDLIST:",
                           type(lhs), "and", type(rhs))
@@ -835,11 +833,11 @@ class ProgramState:
         
         if isinstance(rhs, Pattern) and isinstance(lhs, Scalar):
             matches = rhs.asRegex().finditer(str(lhs))
-            result = []
+            result = List()
             for matchObj in matches:
                 groups = self.assignRegexVars(matchObj)
                 result.append(groups[0])
-            return List(result)
+            return result
         elif isinstance(rhs, Pattern) and isinstance(lhs, (List, Range)):
             return List(self.AT(item, rhs) for item in lhs)
         elif isinstance(rhs, List) and isinstance(lhs, PipIterable):
@@ -960,6 +958,42 @@ class ProgramState:
             # Skip to the next operator
             i += 2
         return result
+
+    def CHOP(self, iterable, rhs=None):
+        if rhs is None:
+            rhs = SCALAR_TWO
+        if isinstance(rhs, (List, Range)):
+            # Chop by each rhs and return a list of iterables
+            return List(self.CHOP(iterable, count) for count in rhs)
+        if isinstance(iterable, PipIterable) and isinstance(rhs, Scalar):
+            result = List()
+            chunks = rhs.toNumber()
+            if chunks > 0:
+                index = 0
+                jump = len(iterable) / chunks
+                while index < len(iterable):
+                    endIndex = min(index + jump, len(iterable))
+                    chunk = iterable[math.floor(index):math.floor(endIndex)]
+                    result.append(chunk)
+                    index += jump
+                return result
+            elif chunks < 0:
+                # With a negative chunk number, chop from right to left
+                index = len(iterable)
+                jump = len(iterable) / chunks
+                while index > 0:
+                    startIndex = max(index + jump, 0)
+                    chunk = iterable[math.ceil(startIndex):math.ceil(index)]
+                    result.append(chunk)
+                    index += jump
+                return result
+            else:
+                self.err.warn("Cannot CHOP into 0 slices")
+                return nil
+        else:
+            self.err.warn("Unimplemented argtypes for CHOP:",
+                          type(iterable), "and", type(rhs))
+            return nil
 
     def CHR(self, rhs):
         if isinstance(rhs, Scalar):
@@ -1184,8 +1218,7 @@ class ProgramState:
             # The unary version keeps items that are truthy
             function, iterable = iterable, function
             if isinstance(iterable, PipIterable):
-                result = (item for item in iterable if item)
-                return List(result)
+                return List(item for item in iterable if item)
             else:
                 self.err.warn("Unimplemented argtype for FILTER:",
                               type(iterable))
@@ -1194,9 +1227,8 @@ class ProgramState:
             # The arguments are reversible to enable things like lFI:f
             function, iterable = iterable, function
         if isinstance(function, Block) and isinstance(iterable, PipIterable):
-            result = (item for item in iterable
-                      if self.functionCall(function, [item]))
-            return List(result)
+            return List(item for item in iterable
+                        if self.functionCall(function, [item]))
         else:
             self.err.warn("Unimplemented argtypes for FILTER:",
                           type(function), "and", type(iterable))
@@ -1223,21 +1255,21 @@ class ProgramState:
         elif isinstance(item, Pattern) and isinstance(iterable, Scalar):
             # Return indices of all regex matches in Scalar
             matches = item.asRegex().finditer(str(iterable))
-            result = []
+            result = List()
             for matchObj in matches:
                 self.assignRegexVars(matchObj)
                 result.append(Scalar(matchObj.start()))
-            return List(result)
+            return result
         elif (isinstance(item, (Scalar, Range))
                   and isinstance(iterable, PipIterable)
               or isinstance(item, (List, Pattern, Nil))
                   and isinstance(iterable, List)):
-            result = []
+            result = List()
             lastIndex = iterable.index(item)
             while lastIndex is not nil:
                 result.append(lastIndex)
                 lastIndex = iterable.index(item, int(lastIndex) + 1)
-            return List(result)
+            return result
         else:
             self.err.warn("Unimplemented argtypes for FINDALL:",
                           type(iterable), "and", type(item))
@@ -1260,27 +1292,27 @@ class ProgramState:
 
     def FLATTEN(self, iterable):
         if isinstance(iterable, (List, Range)):
-            result = []
+            result = List()
             for item in iterable:
                 if isinstance(item, (List, Range)):
                     for subitem in item:
                         result.append(subitem)
                 else:
                     result.append(item)
-            return List(result)
+            return result
         else:
             return iterable
 
     def FLATTENALL(self, iterable):
         if isinstance(iterable, (List, Range)):
-            result = []
+            result = List()
             for item in iterable:
                 if isinstance(item, (List, Range)):
                     for subitem in self.FLATTENALL(item):
                         result.append(subitem)
                 else:
                     result.append(item)
-            return List(result)
+            return result
         else:
             return iterable
 
@@ -1361,12 +1393,13 @@ class ProgramState:
             return List(self.GROUP(iterable, jump) for jump in rhs)
         if isinstance(iterable, PipIterable) and isinstance(rhs, Scalar):
             result = List()
-            jump = int(rhs)
+            jump = rhs.toNumber()
             if jump > 0:
                 index = 0
                 while index < len(iterable):
                     endIndex = min(index + jump, len(iterable))
-                    result.append(iterable[index:endIndex])
+                    chunk = iterable[math.floor(index):math.floor(endIndex)]
+                    result.append(chunk)
                     index += jump
                 return result
             elif jump < 0:
@@ -1374,7 +1407,8 @@ class ProgramState:
                 index = len(iterable)
                 while index > 0:
                     startIndex = max(index + jump, 0)
-                    result.append(iterable[startIndex:index])
+                    chunk = iterable[math.ceil(startIndex):math.ceil(index)]
+                    result.append(chunk)
                     index += jump
                 return result
             else:
@@ -1394,12 +1428,12 @@ class ProgramState:
 
     def IDENTITYMATRIX(self, rhs):
         if isinstance(rhs, Scalar):
-            result = []
+            result = List()
             for row in range(int(rhs)):
                 subresult = [Scalar("1" if row == col else "0")
                              for col in range(int(rhs))]
                 result.append(List(subresult))
-            return List(result)
+            return result
         else:
             self.err.warn("Unimplemented argtype for IDENTITYMATRIX:",
                           type(rhs))
@@ -1474,8 +1508,7 @@ class ProgramState:
     def INTDIV(self, lhs, rhs):
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             try:
-                result = int(lhs.toNumber() // rhs.toNumber())
-                return Scalar(result)
+                return Scalar(lhs.toNumber() // rhs.toNumber())
             except ZeroDivisionError:
                 self.err.warn("Dividing by zero")
                 return nil
@@ -1766,9 +1799,9 @@ class ProgramState:
             self.err.warn("Unimplemented argtypes for MAPCOORDS:",
                           type(lhs), "and", type(rhs))
             return nil
-        result = []
+        result = List()
         for row in rows:
-            subresult = []
+            subresult = List()
             for col in cols:
                 if isinstance(lhs, Block):
                     subresult.append(self.functionCall(lhs,
@@ -1777,8 +1810,8 @@ class ProgramState:
                 else:
                     # If lhs isn't a function, just return a grid of it
                     subresult.append(lhs)
-            result.append(List(subresult))
-        return List(result)
+            result.append(subresult)
+        return result
 
     def MAPENUMERATE(self, function, iterable):
         """Map function over index/value pairs of items of the iterable."""
@@ -1809,8 +1842,7 @@ class ProgramState:
             # The arguments are reversible to enable things like lMM:f
             lhs, iterable = iterable, lhs
         if isinstance(iterable, PipIterable):
-            result = (self.MAP(lhs, item) for item in iterable)
-            return List(result)
+            return List(self.MAP(lhs, item) for item in iterable)
         else:
             self.err.warn("Unimplemented argtypes for MAPMAP:",
                           type(function), "and", type(iterable))
@@ -1839,11 +1871,11 @@ class ProgramState:
                 and isinstance(regex, Pattern)
                 and isinstance(string, Scalar)):
             matches = regex.asRegex().finditer(str(string))
-            result = []
+            result = List()
             for matchObj in matches:
                 groups = self.assignRegexVars(matchObj)
                 result.append(self.functionCall(lhs, groups))
-            return List(result)
+            return result
         else:
             self.err.warn("Unimplemented argtypes for MAPREGEX:",
                           type(lhs), type(regex), "and", type(string))
@@ -1869,7 +1901,7 @@ class ProgramState:
             # The arguments are reversible to enable things like lMU:f
             function, iterable = iterable, function
         if isinstance(iterable, PipIterable) and isinstance(function, Block):
-            result = []
+            result = List()
             for item in iterable:
                 try:
                     arglist = list(item)
@@ -1883,7 +1915,7 @@ class ProgramState:
                     self.err.warn(f"Cannot unpack {item} in MAPUNPACK")
                     arglist = []
                 result.append(self.functionCall(function, arglist))
-            return List(result)
+            return result
         else:
             self.err.warn("Unimplemented argtypes for MAPUNPACK:",
                           type(function), "and", type(iterable))
@@ -2551,8 +2583,7 @@ class ProgramState:
         if isinstance(lhs, (Scalar, Pattern, Nil)):
             lhs = List([lhs])
         if isinstance(lhs, (List, Range)):
-            result = [rhs] + list(lhs)
-            return List(result)
+            return List([rhs] + list(lhs))
         else:
             self.err.warn("Unimplemented argtypes for PREPENDELEM:",
                           type(lhs), "and", type(rhs))
@@ -2736,8 +2767,7 @@ class ProgramState:
         if isinstance(lhs, (Scalar, Pattern, Nil)):
             lhs = List([lhs])
         if isinstance(lhs, (List, Range)) and isinstance(rhs, Scalar):
-            result = list(lhs.copy()) * int(rhs)
-            return List(result)
+            return List(list(lhs.copy()) * int(rhs))
         else:
             self.err.warn("Unimplemented argtypes for REPEATLIST:",
                           type(lhs), "and", type(rhs))
@@ -3114,15 +3144,15 @@ class ProgramState:
                 return nil
 
         if isinstance(iterable, PipIterable) and isinstance(indices, list):
-            results = []
+            result = List()
             prevIndex = 0
             length = len(iterable)
             for i in range(length):
                 if i in indices or i - length in indices:
-                    results.append(iterable[prevIndex:i])
+                    result.append(iterable[prevIndex:i])
                     prevIndex = i
-            results.append(iterable[prevIndex:])
-            return List(results)
+            result.append(iterable[prevIndex:])
+            return result
         else:
             self.err.warn("Unimplemented argtypes for SPLITAT:",
                           type(iterable), "and", type(indices))

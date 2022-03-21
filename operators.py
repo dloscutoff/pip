@@ -231,6 +231,7 @@ precedenceTable = [
      ("@?", "FIND", None, RVALS | IN_LAMBDA),
      ("@*", "FINDALL", [], RVALS | IN_LAMBDA),
      ("<>", "GROUP", [], RVALS | IN_LAMBDA),
+     ("CH", "CHOP", [], RVALS | IN_LAMBDA),
      ("J", "JOIN", "", RVALS | IN_LAMBDA),
      ("JW", "JOINWRAP", None, RVALS | IN_LAMBDA),
      ("RL", "REPEATLIST", [], RVALS | IN_LAMBDA),
@@ -254,6 +255,7 @@ precedenceTable = [
     [1, None,
      ("^", "SPLIT", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("<>", "GROUP", None, RVALS | IN_LAMBDA),
+     ("CH", "CHOP", None, RVALS | IN_LAMBDA),
      ("J", "JOIN", None, RVALS | IN_LAMBDA),
      ("RV", "REVERSE", None, RVALS | IN_LAMBDA),
      ("R", "REVERSE", None, RVALS | IN_LAMBDA), # Synonym for golfiness

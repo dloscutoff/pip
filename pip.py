@@ -320,7 +320,7 @@ def repl(list_format=None, warnings=False):
                 print("Syntax error:", err, file=sys.stderr)
                 continue
             # Some Pip comments are used as repl commands
-            if code.startswith(";") and len(code) >= 2:
+            if code.startswith(";") and code[1:].strip():
                 repl_command, *repl_cmd_args = code[1:].lower().split()
                 if ("quit".startswith(repl_command)
                         or "exit".startswith(repl_command)
