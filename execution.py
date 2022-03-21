@@ -1258,6 +1258,32 @@ class ProgramState:
                           type(regex), "and", type(string))
             return nil
 
+    def FLATTEN(self, iterable):
+        if isinstance(iterable, (List, Range)):
+            result = []
+            for item in iterable:
+                if isinstance(item, (List, Range)):
+                    for subitem in item:
+                        result.append(subitem)
+                else:
+                    result.append(item)
+            return List(result)
+        else:
+            return iterable
+
+    def FLATTENALL(self, iterable):
+        if isinstance(iterable, (List, Range)):
+            result = []
+            for item in iterable:
+                if isinstance(item, (List, Range)):
+                    for subitem in self.FLATTENALL(item):
+                        result.append(subitem)
+                else:
+                    result.append(item)
+            return List(result)
+        else:
+            return iterable
+
     def FROMBASE(self, number, base=None):
         if base is None:
             base = 2
@@ -1765,6 +1791,10 @@ class ProgramState:
             self.err.warn("Unimplemented argtypes for MAPENUMERATE:",
                           type(function), "and", type(iterable))
             return nil
+
+    def MAPFLATTEN(self, lhs, iterable):
+        """Same as MAP, but flatten the result by one level afterwards."""
+        return self.FLATTEN(self.MAP(lhs, iterable))
 
     def MAPJOIN(self, lhs, iterable):
         """Same as MAP, but join the result into a string afterwards.
