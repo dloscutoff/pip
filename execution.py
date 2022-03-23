@@ -3107,6 +3107,20 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for SEND:", type(head))
             return nil
 
+    def SHUFFLE(self, iterable):
+        """Return a random permutation of the iterable."""
+        if isinstance(iterable, PipIterable):
+            items = list(iterable)
+            random.shuffle(items)
+            if isinstance(iterable, Scalar):
+                return self.JOIN(items)
+            else:
+                return List(items)
+        else:
+            self.err.warn("Unimplemented argtype for SHUFFLE:",
+                          type(iterable))
+            return nil
+
     def SIGN(self, rhs):
         if isinstance(rhs, Scalar):
             rhs = rhs.toNumber()

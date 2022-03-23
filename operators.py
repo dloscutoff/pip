@@ -209,6 +209,7 @@ precedenceTable = [
      ("MX", "MAX", None, RVALS | IN_LAMBDA),
      ("MN", "MIN", None, RVALS | IN_LAMBDA),
      ("RC", "RANDCHOICE", None, RVALS | IN_LAMBDA),
+     ("SH", "SHUFFLE", None, RVALS | IN_LAMBDA),
      ("SN", "SORTNUM", None, RVALS | IN_LAMBDA),
      ("SS", "SORTSTRING", None, RVALS | IN_LAMBDA),
      ("UQ", "UNIQUE", None, RVALS | IN_LAMBDA),
