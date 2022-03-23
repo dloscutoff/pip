@@ -1234,6 +1234,77 @@ class ProgramState:
                           type(function), "and", type(iterable))
             return nil
 
+    def FILTERENUMERATE(self, function, iterable):
+        """Filter iterable: keep items where function returns truthy.
+
+        The function is passed two arguments: the index of the item
+        in the iterable, and the item itself.
+        """
+        if isinstance(iterable, Block) and isinstance(function, PipIterable):
+            # The arguments are reversible to enable things like lFE:f
+            function, iterable = iterable, function
+        if isinstance(function, Block) and isinstance(iterable, PipIterable):
+            return List(item for index, item in enumerate(iterable)
+                        if self.functionCall(function, [Scalar(index), item]))
+        else:
+            self.err.warn("Unimplemented argtypes for FILTER:",
+                          type(function), "and", type(iterable))
+            return nil
+
+    def FILTERNOT(self, function, iterable=None):
+        """Filter iterable: keep items where function returns falsey."""
+        if iterable is None:
+            # The unary version keeps items that are falsey
+            function, iterable = iterable, function
+            if isinstance(iterable, PipIterable):
+                return List(item for item in iterable if not item)
+            else:
+                self.err.warn("Unimplemented argtype for FILTER:",
+                              type(iterable))
+                return nil
+        if isinstance(iterable, Block) and isinstance(function, PipIterable):
+            # The arguments are reversible to enable things like lFN:f
+            function, iterable = iterable, function
+        if isinstance(function, Block) and isinstance(iterable, PipIterable):
+            return List(item for item in iterable
+                        if not self.functionCall(function, [item]))
+        else:
+            self.err.warn("Unimplemented argtypes for FILTERNOT:",
+                          type(function), "and", type(iterable))
+            return nil
+
+    def FILTERUNPACK(self, function, iterable):
+        """Filter iterable: keep items where function returns truthy.
+
+        The function is passed one argument for each element of each
+        item in the iterable.
+        """
+        if isinstance(iterable, Block) and isinstance(function, PipIterable):
+            # The arguments are reversible to enable things like lFU:f
+            function, iterable = iterable, function
+        if isinstance(function, Block) and isinstance(iterable, PipIterable):
+            result = List()
+            for item in iterable:
+                try:
+                    arglist = list(item)
+                except ValueError:
+                    # This happens when one of the items is an infinite Range
+                    self.err.warn("Cannot unpack infinite Range in "
+                                  "FILTERUNPACK")
+                    arglist = []
+                except TypeError:
+                    # This happens when one of the items is a
+                    # non-iterable type
+                    self.err.warn(f"Cannot unpack {item} in FILTERUNPACK")
+                    arglist = []
+                if self.functionCall(function, arglist):
+                    result.append(item)
+            return result
+        else:
+            self.err.warn("Unimplemented argtypes for FILTERUNPACK:",
+                          type(function), "and", type(iterable))
+            return nil
+
     def FIND(self, iterable, item):
         if isinstance(item, Pattern) and isinstance(iterable, Scalar):
             matchObj = item.asRegex().search(str(iterable))
