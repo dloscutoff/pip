@@ -210,6 +210,8 @@ precedenceTable = [
      ("SH", "SHUFFLE", None, RVALS | IN_LAMBDA),
      ("SN", "SORTNUM", None, RVALS | IN_LAMBDA),
      ("SS", "SORTSTRING", None, RVALS | IN_LAMBDA),
+     ("DN", "DESCENDINGNUM", None, RVALS | IN_LAMBDA),
+     ("DS", "DESCENDINGSTRING", None, RVALS | IN_LAMBDA),
      ("UQ", "UNIQUE", None, RVALS | IN_LAMBDA),
      ("EN", "ENUMERATE", None, RVALS | IN_LAMBDA),
      ("PM", "PERMUTATIONS", None, RVALS | IN_LAMBDA),

@@ -1125,6 +1125,35 @@ class ProgramState:
         else:
             self.err.warn("Dequeuing from non-lvalue", iterable)
         return item
+
+    def DESCENDINGNUM(self, iterable):
+        if isinstance(iterable, PipIterable):
+            try:
+                return List(sorted(iterable,
+                                   key=lambda x: x.toNumber(),
+                                   reverse=True))
+            except TypeError:
+                self.err.warn("Cannot sort mixed types in list")
+                return nil
+        else:
+            self.err.warn("Unimplemented argtype for DESCENDINGNUM:",
+                          type(iterable))
+            return nil
+
+    def DESCENDINGSTRING(self, iterable):
+        if isinstance(iterable, Scalar):
+            return Scalar("".join(sorted(str(iterable),
+                                         reverse=True)))
+        elif isinstance(iterable, PipIterable):
+            # This is going to get a bit wonky when sorting lists of lists,
+            # but not sure it's worth the effort to fix
+            return List(sorted(iterable,
+                               key=str,
+                               reverse=True))
+        else:
+            self.err.warn("Unimplemented argtype for DESCENDINGSTRING:",
+                          type(iterable))
+            return nil
     
     def DIV(self, lhs, rhs):
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
