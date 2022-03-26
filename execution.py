@@ -3865,10 +3865,10 @@ class ProgramState:
     
     def ZIPDEFAULT(self, lists, default=None):
         if default is None:
-            default = nil
+            default = SCALAR_EMPTY
         if isinstance(lists, PipIterable):
             noniterables = [item for item in lists
-                            if isinstance(item, (Nil, Block))]
+                            if not isinstance(item, PipIterable)]
             if noniterables:
                 # There are some of the "lists" that are not iterable
                 # TBD: maybe this can find a non-error meaning?
@@ -3882,6 +3882,31 @@ class ProgramState:
             self.err.warn("Trying to zip non-iterable:", type(list1))
             return nil
 
+    def ZIPJOIN(self, line1, line2=None):
+        if line2 is None:
+            # Unary version expects its argument to be a list of lines
+            if isinstance(line1, PipIterable):
+                lines = line1
+            else:
+                self.err.warn("Trying to zip non-iterable:", type(line1))
+                return nil
+        else:
+            # Binary version expects its arguments to be two lines
+            lines = [line1, line2]
+        if isinstance(lines, Scalar):
+            returnScalar = True
+            lines = str(lines).split("\n")
+        else:
+            returnScalar = False
+        # Each line should be an iterable; if it's not, cast it to Scalar
+        lines = [line if isinstance(line, PipIterable) else Scalar(line)
+                 for line in lines]
+        result = [self.JOIN(tuple) for tuple in
+                  itertools.zip_longest(*lines, fillvalue=Scalar(" "))]
+        if returnScalar:
+            return self.JOIN(result, Scalar("\n"))
+        else:
+            return List(result)
 
 
 class Lval:
