@@ -205,7 +205,9 @@ precedenceTable = [
      ],
     [1, None,
      ("MX", "MAX", None, RVALS | IN_LAMBDA),
+     ("M", "MAX", None, RVALS | IN_LAMBDA), # Synonym for golfiness
      ("MN", "MIN", None, RVALS | IN_LAMBDA),
+     ("N", "MIN", None, RVALS | IN_LAMBDA), # Synonym for golfiness
      ("RC", "RANDCHOICE", None, RVALS | IN_LAMBDA),
      ("SH", "SHUFFLE", None, RVALS | IN_LAMBDA),
      ("SN", "SORTNUM", None, RVALS | IN_LAMBDA),
