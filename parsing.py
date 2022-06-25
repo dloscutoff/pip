@@ -396,7 +396,7 @@ def unparseExpr(tree, statementSep):
                 code = f"{operands[0]} {op} {operands[1]}; {operands[2]}"
     elif isinstance(tree, tokens.Name):
         code = str(tree)
-    elif isinstance(tree, (ptypes.Scalar, ptypes.Pattern, ptypes.Nil)):
+    elif isinstance(tree, ptypes.PipType):
         code = repr(tree)
     else:
         # Shouldn't ever get here
