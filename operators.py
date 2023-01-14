@@ -354,6 +354,7 @@ precedenceTable = [
      ("AT", "ARCTAN", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("RD", "RADIANS", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("DG", "DEGREES", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     ("BL", "BITLENGTH", None, RVALS | IN_LAMBDA | RANGE_EACH)
      ],
     [2, "L",
      ("+", "ADD", 0, RVALS | IN_LAMBDA | LIST_EACH),
