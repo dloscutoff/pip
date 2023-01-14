@@ -861,6 +861,12 @@ class ProgramState:
             self.err.warn("Cannot index into", type(lhs))
             return nil
     
+    def BITLENGTH(self, lhs):
+        if isinstance(lhs, Scalar):
+            return len(bin(int(lhs))[2:])
+        else:
+            self.err.warn("Cannot get bitlength of", type(lhs))
+            
     def BITWISEAND(self, lhs, rhs):
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = int(lhs) & int(rhs)
