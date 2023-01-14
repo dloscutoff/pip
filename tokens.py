@@ -1,8 +1,9 @@
-
 """Various str wrapper classes for different kinds of tokens."""
+
 
 class Token:
     "Represents a token from scanning."
+
     def __init__(self, token):
         self._text = str(token)
 
@@ -17,7 +18,7 @@ class Token:
 
     def __hash__(self):
         return hash(self._text)
-    
+
     def __repr__(self):
         # Grab just the name of the (sub)class from type(self)
         className = str(type(self))[8:-2]
@@ -25,30 +26,38 @@ class Token:
             className = className[7:]
         return f"{className}({self._text})"
 
+
 class Command(Token):
     pass
+
 
 class Operator(Token):
     pass
 
+
 class Symbol(Token):
     pass
+
 
 class Number(Token):
     pass
 
+
 class String(Token):
     pass
+
 
 class Pattern(Token):
     pass
 
+
 class Char(Token):
     pass
+
 
 class EscapedString(Token):
     pass
 
+
 class Name(Token):
     pass
-    

@@ -43,7 +43,9 @@ def pip(code=None, argv=None, interactive=True):
         interactive = False
     if interactive:
         print(f"=== Welcome to Pip, version {version.VERSION} ===")
-        print("Enter command-line args, terminated by newline (-h for help, -R for repl):")
+        print(
+            "Enter command-line args, terminated by newline (-h for help, -R for repl):"
+        )
         argv = input()
     if argv is not None:
         # Artificial command-line input was provided
@@ -81,76 +83,87 @@ def pip(code=None, argv=None, interactive=True):
     argparser = argparse.ArgumentParser()
     codeSources = argparser.add_mutually_exclusive_group()
     listFormats = argparser.add_mutually_exclusive_group()
-    argparser.add_argument("-d",
-                           "--debug",
-                           help="equivalent to -pvw",
-                           action="store_true")
-    codeSources.add_argument("-e",
-                             "--execute",
-                             help="execute the given code")
-    codeSources.add_argument("-f",
-                             "--file",
-                             help="execute code from the given file")
-    codeSources.add_argument("-i",
-                             "--stdin",
-                             help="execute code read from stdin",
-                             action="store_true")
-    codeSources.add_argument("-R",
-                             "--repl",
-                             help="run as a read-eval-print loop",
-                             action="store_true")
-    listFormats.add_argument("-l",
-                             "--lines",
-                             help=("output list items on separate lines, "
-                                   "concatenated"),
-                             action="store_true")
-    listFormats.add_argument("-n",
-                             "--newline",
-                             help="concatenate lists on newline",
-                             action="store_true")
-    listFormats.add_argument("-p",
-                             "--repr",
-                             help="print lists in repr form",
-                             action="store_true")
-    listFormats.add_argument("-P",
-                             "--reprlines",
-                             help=("output list items on separate lines, "
-                                   "repr'd"),
-                             action="store_true")
-    argparser.add_argument("-r",
-                           "--readlines",
-                           help="read args from lines of stdin",
-                           action="store_true")
-    listFormats.add_argument("-s",
-                             "--space",
-                             help="concatenate lists on space",
-                             action="store_true")
-    listFormats.add_argument("-S",
-                             "--spacelines",
-                             help=("output list items on separate lines, "
-                                   "space-concatenated"),
-                             action="store_true")
-    argparser.add_argument("-v",
-                           "--verbose",
-                           help="show extra messages",
-                           action="store_true")
-    argparser.add_argument("-V",
-                           "--version",
-                           help="display version info and quit",
-                           action="store_true")
-    argparser.add_argument("-w",
-                           "--warnings",
-                           help="show nonfatal warning messages",
-                           action="store_true")
-    argparser.add_argument("-x",
-                           "--exec-args",
-                           help=("treat each arg as Pip code (useful for "
-                                 "args that need to be evaluated "
-                                 "as expressions)"),
-                           action="store_true")
-    argparser.add_argument("args",
-                           help="arguments to main function",
-                           nargs="*")
+    argparser.add_argument(
+        "-d", "--debug", help="equivalent to -pvw", action="store_true"
+    )
+    codeSources.add_argument("-e", "--execute", help="execute the given code")
+    codeSources.add_argument(
+        "-f", "--file", help="execute code from the given file"
+    )
+    codeSources.add_argument(
+        "-i",
+        "--stdin",
+        help="execute code read from stdin",
+        action="store_true",
+    )
+    codeSources.add_argument(
+        "-R",
+        "--repl",
+        help="run as a read-eval-print loop",
+        action="store_true",
+    )
+    listFormats.add_argument(
+        "-l",
+        "--lines",
+        help=("output list items on separate lines, " "concatenated"),
+        action="store_true",
+    )
+    listFormats.add_argument(
+        "-n",
+        "--newline",
+        help="concatenate lists on newline",
+        action="store_true",
+    )
+    listFormats.add_argument(
+        "-p", "--repr", help="print lists in repr form", action="store_true"
+    )
+    listFormats.add_argument(
+        "-P",
+        "--reprlines",
+        help=("output list items on separate lines, " "repr'd"),
+        action="store_true",
+    )
+    argparser.add_argument(
+        "-r",
+        "--readlines",
+        help="read args from lines of stdin",
+        action="store_true",
+    )
+    listFormats.add_argument(
+        "-s", "--space", help="concatenate lists on space", action="store_true"
+    )
+    listFormats.add_argument(
+        "-S",
+        "--spacelines",
+        help=("output list items on separate lines, " "space-concatenated"),
+        action="store_true",
+    )
+    argparser.add_argument(
+        "-v", "--verbose", help="show extra messages", action="store_true"
+    )
+    argparser.add_argument(
+        "-V",
+        "--version",
+        help="display version info and quit",
+        action="store_true",
+    )
+    argparser.add_argument(
+        "-w",
+        "--warnings",
+        help="show nonfatal warning messages",
+        action="store_true",
+    )
+    argparser.add_argument(
+        "-x",
+        "--exec-args",
+        help=(
+            "treat each arg as Pip code (useful for "
+            "args that need to be evaluated "
+            "as expressions)"
+        ),
+        action="store_true",
+    )
+    argparser.add_argument("args", help="arguments to main function", nargs="*")
 
     if argv is not None:
         # Parse options from artificial command-line input
@@ -165,18 +178,30 @@ def pip(code=None, argv=None, interactive=True):
         return
     if options.debug:
         options.warnings = options.verbose = options.repr = True
-    listFormat = ("p" if options.repr else
-                  "P" if options.reprlines else
-                  "s" if options.space else
-                  "S" if options.spacelines else
-                  "n" if options.newline else
-                  "l" if options.lines else
-                  None)
+    listFormat = (
+        "p"
+        if options.repr
+        else "P"
+        if options.reprlines
+        else "s"
+        if options.space
+        else "S"
+        if options.spacelines
+        else "n"
+        if options.newline
+        else "l"
+        if options.lines
+        else None
+    )
     if options.repl:
         repl(listFormat, options.warnings)
         sys.exit(0)
-    if (code is None and options.execute is None and options.file is None
-            and not options.stdin):
+    if (
+        code is None
+        and options.execute is None
+        and options.file is None
+        and not options.stdin
+    ):
         if interactive:
             options.stdin = True
             print("Enter your program, terminated by Ctrl-D or Ctrl-Z:")
@@ -252,15 +277,21 @@ def pip(code=None, argv=None, interactive=True):
             try:
                 arg_tokens = scan(arg)
             except FatalError as err:
-                print(f"Fatal error while scanning argument {arg!r}:",
-                      err, file=sys.stderr)
+                print(
+                    f"Fatal error while scanning argument {arg!r}:",
+                    err,
+                    file=sys.stderr,
+                )
                 print("Execution aborted.", file=sys.stderr)
                 sys.exit(1)
             try:
                 arg_parse_tree = parse(arg_tokens)
             except FatalError as err:
-                print(f"Fatal error while parsing argument {arg!r}:",
-                      err, file=sys.stderr)
+                print(
+                    f"Fatal error while parsing argument {arg!r}:",
+                    err,
+                    file=sys.stderr,
+                )
                 print("Execution aborted.", file=sys.stderr)
                 sys.exit(1)
             parsed_arg = arg_parse_tree[0]
@@ -269,14 +300,19 @@ def pip(code=None, argv=None, interactive=True):
             except (FatalError, RuntimeError) as err:
                 # RuntimeError probably means we exceeded Python's
                 # max recursion depth
-                print(f"Fatal error while evaluating argument {arg!r}:",
-                      err, file=sys.stderr)
+                print(
+                    f"Fatal error while evaluating argument {arg!r}:",
+                    err,
+                    file=sys.stderr,
+                )
                 print("Execution aborted.", file=sys.stderr)
                 sys.exit(1)
             except KeyboardInterrupt:
-                print("Program terminated by user while evaluating "
-                      f"argument {arg!r}.",
-                      file=sys.stderr)
+                print(
+                    "Program terminated by user while evaluating "
+                    f"argument {arg!r}.",
+                    file=sys.stderr,
+                )
                 sys.exit(1)
     else:
         # Treat each argument as a Scalar
@@ -294,6 +330,7 @@ def pip(code=None, argv=None, interactive=True):
     except KeyboardInterrupt:
         print("Program terminated by user.", file=sys.stderr)
         sys.exit(1)
+
 
 def repl(list_format=None, warnings=False):
     print(f"Pip {version.VERSION}")
@@ -322,9 +359,11 @@ def repl(list_format=None, warnings=False):
             # Some Pip comments are used as repl commands
             if code.startswith(";") and code[1:].strip():
                 repl_command, *repl_cmd_args = code[1:].lower().split()
-                if ("quit".startswith(repl_command)
-                        or "exit".startswith(repl_command)
-                        or repl_command == "x"):
+                if (
+                    "quit".startswith(repl_command)
+                    or "exit".startswith(repl_command)
+                    or repl_command == "x"
+                ):
                     # Exit the repl
                     break
                 elif "help".startswith(repl_command):
@@ -344,9 +383,11 @@ def repl(list_format=None, warnings=False):
                         state.err.warnings = not state.err.warnings
                         status_changed = True
                     if status_changed:
-                        print("Warnings",
-                              "on" if state.err.warnings else "off",
-                              file=sys.stderr)
+                        print(
+                            "Warnings",
+                            "on" if state.err.warnings else "off",
+                            file=sys.stderr,
+                        )
             try:
                 for statement in parse_tree:
                     result = state.executeStatement(statement)
@@ -370,5 +411,3 @@ if __name__ == "__main__":
         pip(interactive=True)
     else:
         pip(interactive=False)
-
-

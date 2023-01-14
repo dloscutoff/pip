@@ -1,4 +1,3 @@
-
 """Classes for Pip data types."""
 
 import re
@@ -15,19 +14,20 @@ intRgx = re.compile(r"-?\d+")
 
 class PipType:
     """Base class for all Pip types."""
-    
+
     def __hash__(self):
         return hash(repr(self))
 
 
 class PipIterable(PipType):
     """Base class for all iterable Pip types."""
+
     pass
 
 
 class Scalar(PipIterable):
     """Represents a string or number."""
-    
+
     def __init__(self, value=""):
         # Store the value as a Python string
         if isinstance(value, bool):
@@ -55,7 +55,7 @@ class Scalar(PipIterable):
             # must have quotes
             if '"' in self._value:
                 # Use escaped-string format
-                return r'\"' + self._value.replace("\\", r"\\") + r'\"'
+                return r"\"" + self._value.replace("\\", r"\\") + r"\""
             else:
                 # Use normal string format
                 return f'"{self._value}"'
@@ -101,7 +101,7 @@ class Scalar(PipIterable):
             index = int(index)
         elif isinstance(index, Range):
             index = index.toSlice()
-        
+
         if isinstance(index, int):
             if self._value == "":
                 raise IndexError("Cannot index into empty string.")
@@ -138,7 +138,7 @@ class Scalar(PipIterable):
             index %= len(self._value)
         value = list(self._value)
         value.__setitem__(index, str(item))
-        self._value = ''.join(value)
+        self._value = "".join(value)
 
     def __iter__(self):
         for char in self._value:
@@ -153,13 +153,13 @@ class Scalar(PipIterable):
     def index(self, searchItem, startIndex=0):
         if isinstance(searchItem, Scalar):
             try:
-                return Scalar(self._value.index(searchItem._value,
-                                                startIndex))
+                return Scalar(self._value.index(searchItem._value, startIndex))
             except ValueError:
                 return nil
         elif isinstance(searchItem, (List, Range)):
-            return List(self.index(subitem, startIndex)
-                        for subitem in searchItem)
+            return List(
+                self.index(subitem, startIndex) for subitem in searchItem
+            )
         else:
             return nil
 
@@ -177,11 +177,11 @@ class Pattern(PipType):
             # Add an extra <all> capture group around the whole thing
             pyRegex = f"(?P<all>{self._raw})"
             # Increment the numbers of all back-references
-            pyRegex = re.sub(r"(?<!\\)((?:\\{2})*)\\([1-9]\d?)",
-                             lambda m: (m.group(1)
-                                        + "\\"
-                                        + str(int(m.group(2))+1)),
-                             pyRegex)
+            pyRegex = re.sub(
+                r"(?<!\\)((?:\\{2})*)\\([1-9]\d?)",
+                lambda m: (m.group(1) + "\\" + str(int(m.group(2)) + 1)),
+                pyRegex,
+            )
             self._compiled = re.compile(pyRegex)
         return self._compiled
 
@@ -192,15 +192,17 @@ class Pattern(PipType):
 
     def asReplacement(self):
         # Increment all back-references
-        pyReplace = re.sub(r"(?<!\\)((?:\\{2})*)\\([1-9]\d?)",
-                           lambda m: (m.group(1)
-                                      + "\\"
-                                      + str(int(m.group(2))+1)),
-                           self._raw)
+        pyReplace = re.sub(
+            r"(?<!\\)((?:\\{2})*)\\([1-9]\d?)",
+            lambda m: (m.group(1) + "\\" + str(int(m.group(2)) + 1)),
+            self._raw,
+        )
         # Turn unescaped ampersands into back-references to the whole match
-        pyReplace = re.sub(r"(?<!\\)((?:\\{2})*)&",
-                           lambda m: m.group(1) + r"\g<all>",
-                           pyReplace)
+        pyReplace = re.sub(
+            r"(?<!\\)((?:\\{2})*)&",
+            lambda m: m.group(1) + r"\g<all>",
+            pyReplace,
+        )
         # Turn escaped ampersands into literal ampersands
         pyReplace = pyReplace.replace("\\&", "&")
         return pyReplace
@@ -231,7 +233,7 @@ class Pattern(PipType):
 
     def toNumber(self):
         return 0
-    
+
     def __iter__(self):
         for char in self._raw:
             yield Scalar(char)
@@ -253,14 +255,18 @@ class List(PipIterable):
 
     def __init__(self, value=None):
         # TODO: make this more robust to handle infinite Range or range
-        if isinstance(value, (Range,
-                              tuple,
-                              set,
-                              types.GeneratorType,
-                              map,
-                              zip,
-                              itertools.starmap,
-                              )):
+        if isinstance(
+            value,
+            (
+                Range,
+                tuple,
+                set,
+                types.GeneratorType,
+                map,
+                zip,
+                itertools.starmap,
+            ),
+        ):
             self._value = [item for item in value]
         elif isinstance(value, (List, list)):
             self._value = [item.copy() for item in value]
@@ -289,22 +295,26 @@ class List(PipIterable):
         elif self.outFormat == "l":
             # Each item in the list is a line, which in turn is joined on
             # empty string
-            return "\n".join(i.joined("") if isinstance(i, List) else str(i)
-                             for i in self._value)
+            return "\n".join(
+                i.joined("") if isinstance(i, List) else str(i)
+                for i in self._value
+            )
         elif self.outFormat == "P":
             # Each item in the list is a line, which in turn is repr'd
             return "\n".join(repr(i) for i in self._value)
         elif self.outFormat == "S":
             # Each item in the list is a line, which in turn is joined on
             # space
-            return "\n".join(i.joined(" ") if isinstance(i, List) else str(i)
-                             for i in self._value)
+            return "\n".join(
+                i.joined(" ") if isinstance(i, List) else str(i)
+                for i in self._value
+            )
 
     def joined(self, separator):
-        return separator.join(i.joined(separator)
-                              if isinstance(i, List)
-                              else str(i)
-                              for i in self._value)
+        return separator.join(
+            i.joined(separator) if isinstance(i, List) else str(i)
+            for i in self._value
+        )
 
     def __repr__(self):
         return "[" + ";".join(repr(i) for i in self._value) + "]"
@@ -334,7 +344,7 @@ class List(PipIterable):
             index = int(index)
         elif isinstance(index, Range):
             index = index.toSlice()
-        
+
         if isinstance(index, int):
             if self._value == []:
                 raise IndexError("Cannot index into empty list.")
@@ -395,6 +405,7 @@ class List(PipIterable):
 
 class Range(PipIterable):
     """Represents a range of integer values."""
+
     # TODO: add a step parameter
 
     def __init__(self, value, upperVal=None):
@@ -408,7 +419,7 @@ class Range(PipIterable):
             value = None
         if isinstance(upperVal, Scalar):
             upperVal = int(upperVal)
-        
+
         if isinstance(value, int) or value is None:
             if upperVal is None:
                 # A single argument is actually the upper value
@@ -423,8 +434,9 @@ class Range(PipIterable):
             raise TypeError(f"Cannot convert {type(value)} to Range")
 
     def copy(self):
-        return Range(self._lower,
-                     self._upper if self._upper is not None else nil)
+        return Range(
+            self._lower, self._upper if self._upper is not None else nil
+        )
 
     def getLower(self):
         return self._lower
@@ -450,9 +462,11 @@ class Range(PipIterable):
         return True
 
     def __eq__(self, rhs):
-        return (type(self) is type(rhs)
-                and self._lower == rhs._lower
-                and self._upper == rhs._upper)
+        return (
+            type(self) is type(rhs)
+            and self._lower == rhs._lower
+            and self._upper == rhs._upper
+        )
 
     __hash__ = PipIterable.__hash__
 
@@ -516,7 +530,7 @@ class Range(PipIterable):
             index = int(index)
         elif isinstance(index, Range):
             index = index.toSlice()
-        
+
         lower = self._lower or 0
         if isinstance(index, int):
             if self._upper is not None:
@@ -575,7 +589,7 @@ class Range(PipIterable):
                     # Range i.e. (start,start)
                     newUpper = max(newLower, newUpper)
                     return Range(newLower, newUpper)
-    
+
     def count(self, number):
         if isinstance(number, Scalar):
             if self._upper is None:
@@ -595,7 +609,7 @@ class Range(PipIterable):
         else:
             return nil
 
-            
+
 class Block(PipType):
     """Represents a Pip function object."""
 
@@ -617,7 +631,7 @@ class Block(PipType):
 
     def isExpr(self):
         return not self._statements
-    
+
     def __str__(self):
         return repr(self)
 
@@ -628,9 +642,11 @@ class Block(PipType):
         return self._statements != [] or self._returnExpr is not nil
 
     def __eq__(self, rhs):
-        return (isinstance(rhs, Block)
-                and self._statements == rhs._statements
-                and self._returnExpr == rhs._returnExpr)
+        return (
+            isinstance(rhs, Block)
+            and self._statements == rhs._statements
+            and self._returnExpr == rhs._returnExpr
+        )
 
     __hash__ = PipType.__hash__
 
@@ -640,7 +656,7 @@ class Block(PipType):
 
 class Nil(PipType):
     """Represents the nil object."""
-    
+
     instance = None
 
     def __new__(cls):
@@ -673,7 +689,7 @@ class Nil(PipType):
 
     def toNumber(self):
         return 0
-    
+
     def __getitem__(self, index):
         return self
 
@@ -695,4 +711,3 @@ def toPipType(pyObj):
         return nil
     else:
         raise TypeError(f"Cannot convert {type(pyObj)} to Pip type")
-

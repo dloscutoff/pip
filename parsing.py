@@ -1,14 +1,15 @@
-
 import re
 import operators
 import tokens
 import ptypes  # TBD: add another class or two to tokens and refactor this
-               # dependency? Would allow ptypes to import isExpr, which might
-               # be helpful for Blocks...?
+
+# dependency? Would allow ptypes to import isExpr, which might
+# be helpful for Blocks...?
 from errors import ErrorReporter, BadSyntax, IncompleteSyntax
 
 assignOp = operators.opsByArity[2][":"]
 err = ErrorReporter(warnings=True)  # TODO: get this setting from the args?
+
 
 def parse(tokenList):
     "Parses a list of tokens as a collection of statements."
@@ -19,12 +20,15 @@ def parse(tokenList):
         statements.append(parseStatement(tokenList))
         #!print(statements)
     return statements
-    
+
+
 def parseStatement(tokenList):
     "Parse a statement from the beginning of the token list."
     if tokenList[0] is None:
-        err.die("Hit end of tokens while parsing statement",
-                errorClass=IncompleteSyntax)
+        err.die(
+            "Hit end of tokens while parsing statement",
+            errorClass=IncompleteSyntax,
+        )
     elif isinstance(tokenList[0], tokens.Command):
         token = tokenList.pop(0)
         command = operators.commands[token]
@@ -61,6 +65,7 @@ def parseStatement(tokenList):
         tokenList.pop(0)
     return statement
 
+
 def parseNameList(tokenList):
     "Parse a (possibly nested) list containing names."
     if isinstance(tokenList[0], tokens.Name):
@@ -73,18 +78,26 @@ def parseNameList(tokenList):
         tokenList.pop(0)
         if len(nameList) == 1:
             # No names in the list, just the enlist operator
-            err.die("List of names in for-loop header cannot be empty",
-                    errorClass=BadSyntax)
+            err.die(
+                "List of names in for-loop header cannot be empty",
+                errorClass=BadSyntax,
+            )
     elif tokenList[0] is None:
-        err.die("Unterminated list of names in for-loop header",
-                errorClass=IncompleteSyntax)
+        err.die(
+            "Unterminated list of names in for-loop header",
+            errorClass=IncompleteSyntax,
+        )
     else:
-        err.die("For-loop header must be name or list of names, not",
-                tokenList[0], errorClass=BadSyntax)
+        err.die(
+            "For-loop header must be name or list of names, not",
+            tokenList[0],
+            errorClass=BadSyntax,
+        )
     # A semicolon after the name list is unnecessary but legal
     if tokenList[0] == ";":
         tokenList.pop(0)
     return nameList
+
 
 def parseBlock(tokenList):
     "Parse either a single statement or a series of statements in {}."
@@ -98,8 +111,11 @@ def parseBlock(tokenList):
         elif tokenList[0] is None:
             err.die("Unterminated block", errorClass=IncompleteSyntax)
         else:
-            err.die("Expecting } at end of block, got", tokenList[0],
-                    errorClass=BadSyntax)
+            err.die(
+                "Expecting } at end of block, got",
+                tokenList[0],
+                errorClass=BadSyntax,
+            )
     else:
         # Single statement
         # Have to wrap it in a list to make it a code block
@@ -107,16 +123,19 @@ def parseBlock(tokenList):
         block = [parseStatement(tokenList)]
     return block
 
+
 def isExpr(tree):
     "Tests whether the given parse tree is an expression or not."
     if isinstance(tree, list) and isinstance(tree[0], operators.Operator):
         return True
-    elif isinstance(tree, (tokens.Name, ptypes.Scalar,
-                           ptypes.Pattern, ptypes.Nil)):
+    elif isinstance(
+        tree, (tokens.Name, ptypes.Scalar, ptypes.Pattern, ptypes.Nil)
+    ):
         return True
     else:
         return False
-    
+
+
 def parseExpr(tokenList, minPrecedence=-1):
     "Parse an expression from the beginning of the token list."
     expression = parseOperand(tokenList)
@@ -181,10 +200,10 @@ def bubble(exprTree):
     left = exprTree[1]
     if isinstance(left, list):
         nextOp = left[0]
-        if (nextOp.arity in (2, 3)
-            and (nextOp.precedence < op.precedence
-                 or (nextOp.precedence == op.precedence
-                     and op.associativity == 'R'))):
+        if nextOp.arity in (2, 3) and (
+            nextOp.precedence < op.precedence
+            or (nextOp.precedence == op.precedence and op.associativity == "R")
+        ):
             # In essence, this swaps the current root out for the operator
             # which is the root of its left child. The details are hard to
             # follow without a diagram, though. See below.
@@ -200,6 +219,7 @@ def bubble(exprTree):
             # Combine two chaining operators into one
             return left, left
     return exprTree, exprTree
+
 
 #    *       +
 #   /       / \
@@ -254,8 +274,7 @@ def parseOperand(tokenList):
         expressions = []
         while tokenList[0] != ")":
             if tokenList[0] is None:
-                err.die("Unterminated parenthesis",
-                        errorClass=IncompleteSyntax)
+                err.die("Unterminated parenthesis", errorClass=IncompleteSyntax)
             else:
                 expressions.append(parseExpr(tokenList))
         # Remove the closing parenthesis
@@ -285,8 +304,7 @@ def parseOperand(tokenList):
         # Parse a code block
         statements = parseBlock(tokenList)
         return [operators.block, statements]
-    elif (tokenList[0] in operators.opsByArity[1]
-          or tokenList[0] == "$"):
+    elif tokenList[0] in operators.opsByArity[1] or tokenList[0] == "$":
         # Parse a unary operator followed by its operand
         token = tokenList.pop(0)
         if token == "$":
@@ -298,11 +316,17 @@ def parseOperand(tokenList):
                 op.fold = True
                 op.arity = 1
             elif tokenList[0] is None:
-                err.die("Missing operator for $ meta-operator",
-                        errorClass=IncompleteSyntax)
+                err.die(
+                    "Missing operator for $ meta-operator",
+                    errorClass=IncompleteSyntax,
+                )
             else:
-                err.die("Wrong operator for $ meta-operator: got",
-                        tokenList[0], "instead", errorClass=BadSyntax)
+                err.die(
+                    "Wrong operator for $ meta-operator: got",
+                    tokenList[0],
+                    "instead",
+                    errorClass=BadSyntax,
+                )
         else:
             op = operators.opsByArity[1][token]
         # Check for the * and : meta-operators
@@ -317,20 +341,24 @@ def parseOperand(tokenList):
             op = op.copy()
             op.assign = True
             op.precedence = assignOp.precedence
-        subOperand = parseExpr(tokenList, minPrecedence=op.precedence+1)
+        subOperand = parseExpr(tokenList, minPrecedence=op.precedence + 1)
         return [op, subOperand]
-            
+
     # If control reaches here, we've got a problem
     if tokenList[0] is None:
-        err.die("Hit end of tokens while parsing expression",
-                errorClass=IncompleteSyntax)
-    elif (tokenList[0] in operators.opsByArity[2] or
-          tokenList[0] in operators.opsByArity[3]):
-        err.die(tokenList[0], "is not a unary operator",
-                errorClass=BadSyntax)
+        err.die(
+            "Hit end of tokens while parsing expression",
+            errorClass=IncompleteSyntax,
+        )
+    elif (
+        tokenList[0] in operators.opsByArity[2]
+        or tokenList[0] in operators.opsByArity[3]
+    ):
+        err.die(tokenList[0], "is not a unary operator", errorClass=BadSyntax)
     else:
-        err.die("Expected expression, got", repr(tokenList[0]),
-                errorClass=BadSyntax)
+        err.die(
+            "Expected expression, got", repr(tokenList[0]), errorClass=BadSyntax
+        )
 
 
 def unparse(tree, statementSep=""):
@@ -344,7 +372,7 @@ def unparse(tree, statementSep=""):
             elif isinstance(statement[0], operators.Command):
                 code += str(statement[0])
                 for i, argtype in enumerate(statement[0].argtypes):
-                    arg = statement[1+i]
+                    arg = statement[1 + i]
                     if argtype == "ELSE":
                         code += " EL"
                         argtype = "CODE"
@@ -358,6 +386,7 @@ def unparse(tree, statementSep=""):
         code += "; "
         code += statementSep
     return code.strip("; " + statementSep)
+
 
 def unparseExpr(tree, statementSep):
     "Convert parse tree of expression back to string of code."
@@ -381,9 +410,12 @@ def unparseExpr(tree, statementSep):
                     operands.append(str(item))
                 else:
                     operand = unparseExpr(item, statementSep)
-                    if (isinstance(item, list)
-                            and item[0] not in ["PAREN", "BLOCK",
-                                                "SEND", "LIST"]):
+                    if isinstance(item, list) and item[0] not in [
+                        "PAREN",
+                        "BLOCK",
+                        "SEND",
+                        "LIST",
+                    ]:
                         operand = "(" + operand + ")"
                     operands.append(operand)
             if op == "CHAIN":
@@ -402,4 +434,3 @@ def unparseExpr(tree, statementSep):
         # Shouldn't ever get here
         raise ValueError(repr(tree))
     return code
-
