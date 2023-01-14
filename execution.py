@@ -1,4 +1,3 @@
-
 import itertools
 import math
 import random
@@ -10,8 +9,17 @@ import tokens
 import operators as ops
 import parsing
 import scanning
-from ptypes import (PipType, PipIterable, Scalar, Pattern, List, Range,
-                    Block, Nil, nil)
+from ptypes import (
+    PipType,
+    PipIterable,
+    Scalar,
+    Pattern,
+    List,
+    Range,
+    Block,
+    Nil,
+    nil,
+)
 import ptypes
 from errors import ErrorReporter, FatalError
 
@@ -23,7 +31,7 @@ SCALAR_TWO = Scalar("2")
 
 class ProgramState:
     """The internal state of a program during execution."""
-    
+
     def __init__(self, listFormat=None, showWarnings=False):
         # The listFormat parameter determines how lists are formatted when
         # converting to string (and therefore when printing)
@@ -44,7 +52,7 @@ class ProgramState:
         self.specialVars = {
             "q": {"get": self.getq},
             "r": {"get": self.getr, "set": self.setr},
-            }
+        }
         # Local variables--one set per function call level
         self.locals = [{}]
 
@@ -78,15 +86,19 @@ class ProgramState:
                     # Commands don't return anything
                     return None
                 else:
-                    self.err.die("Implementation error, function not found:",
-                                 cmdFunction)
+                    self.err.die(
+                        "Implementation error, function not found:", cmdFunction
+                    )
             elif not isinstance(statement[0], ops.Operator):
                 # Weird, this shouldn't happen
-                self.err.die("Implementation error: statement", statement,
-                             "isn't command or expression")
+                self.err.die(
+                    "Implementation error: statement",
+                    statement,
+                    "isn't command or expression",
+                )
         # Anything else is probably an expression; evaluate it
         return self.getRval(self.evaluate(statement))
-    
+
     def evaluate(self, expression):
         #!print("In evaluate", repr(expression))
         if isinstance(expression, tokens.Name):
@@ -95,14 +107,17 @@ class ProgramState:
         elif isinstance(expression, (Lval, PipType)):
             # This is a value (lvalue or rvalue) already--just return it
             return expression
-        elif (not isinstance(expression, list) or expression == []
-              or not isinstance(expression[0], ops.Operator)):
+        elif (
+            not isinstance(expression, list)
+            or expression == []
+            or not isinstance(expression[0], ops.Operator)
+        ):
             self.err.die("Not a valid expression")
 
         # If none of the above were true, then we're dealing with a parse tree
         # in the form of a list: [operator, arg1, arg2, ...]
         operator, *args = expression
-        
+
         if operator.assign:
             # This is a compute-and-assign operator like +:
             # Compute the expression, and then assign it back to the lval
@@ -130,16 +145,19 @@ class ProgramState:
                     elif operator.flags & ops.VALS:
                         # Convert args to l- or rvalues
                         arg = self.evaluate(arg)
-                    if (operator.flags & ops.RANGE_EACH
-                            and isinstance(arg, Range)):
+                    if operator.flags & ops.RANGE_EACH and isinstance(
+                        arg, Range
+                    ):
                         argsToExpand.append(i)
-                    elif (operator.flags & ops.LIST_EACH
-                          and isinstance(arg, List)):
+                    elif operator.flags & ops.LIST_EACH and isinstance(
+                        arg, List
+                    ):
                         argsToExpand.append(i)
-                    elif (operator.flags & ops.IN_LAMBDA
-                          and (isinstance(arg, Block)
-                               or isinstance(arg, Lval)
-                               and isinstance(self.getRval(arg), Block))):
+                    elif operator.flags & ops.IN_LAMBDA and (
+                        isinstance(arg, Block)
+                        or isinstance(arg, Lval)
+                        and isinstance(self.getRval(arg), Block)
+                    ):
                         # Note: All operators that set IN_LAMBDA must set
                         # either VALS or RVALS, so we can assume arg is at
                         # least an Lval here
@@ -154,10 +172,10 @@ class ProgramState:
                 if not operator.flags & ops.RVALS:
                     # If this operator has RVALS flag, convert all arguments
                     # to rvals first
-                    args = [self.getRval(arg)
-                            if isinstance(arg, Lval)
-                            else arg
-                            for arg in args]
+                    args = [
+                        self.getRval(arg) if isinstance(arg, Lval) else arg
+                        for arg in args
+                    ]
                 if len(blockArgs) == 1:
                     # One of the arguments is a Block
                     # Modify its return expression with this operation,
@@ -184,42 +202,54 @@ class ProgramState:
             try:
                 if argsToExpand and len(args) == 1:
                     # Single argument to unary op needs expansion
-                    result = List(self.evaluate([operator, item])
-                                  for item in args[0])
+                    result = List(
+                        self.evaluate([operator, item]) for item in args[0]
+                    )
                 elif argsToExpand and len(args) == 2:
                     if len(argsToExpand) == 2:
                         # Both arguments to binary op need expansion
-                        result = [self.evaluate([operator, lhs, rhs])
-                                  for lhs, rhs in zip(*args)]
+                        result = [
+                            self.evaluate([operator, lhs, rhs])
+                            for lhs, rhs in zip(*args)
+                        ]
                         # But zip() doesn't catch all of the items if one list
                         # is longer than the other, so add the remaining items
                         # unchanged
                         lengths = tuple(map(len, args))
                         if lengths[0] > lengths[1]:
-                            result.extend(args[0][lengths[1]:])
+                            result.extend(args[0][lengths[1] :])
                         elif lengths[1] > lengths[0]:
-                            result.extend(args[1][lengths[0]:])
+                            result.extend(args[1][lengths[0] :])
                         result = List(result)
                     elif argsToExpand == [0]:
                         # Only the lhs argument to binary op needs expansion
-                        result = List(self.evaluate([operator, lhs, args[1]])
-                                      for lhs in args[0])
+                        result = List(
+                            self.evaluate([operator, lhs, args[1]])
+                            for lhs in args[0]
+                        )
                     elif argsToExpand == [1]:
                         # Only the rhs argument to binary op needs expansion
-                        result = List(self.evaluate([operator, args[0], rhs])
-                                      for rhs in args[1])
+                        result = List(
+                            self.evaluate([operator, args[0], rhs])
+                            for rhs in args[1]
+                        )
                 else:
                     # No List or Range args need expansion--simple calculation
                     fnName = operator.function
                     if fnName not in dir(self):
-                        self.err.die("Implementation error, op function "
-                                     "not found:", fnName)
+                        self.err.die(
+                            "Implementation error, op function " "not found:",
+                            fnName,
+                        )
                     opFunction = getattr(self, fnName)
                     result = opFunction(*args)
             except TypeError as e:
                 # Probably the wrong number of args
-                self.err.die(f"Implementation error: evaluate({expression}) "
-                             "raised TypeError:", e)
+                self.err.die(
+                    f"Implementation error: evaluate({expression}) "
+                    "raised TypeError:",
+                    e,
+                )
         #!print(fnName, "returned", result)
         return result
 
@@ -268,8 +298,9 @@ class ProgramState:
                     # in the Lval in case it gets evaluated again
                     result = expr.evaluated = self.specialVars[base]["get"]()
                 else:
-                    self.err.warn(f"Special var {base} does not "
-                                  "implement 'get'")
+                    self.err.warn(
+                        f"Special var {base} does not " "implement 'get'"
+                    )
                     return nil
             else:
                 # Get the variable from the appropriate variable table, nil if
@@ -277,8 +308,7 @@ class ProgramState:
                 if self.isDefined(base):
                     result = self.varTable(base)[base]
                 else:
-                    self.err.warn("Referencing uninitialized variable",
-                                  base)
+                    self.err.warn("Referencing uninitialized variable", base)
                     return nil
             try:
                 for index in expr.sliceList:
@@ -293,8 +323,11 @@ class ProgramState:
             #!print(f"Return {result!r} from getRval()")
             return result.copy()
         else:
-            self.err.die("Implementation error: unexpected type",
-                         type(expr), "in getRval()")
+            self.err.die(
+                "Implementation error: unexpected type",
+                type(expr),
+                "in getRval()",
+            )
 
     def assign(self, lval, rval):
         """Set the value of lval to rval."""
@@ -310,21 +343,33 @@ class ProgramState:
                 try:
                     rvalIterator = iter(rval)
                 except TypeError:
-                    self.err.warn("Cannot perform destructuring assignment "
-                                  "with non-iterable value", rval)
+                    self.err.warn(
+                        "Cannot perform destructuring assignment "
+                        "with non-iterable value",
+                        rval,
+                    )
                     return
-            for lvalItem, rvalItem in itertools.zip_longest(lval.base,
-                                                            rvalIterator):
+            for lvalItem, rvalItem in itertools.zip_longest(
+                lval.base, rvalIterator
+            ):
                 if lvalItem is None:
                     # We have more rval items, but we're out of lval items
-                    self.err.warn("Some values left unused in "
-                                  "destructuring assignment of", rval)
+                    self.err.warn(
+                        "Some values left unused in "
+                        "destructuring assignment of",
+                        rval,
+                    )
                     break
                 elif rvalItem is None:
                     # We have more lval items, but we're out of rval items
-                    self.err.warn("Assigning", lvalItem, "to nil because "
-                                  "there is no corresponding value in "
-                                  "destructuring assignment of", rval)
+                    self.err.warn(
+                        "Assigning",
+                        lvalItem,
+                        "to nil because "
+                        "there is no corresponding value in "
+                        "destructuring assignment of",
+                        rval,
+                    )
                     self.assign(lvalItem, nil)
                 else:
                     self.assign(lvalItem, rvalItem)
@@ -333,8 +378,9 @@ class ProgramState:
         if base in self.specialVars:
             # This is a special variable--execute its "set" method
             if lval.sliceList:
-                self.err.warn("Cannot assign to index/slice of special var",
-                              base)
+                self.err.warn(
+                    "Cannot assign to index/slice of special var", base
+                )
             elif "set" not in self.specialVars[base]:
                 self.err.warn(f"Special var {base} does not implement 'set'")
             else:
@@ -348,8 +394,9 @@ class ProgramState:
             return
         elif base not in varTable:
             # If there is a slicelist, the variable must exist
-            self.err.warn("Cannot assign to index of nonexistent variable",
-                          base)
+            self.err.warn(
+                "Cannot assign to index of nonexistent variable", base
+            )
             return
 
         currentVal = varTable[base]
@@ -357,7 +404,7 @@ class ProgramState:
             # Can't modify a Range in place... cast it to a List first
             # This way we can do things like r:,9 r@4:42
             currentVal = varTable[base] = List(currentVal)
-        
+
         if isinstance(currentVal, (List, Scalar)):
             # Assignment to a subindex
             #!print(f"Before assign, variable {base!r} is {currentVal}")
@@ -369,7 +416,7 @@ class ProgramState:
                 except IndexError:
                     self.err.warn(f"Invalid index into {result!r}: {index}")
                     return
-                
+
             # Final level--do the assignment
             # We can use item-mutation syntax directly because these
             # classes define the __setitem__ method.
@@ -390,8 +437,10 @@ class ProgramState:
 
     def functionCall(self, function, argList):
         """Call the function in a new scope with the given arguments."""
-        argList = [self.getRval(arg) if isinstance(arg, Lval) else arg
-                   for arg in argList]
+        argList = [
+            self.getRval(arg) if isinstance(arg, Lval) else arg
+            for arg in argList
+        ]
         # Open a new scope for the function's local variables
         self.callDepth += 1
         self.locals.append({})
@@ -439,8 +488,8 @@ class ProgramState:
         self.assign(Lval("$("), Scalar(matchObj.start()))
         self.assign(Lval("$)"), Scalar(matchObj.end()))
         # Assign portion of string before match to $` and after to $'
-        self.assign(Lval("$`"), Scalar(matchObj.string[:matchObj.start()]))
-        self.assign(Lval("$'"), Scalar(matchObj.string[matchObj.end():]))
+        self.assign(Lval("$`"), Scalar(matchObj.string[: matchObj.start()]))
+        self.assign(Lval("$'"), Scalar(matchObj.string[matchObj.end() :]))
         # Assign lists of groups' start and end indices to $[ and $]
         # (not including the full match)
         if len(matchObj.regs) > 2:
@@ -453,7 +502,6 @@ class ProgramState:
         self.assign(Lval("$["), startIndices)
         self.assign(Lval("$]"), endIndices)
         return groups
-
 
     ################################
     ### Fns for special vars     ###
@@ -489,7 +537,7 @@ class ProgramState:
                 self.assign(loopVar, item)
                 for statement in code:
                     self.executeStatement(statement)
-    
+
     def IF(self, cond, code, elseCode):
         """Execute code if cond evaluates to true; otherwise, elseCode."""
         condVal = self.getRval(cond)
@@ -512,7 +560,7 @@ class ProgramState:
         for i in range(count):
             for statement in code:
                 self.executeStatement(statement)
-    
+
     def LOOPREGEX(self, regex, string, code):
         """Execute code for each match of regex in string."""
         regex = self.getRval(regex)
@@ -530,8 +578,12 @@ class ProgramState:
                 for statement in code:
                     self.executeStatement(statement)
         else:
-            self.err.warn("Unimplemented argtypes for LOOPREGEX:",
-                          type(regex), "and", type(string))
+            self.err.warn(
+                "Unimplemented argtypes for LOOPREGEX:",
+                type(regex),
+                "and",
+                type(string),
+            )
 
     def TILL(self, cond, code):
         """Loop, executing code, until cond evaluates to true."""
@@ -555,15 +607,15 @@ class ProgramState:
             "_": Block([], tokens.Name("a")),
             "h": Scalar("100"),
             "i": Scalar("0"),
-            #j is reserved for complex numbers
+            # j is reserved for complex numbers
             "k": Scalar(", "),
             "l": List([]),
             "m": Scalar("1000"),
             "n": Scalar("\n"),
             "o": Scalar("1"),
             "p": Scalar("()"),
-            #q is a special variable
-            #r is a special variable
+            # q is a special variable
+            # r is a special variable
             "s": Scalar(" "),
             "t": Scalar("10"),
             "u": nil,
@@ -593,7 +645,7 @@ class ProgramState:
             "XW": Pattern(r"\w"),
             "XX": Pattern("."),
             "XY": Pattern("[aeiouy]"),
-            }
+        }
         self.vars["\\g"] = List(self.args)
         for name, arg in zip("abcde", self.args):
             self.vars["\\" + name] = arg
@@ -641,9 +693,11 @@ class ProgramState:
                             chainExpr.extend((normalOp, val))
                         foldValue = self.evaluate(chainExpr)
                 else:
-                    self.err.die("Implementation error: unknown "
-                                 f"associativity {operator.associativity} "
-                                 "in FOLDMETA")
+                    self.err.die(
+                        "Implementation error: unknown "
+                        f"associativity {operator.associativity} "
+                        "in FOLDMETA"
+                    )
                 return foldValue
         elif iterable is nil:
             return nil
@@ -686,8 +740,12 @@ class ProgramState:
             result = abs(lhs.toNumber() - rhs.toNumber())
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for ABSOLUTEDIFF:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for ABSOLUTEDIFF:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def ADD(self, lhs, rhs):
@@ -712,8 +770,9 @@ class ProgramState:
             result = f"(?:{lhs})(?:{rhs})"
             return Pattern(result)
         else:
-            self.err.warn("Unimplemented argtypes for ADD:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for ADD:", type(lhs), "and", type(rhs)
+            )
             return nil
 
     def AND(self, lhs, rhs):
@@ -730,8 +789,12 @@ class ProgramState:
         if isinstance(lhs, (List, Range)):
             return List(list(lhs) + [rhs])
         else:
-            self.err.warn("Unimplemented argtypes for APPENDELEM:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for APPENDELEM:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def APPENDLIST(self, lhs, rhs):
@@ -742,8 +805,12 @@ class ProgramState:
         if isinstance(lhs, (List, Range)) and isinstance(rhs, (List, Range)):
             return List(list(lhs) + list(rhs))
         else:
-            self.err.warn("Unimplemented argtypes for APPENDLIST:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for APPENDLIST:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def ARCTAN(self, lhs, rhs=None):
@@ -757,8 +824,12 @@ class ProgramState:
             if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
                 return Scalar(math.atan2(lhs.toNumber(), rhs.toNumber()))
             else:
-                self.err.warn("Unimplemented argtypes for ARCTAN:",
-                              type(lhs), "and", type(rhs))
+                self.err.warn(
+                    "Unimplemented argtypes for ARCTAN:",
+                    type(lhs),
+                    "and",
+                    type(rhs),
+                )
                 return nil
 
     def ASC(self, rhs):
@@ -791,7 +862,7 @@ class ProgramState:
     def AT(self, lhs, rhs=None):
         if isinstance(rhs, Lval):
             rhs = self.getRval(rhs)
-        
+
         if isinstance(rhs, Scalar):
             index = int(rhs)
         elif isinstance(rhs, Range):
@@ -819,9 +890,12 @@ class ProgramState:
                     elif isinstance(result, Lval):
                         return result
                     else:
-                        self.err.die("Implementation error: reached else "
-                                     "branch of Lval<List> AT int/slice, "
-                                     "got", repr(result))
+                        self.err.die(
+                            "Implementation error: reached else "
+                            "branch of Lval<List> AT int/slice, "
+                            "got",
+                            repr(result),
+                        )
 
                 else:
                     # The lhs is a single lvalue; attach the index to it
@@ -830,7 +904,7 @@ class ProgramState:
                 # Using a List to index or doing a regex search can only
                 # give you an rval
                 lhs = self.getRval(lhs)
-        
+
         if isinstance(rhs, Pattern) and isinstance(lhs, Scalar):
             matches = rhs.asRegex().finditer(str(lhs))
             result = List()
@@ -860,14 +934,24 @@ class ProgramState:
         else:
             self.err.warn("Cannot index into", type(lhs))
             return nil
-    
+
+    def BITLENGTH(self, lhs):
+        if isinstance(lhs, Scalar):
+            return len(bin(int(lhs))[2:])
+        else:
+            self.err.warn("Cannot get bitlength of", type(lhs))
+
     def BITWISEAND(self, lhs, rhs):
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = int(lhs) & int(rhs)
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for BITWISEAND:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for BITWISEAND:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def BITWISENOT(self, rhs):
@@ -883,8 +967,12 @@ class ProgramState:
             result = int(lhs) | int(rhs)
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for BITWISEOR:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for BITWISEOR:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def BITWISEXOR(self, lhs, rhs):
@@ -892,8 +980,12 @@ class ProgramState:
             result = int(lhs) ^ int(rhs)
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for BITWISEXOR:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for BITWISEXOR:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def BLOCK(self, statements):
@@ -904,24 +996,27 @@ class ProgramState:
         else:
             returnExpr = None
         return Block(statements, returnExpr)
-    
+
     def CARTESIANPRODUCT(self, list1, list2=None):
         if list2 is None:
             if isinstance(list1, PipIterable):
                 lists = list1
             else:
-                self.err.warn("Unimplemented argtype for CARTESIANPRODUCT:",
-                              type(list1))
+                self.err.warn(
+                    "Unimplemented argtype for CARTESIANPRODUCT:", type(list1)
+                )
                 return nil
         else:
             lists = [list1, list2]
-        noniterables = [item for item in lists
-                        if isinstance(item, (Nil, Block, Pattern))]
+        noniterables = [
+            item for item in lists if isinstance(item, (Nil, Block, Pattern))
+        ]
         if noniterables:
             # There are some of the "lists" that are not iterable
             # TBD: maybe this can find a non-error meaning?
-            self.err.warn("Trying to take CP of non-iterable value(s):",
-                          noniterables)
+            self.err.warn(
+                "Trying to take CP of non-iterable value(s):", noniterables
+            )
             return nil
         else:
             return List(List(tuple) for tuple in itertools.product(*lists))
@@ -930,28 +1025,32 @@ class ProgramState:
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = str(lhs) + str(rhs)
             return Scalar(result)
-        elif (isinstance(lhs, (Scalar, Pattern))
-              and isinstance(rhs, (Scalar, Pattern))):
+        elif isinstance(lhs, (Scalar, Pattern)) and isinstance(
+            rhs, (Scalar, Pattern)
+        ):
             result = str(lhs) + str(rhs)
             return Pattern(result)
         else:
-            self.err.warn("Unimplemented argtypes for CAT:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for CAT:", type(lhs), "and", type(rhs)
+            )
             return nil
 
     def CHAIN(self, *chain):
         # The args here alternate between rvals and comparison operators
         if len(chain) % 2 == 0:
             # An even chain length signals a malformed chain
-            self.err.die("Implementation error: badly formed "
-                         f"comparison chain {chain}")
+            self.err.die(
+                "Implementation error: badly formed "
+                f"comparison chain {chain}"
+            )
         result = True
-        i = 1      # i is the index of the next comparison operator in chain
+        i = 1  # i is the index of the next comparison operator in chain
         while result and i < len(chain):
             # Construct an ersatz parse tree to evaluate just this portion
             # of the chain: comparison operator, left-hand side, right-hand
             # side
-            compTree = [chain[i], chain[i-1], chain[i+1]]
+            compTree = [chain[i], chain[i - 1], chain[i + 1]]
             # The result so far was true if we're still in the loop, so the
             # following is sufficient for correct evaluation:
             result = self.evaluate(compTree)
@@ -973,7 +1072,7 @@ class ProgramState:
                 jump = len(iterable) / chunks
                 while index < len(iterable):
                     endIndex = min(index + jump, len(iterable))
-                    chunk = iterable[math.floor(index):math.floor(endIndex)]
+                    chunk = iterable[math.floor(index) : math.floor(endIndex)]
                     result.append(chunk)
                     index += jump
                 return result
@@ -983,7 +1082,7 @@ class ProgramState:
                 jump = len(iterable) / chunks
                 while index > 0:
                     startIndex = max(index + jump, 0)
-                    chunk = iterable[math.ceil(startIndex):math.ceil(index)]
+                    chunk = iterable[math.ceil(startIndex) : math.ceil(index)]
                     result.append(chunk)
                     index += jump
                 return result
@@ -991,8 +1090,12 @@ class ProgramState:
                 self.err.warn("Cannot CHOP into 0 slices")
                 return nil
         else:
-            self.err.warn("Unimplemented argtypes for CHOP:",
-                          type(iterable), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for CHOP:",
+                type(iterable),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def CHR(self, rhs):
@@ -1016,27 +1119,36 @@ class ProgramState:
             else:
                 return List(List(comb) for comb in result)
         else:
-            self.err.warn("Unimplemented argtypes for COMBINATIONS:",
-                          type(iterable), "and", type(num))
+            self.err.warn(
+                "Unimplemented argtypes for COMBINATIONS:",
+                type(iterable),
+                "and",
+                type(num),
+            )
             return nil
-    
+
     def COORDINATEGRID(self, rows, cols=None):
         if cols is None:
             cols = rows
         if isinstance(rows, Scalar) and isinstance(cols, Scalar):
             rows = range(int(rows))
             cols = range(int(cols))
-            return List(List(List([Scalar(row), Scalar(col)])
-                             for col in cols)
-                        for row in rows)
+            return List(
+                List(List([Scalar(row), Scalar(col)]) for col in cols)
+                for row in rows
+            )
         else:
-            self.err.warn("Unimplemented argtypes for COORDINATEGRID:",
-                          type(rows), "and", type(cols))
+            self.err.warn(
+                "Unimplemented argtypes for COORDINATEGRID:",
+                type(rows),
+                "and",
+                type(cols),
+            )
             return nil
 
     def COSEC(self, rhs):
         if isinstance(rhs, Scalar):
-            return Scalar(1/math.sin(rhs.toNumber()))
+            return Scalar(1 / math.sin(rhs.toNumber()))
         else:
             self.err.warn("Unimplemented argtype for COSEC:", type(rhs))
             return nil
@@ -1050,11 +1162,11 @@ class ProgramState:
 
     def COTAN(self, rhs):
         if isinstance(rhs, Scalar):
-            return Scalar(1/math.tan(rhs.toNumber()))
+            return Scalar(1 / math.tan(rhs.toNumber()))
         else:
             self.err.warn("Unimplemented argtype for COTAN:", type(rhs))
             return nil
-        
+
     def DEC(self, rhs):
         minus = ops.opsByArity[2]["-"]
         result = self.evaluate([minus, self.getRval(rhs), SCALAR_ONE])
@@ -1070,11 +1182,15 @@ class ProgramState:
     def DELETECHARS(self, string, chars):
         """Delete characters from string."""
         if isinstance(string, Scalar) and isinstance(chars, Scalar):
-            result = str(string).translate({ord(c):None for c in str(chars)})
+            result = str(string).translate({ord(c): None for c in str(chars)})
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for DELETECHARS:",
-                          type(string), "and", type(chars))
+            self.err.warn(
+                "Unimplemented argtypes for DELETECHARS:",
+                type(string),
+                "and",
+                type(chars),
+            )
             # Nothing to delete, so return original value
             return string
 
@@ -1099,8 +1215,7 @@ class ProgramState:
         elif isinstance(iterVal, Range):
             try:
                 if len(iterVal) > 0:
-                    iterVal = Range(iterVal.getLower(),
-                                    iterVal.getUpper() - 1)
+                    iterVal = Range(iterVal.getLower(), iterVal.getUpper() - 1)
                     item = Scalar(iterVal.getUpper())
                 else:
                     self.err.warn("Dequeuing from empty range")
@@ -1129,32 +1244,31 @@ class ProgramState:
     def DESCENDINGNUM(self, iterable):
         if isinstance(iterable, PipIterable):
             try:
-                return List(sorted(iterable,
-                                   key=lambda x: x.toNumber(),
-                                   reverse=True))
+                return List(
+                    sorted(iterable, key=lambda x: x.toNumber(), reverse=True)
+                )
             except TypeError:
                 self.err.warn("Cannot sort mixed types in list")
                 return nil
         else:
-            self.err.warn("Unimplemented argtype for DESCENDINGNUM:",
-                          type(iterable))
+            self.err.warn(
+                "Unimplemented argtype for DESCENDINGNUM:", type(iterable)
+            )
             return nil
 
     def DESCENDINGSTRING(self, iterable):
         if isinstance(iterable, Scalar):
-            return Scalar("".join(sorted(str(iterable),
-                                         reverse=True)))
+            return Scalar("".join(sorted(str(iterable), reverse=True)))
         elif isinstance(iterable, PipIterable):
             # This is going to get a bit wonky when sorting lists of lists,
             # but not sure it's worth the effort to fix
-            return List(sorted(iterable,
-                               key=str,
-                               reverse=True))
+            return List(sorted(iterable, key=str, reverse=True))
         else:
-            self.err.warn("Unimplemented argtype for DESCENDINGSTRING:",
-                          type(iterable))
+            self.err.warn(
+                "Unimplemented argtype for DESCENDINGSTRING:", type(iterable)
+            )
             return nil
-    
+
     def DIV(self, lhs, rhs):
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             try:
@@ -1164,8 +1278,9 @@ class ProgramState:
                 self.err.warn("Dividing by zero")
                 return nil
         else:
-            self.err.warn("Unimplemented argtypes for DIV:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for DIV:", type(lhs), "and", type(rhs)
+            )
             return nil
 
     def DOT(self, rhs):
@@ -1182,8 +1297,7 @@ class ProgramState:
         if isinstance(rhs, Scalar):
             return Scalar(rhs.toNumber() * 2)
         else:
-            self.err.warn("Unimplemented argtype for DOUBLE:",
-                          type(rhs))
+            self.err.warn("Unimplemented argtype for DOUBLE:", type(rhs))
 
     def ENUMERATE(self, iterable):
         if isinstance(iterable, PipIterable):
@@ -1191,11 +1305,14 @@ class ProgramState:
                 self.err.warn("Cannot enumerate infinite range")
                 return nil
             else:
-                return List(List((Scalar(index), item))
-                            for index, item in enumerate(iterable))
+                return List(
+                    List((Scalar(index), item))
+                    for index, item in enumerate(iterable)
+                )
         else:
-            self.err.warn("Unimplemented argtype for ENUMERATE:",
-                          type(iterable))
+            self.err.warn(
+                "Unimplemented argtype for ENUMERATE:", type(iterable)
+            )
             return nil
 
     def EVAL(self, code, argList=None):
@@ -1207,13 +1324,11 @@ class ProgramState:
             try:
                 tkns = scanning.scan(str(code) + "\n")
             except FatalError as err:
-                self.err.die(f"Scanning error while evaluating {code!r}:",
-                             err)
+                self.err.die(f"Scanning error while evaluating {code!r}:", err)
             try:
                 tree = parsing.parse(tkns)
             except FatalError as err:
-                self.err.die(f"Parsing error while evaluating {code!r}:",
-                             err)
+                self.err.die(f"Parsing error while evaluating {code!r}:", err)
             code = self.BLOCK(tree)
         if isinstance(code, Block) and argList is not None:
             return self.functionCall(code, argList)
@@ -1224,11 +1339,14 @@ class ProgramState:
             return self.evaluate(code.getReturnExpr())
         else:
             if argList is None:
-                self.err.warn("Unimplemented argtype for EVAL:",
-                              type(code))
+                self.err.warn("Unimplemented argtype for EVAL:", type(code))
             else:
-                self.err.warn("Unimplemented argtypes for EVAL:",
-                              type(code), "and", type(argList))
+                self.err.warn(
+                    "Unimplemented argtypes for EVAL:",
+                    type(code),
+                    "and",
+                    type(argList),
+                )
             return nil
 
     def EXPONENTIAL(self, number):
@@ -1237,8 +1355,9 @@ class ProgramState:
             result = math.exp(number.toNumber())
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtype for EXPONENTIAL:",
-                          type(number))
+            self.err.warn(
+                "Unimplemented argtype for EXPONENTIAL:", type(number)
+            )
             return nil
 
     def FILTER(self, function, iterable=None):
@@ -1249,18 +1368,24 @@ class ProgramState:
             if isinstance(iterable, PipIterable):
                 return List(item for item in iterable if item)
             else:
-                self.err.warn("Unimplemented argtype for FILTER:",
-                              type(iterable))
+                self.err.warn(
+                    "Unimplemented argtype for FILTER:", type(iterable)
+                )
                 return nil
         if isinstance(iterable, Block) and isinstance(function, PipIterable):
             # The arguments are reversible to enable things like lFI:f
             function, iterable = iterable, function
         if isinstance(function, Block) and isinstance(iterable, PipIterable):
-            return List(item for item in iterable
-                        if self.functionCall(function, [item]))
+            return List(
+                item for item in iterable if self.functionCall(function, [item])
+            )
         else:
-            self.err.warn("Unimplemented argtypes for FILTER:",
-                          type(function), "and", type(iterable))
+            self.err.warn(
+                "Unimplemented argtypes for FILTER:",
+                type(function),
+                "and",
+                type(iterable),
+            )
             return nil
 
     def FILTERENUMERATE(self, function, iterable):
@@ -1273,11 +1398,18 @@ class ProgramState:
             # The arguments are reversible to enable things like lFE:f
             function, iterable = iterable, function
         if isinstance(function, Block) and isinstance(iterable, PipIterable):
-            return List(item for index, item in enumerate(iterable)
-                        if self.functionCall(function, [Scalar(index), item]))
+            return List(
+                item
+                for index, item in enumerate(iterable)
+                if self.functionCall(function, [Scalar(index), item])
+            )
         else:
-            self.err.warn("Unimplemented argtypes for FILTER:",
-                          type(function), "and", type(iterable))
+            self.err.warn(
+                "Unimplemented argtypes for FILTER:",
+                type(function),
+                "and",
+                type(iterable),
+            )
             return nil
 
     def FILTERNOT(self, function, iterable=None):
@@ -1288,18 +1420,26 @@ class ProgramState:
             if isinstance(iterable, PipIterable):
                 return List(item for item in iterable if not item)
             else:
-                self.err.warn("Unimplemented argtype for FILTER:",
-                              type(iterable))
+                self.err.warn(
+                    "Unimplemented argtype for FILTER:", type(iterable)
+                )
                 return nil
         if isinstance(iterable, Block) and isinstance(function, PipIterable):
             # The arguments are reversible to enable things like lFN:f
             function, iterable = iterable, function
         if isinstance(function, Block) and isinstance(iterable, PipIterable):
-            return List(item for item in iterable
-                        if not self.functionCall(function, [item]))
+            return List(
+                item
+                for item in iterable
+                if not self.functionCall(function, [item])
+            )
         else:
-            self.err.warn("Unimplemented argtypes for FILTERNOT:",
-                          type(function), "and", type(iterable))
+            self.err.warn(
+                "Unimplemented argtypes for FILTERNOT:",
+                type(function),
+                "and",
+                type(iterable),
+            )
             return nil
 
     def FILTERUNPACK(self, function, iterable):
@@ -1318,8 +1458,9 @@ class ProgramState:
                     arglist = list(item)
                 except ValueError:
                     # This happens when one of the items is an infinite Range
-                    self.err.warn("Cannot unpack infinite Range in "
-                                  "FILTERUNPACK")
+                    self.err.warn(
+                        "Cannot unpack infinite Range in " "FILTERUNPACK"
+                    )
                     arglist = []
                 except TypeError:
                     # This happens when one of the items is a
@@ -1330,8 +1471,12 @@ class ProgramState:
                     result.append(item)
             return result
         else:
-            self.err.warn("Unimplemented argtypes for FILTERUNPACK:",
-                          type(function), "and", type(iterable))
+            self.err.warn(
+                "Unimplemented argtypes for FILTERUNPACK:",
+                type(function),
+                "and",
+                type(iterable),
+            )
             return nil
 
     def FIND(self, iterable, item):
@@ -1345,8 +1490,12 @@ class ProgramState:
         elif isinstance(iterable, PipIterable):
             return iterable.index(item)
         else:
-            self.err.warn("Unimplemented argtypes for FIND:",
-                          type(iterable), "and", type(item))
+            self.err.warn(
+                "Unimplemented argtypes for FIND:",
+                type(iterable),
+                "and",
+                type(item),
+            )
             return nil
 
     def FINDALL(self, iterable, item):
@@ -1360,10 +1509,12 @@ class ProgramState:
                 self.assignRegexVars(matchObj)
                 result.append(Scalar(matchObj.start()))
             return result
-        elif (isinstance(item, (Scalar, Range))
-                  and isinstance(iterable, PipIterable)
-              or isinstance(item, (List, Pattern, Nil))
-                  and isinstance(iterable, List)):
+        elif (
+            isinstance(item, (Scalar, Range))
+            and isinstance(iterable, PipIterable)
+            or isinstance(item, (List, Pattern, Nil))
+            and isinstance(iterable, List)
+        ):
             result = List()
             lastIndex = iterable.index(item)
             while lastIndex is not nil:
@@ -1371,8 +1522,12 @@ class ProgramState:
                 lastIndex = iterable.index(item, int(lastIndex) + 1)
             return result
         else:
-            self.err.warn("Unimplemented argtypes for FINDALL:",
-                          type(iterable), "and", type(item))
+            self.err.warn(
+                "Unimplemented argtypes for FINDALL:",
+                type(iterable),
+                "and",
+                type(item),
+            )
             return nil
 
     def FIRSTMATCH(self, regex, string):
@@ -1386,8 +1541,12 @@ class ProgramState:
             else:
                 return nil
         else:
-            self.err.warn("Unimplemented argtypes for FIRSTMATCH:",
-                          type(regex), "and", type(string))
+            self.err.warn(
+                "Unimplemented argtypes for FIRSTMATCH:",
+                type(regex),
+                "and",
+                type(string),
+            )
             return nil
 
     def FLATTEN(self, iterable):
@@ -1438,8 +1597,7 @@ class ProgramState:
                 self.err.warn("Failed converting", number, "from base", base)
                 return nil
         else:
-            self.err.warn("Unimplemented argtype for FROMBASE:",
-                          type(number))
+            self.err.warn("Unimplemented argtype for FROMBASE:", type(number))
             return nil
 
     def FROMDIGITS(self, digits, base=None):
@@ -1448,31 +1606,30 @@ class ProgramState:
         elif isinstance(base, Scalar):
             base = base.toNumber()
         else:
-            self.err.warn("Unimplemented base type for FROMDIGITS:",
-                          type(base))
+            self.err.warn("Unimplemented base type for FROMDIGITS:", type(base))
             return nil
         if isinstance(digits, PipIterable):
             result = 0
             for exponent, digit in enumerate(reversed(digits)):
                 if isinstance(digit, Scalar):
                     digit = digit.toNumber()
-                    result += digit * base ** exponent
+                    result += digit * base**exponent
                 else:
-                    self.err.warn("Digits in FROMDIGITS must each be "
-                                  "Scalar, not", type(digit))
+                    self.err.warn(
+                        "Digits in FROMDIGITS must each be " "Scalar, not",
+                        type(digit),
+                    )
                     return nil
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtype for FROMDIGITS:",
-                          type(digits))
+            self.err.warn("Unimplemented argtype for FROMDIGITS:", type(digits))
             return nil
 
     def FULLMATCH(self, regex, string):
         if isinstance(string, Pattern):
             regex, string = string, regex
         if isinstance(regex, Pattern) and isinstance(string, (List, Range)):
-            return Scalar(all(self.FULLMATCH(regex, item)
-                              for item in string))
+            return Scalar(all(self.FULLMATCH(regex, item) for item in string))
         elif isinstance(regex, Pattern) and isinstance(string, Scalar):
             matchObj = regex.asRegex().fullmatch(str(string))
             if matchObj:
@@ -1481,8 +1638,12 @@ class ProgramState:
             else:
                 return Scalar("0")
         else:
-            self.err.warn("Unimplemented argtypes for FULLMATCH:",
-                          type(regex), "and", type(string))
+            self.err.warn(
+                "Unimplemented argtypes for FULLMATCH:",
+                type(regex),
+                "and",
+                type(string),
+            )
             return Scalar("0")
 
     def GROUP(self, iterable, rhs=None):
@@ -1498,7 +1659,7 @@ class ProgramState:
                 index = 0
                 while index < len(iterable):
                     endIndex = min(index + jump, len(iterable))
-                    chunk = iterable[math.floor(index):math.floor(endIndex)]
+                    chunk = iterable[math.floor(index) : math.floor(endIndex)]
                     result.append(chunk)
                     index += jump
                 return result
@@ -1507,7 +1668,7 @@ class ProgramState:
                 index = len(iterable)
                 while index > 0:
                     startIndex = max(index + jump, 0)
-                    chunk = iterable[math.ceil(startIndex):math.ceil(index)]
+                    chunk = iterable[math.ceil(startIndex) : math.ceil(index)]
                     result.append(chunk)
                     index += jump
                 return result
@@ -1515,28 +1676,34 @@ class ProgramState:
                 self.err.warn("Cannot GROUP into slices of size 0")
                 return nil
         else:
-            self.err.warn("Unimplemented argtypes for GROUP:",
-                          type(iterable), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for GROUP:",
+                type(iterable),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def HALVE(self, rhs):
         if isinstance(rhs, Scalar):
             return Scalar(rhs.toNumber() // 2)
         else:
-            self.err.warn("Unimplemented argtype for HALVE:",
-                          type(rhs))
+            self.err.warn("Unimplemented argtype for HALVE:", type(rhs))
 
     def IDENTITYMATRIX(self, rhs):
         if isinstance(rhs, Scalar):
             result = List()
             for row in range(int(rhs)):
-                subresult = [Scalar("1" if row == col else "0")
-                             for col in range(int(rhs))]
+                subresult = [
+                    Scalar("1" if row == col else "0")
+                    for col in range(int(rhs))
+                ]
                 result.append(List(subresult))
             return result
         else:
-            self.err.warn("Unimplemented argtype for IDENTITYMATRIX:",
-                          type(rhs))
+            self.err.warn(
+                "Unimplemented argtype for IDENTITYMATRIX:", type(rhs)
+            )
 
     def IFTE(self, test, trueBranch, falseBranch):
         # Ternary if-then-else operator
@@ -1591,8 +1758,12 @@ class ProgramState:
             elif rhs is nil:
                 return Range(lhs, rhs)
         else:
-            self.err.warn("Unimplemented argtypes for INCLRANGE:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for INCLRANGE:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def INCLRANGETO(self, rhs):
@@ -1613,8 +1784,12 @@ class ProgramState:
                 self.err.warn("Dividing by zero")
                 return nil
         else:
-            self.err.warn("Unimplemented argtypes for INTDIV:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for INTDIV:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def INVERT(self, rhs):
@@ -1653,11 +1828,14 @@ class ProgramState:
                 return result
         else:
             if sep is None:
-                self.err.warn("Unimplemented argtype for JOIN:",
-                              type(iterable))
+                self.err.warn("Unimplemented argtype for JOIN:", type(iterable))
             else:
-                self.err.warn("Unimplemented argtypes for JOIN:",
-                              type(iterable), "and", type(sep))
+                self.err.warn(
+                    "Unimplemented argtypes for JOIN:",
+                    type(iterable),
+                    "and",
+                    type(sep),
+                )
             return nil
 
     def JOINWRAP(self, iterable, sep):
@@ -1676,8 +1854,12 @@ class ProgramState:
                 result = self.CAT(result, sep)
             return result
         else:
-            self.err.warn("Unimplemented argtypes for JOINWRAP:",
-                          type(iterable), "and", type(sep))
+            self.err.warn(
+                "Unimplemented argtypes for JOINWRAP:",
+                type(iterable),
+                "and",
+                type(sep),
+            )
             return nil
 
     def KLEENESTAR(self, rhs):
@@ -1687,9 +1869,7 @@ class ProgramState:
                 regex = f"(?:{regex})"
             return Pattern(regex + "*")
         elif isinstance(rhs, Range):
-            return Pattern("(?:"
-                           + "|".join(str(item) for item in rhs)
-                           + ")*")
+            return Pattern("(?:" + "|".join(str(item) for item in rhs) + ")*")
         elif isinstance(rhs, Pattern):
             result = f"(?:{str(rhs)})*"
             return Pattern(result)
@@ -1712,10 +1892,14 @@ class ProgramState:
             return List(self.LEFTOF(lhs, index) for index in rhs)
         elif isinstance(lhs, PipIterable) and isinstance(rhs, Scalar):
             # Use the lhs's __getitem__ with a slice argument
-            return lhs[:int(rhs)]
+            return lhs[: int(rhs)]
         else:
-            self.err.warn("Unimplemented argtypes for LEFTOF:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for LEFTOF:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def LEN(self, rhs):
@@ -1738,12 +1922,19 @@ class ProgramState:
             except ValueError:
                 # One or both of the arguments is an infinite Range
                 # Their lengths are equal iff they are both infinite
-                result = (isinstance(lhs, Range) and isinstance(rhs, Range)
-                          and lhs.getUpper() is rhs.getUpper() is None)
+                result = (
+                    isinstance(lhs, Range)
+                    and isinstance(rhs, Range)
+                    and lhs.getUpper() is rhs.getUpper() is None
+                )
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for LENEQUAL:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for LENEQUAL:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def LENGREATER(self, lhs, rhs):
@@ -1759,12 +1950,17 @@ class ProgramState:
                 elif not isinstance(rhs, Range):
                     result = True
                 else:
-                    result = (lhs.getUpper() is None
-                              and rhs.getUpper() is not None)
+                    result = (
+                        lhs.getUpper() is None and rhs.getUpper() is not None
+                    )
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for LENGREATER:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for LENGREATER:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def LENLESS(self, lhs, rhs):
@@ -1780,12 +1976,17 @@ class ProgramState:
                 elif not isinstance(rhs, Range):
                     result = False
                 else:
-                    result = (lhs.getUpper() is not None
-                              and rhs.getUpper() is None)
+                    result = (
+                        lhs.getUpper() is not None and rhs.getUpper() is None
+                    )
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for LENLESS:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for LENLESS:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def LIST(self, *items):
@@ -1811,12 +2012,14 @@ class ProgramState:
     def LSTRIP(self, string, extra=None):
         if extra is nil:
             return string
-        elif (not isinstance(extra, (PipIterable, Pattern))
-              and extra is not None):
-            self.err.warn("Unimplemented argtype for rhs of LSTRIP:",
-                          type(extra))
+        elif (
+            not isinstance(extra, (PipIterable, Pattern)) and extra is not None
+        ):
+            self.err.warn(
+                "Unimplemented argtype for rhs of LSTRIP:", type(extra)
+            )
             return nil
-            
+
         if isinstance(string, (List, Range)):
             return List(self.LSTRIP(item, extra) for item in string)
         elif isinstance(string, Scalar):
@@ -1842,8 +2045,9 @@ class ProgramState:
             elif extra is None:
                 return Scalar(str(string).lstrip())
         else:
-            self.err.warn("Unimplemented argtype for lhs of LSTRIP:",
-                          type(string))
+            self.err.warn(
+                "Unimplemented argtype for lhs of LSTRIP:", type(string)
+            )
             return nil
 
     def MAP(self, lhs, iterable):
@@ -1864,8 +2068,12 @@ class ProgramState:
                 result = (lhs for item in iterable)
             return List(result)
         else:
-            self.err.warn("Unimplemented argtypes for MAP:",
-                          type(lhs), "and", type(iterable))
+            self.err.warn(
+                "Unimplemented argtypes for MAP:",
+                type(lhs),
+                "and",
+                type(iterable),
+            )
             return nil
 
     def MAPCOORDS(self, lhs, rhs):
@@ -1891,22 +2099,29 @@ class ProgramState:
                 rows = range(int(rhs[0]))
                 cols = range(int(rhs[1]))
             else:
-                self.err.warn("Unsupported argtypes in List argument "
-                              "to MAPCOORDS:", type(rhs[0]), "and",
-                              type(rhs[1]))
+                self.err.warn(
+                    "Unsupported argtypes in List argument " "to MAPCOORDS:",
+                    type(rhs[0]),
+                    "and",
+                    type(rhs[1]),
+                )
                 return nil
         else:
-            self.err.warn("Unimplemented argtypes for MAPCOORDS:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for MAPCOORDS:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
         result = List()
         for row in rows:
             subresult = List()
             for col in cols:
                 if isinstance(lhs, Block):
-                    subresult.append(self.functionCall(lhs,
-                                                       [Scalar(row),
-                                                        Scalar(col)]))
+                    subresult.append(
+                        self.functionCall(lhs, [Scalar(row), Scalar(col)])
+                    )
                 else:
                     # If lhs isn't a function, just return a grid of it
                     subresult.append(lhs)
@@ -1921,8 +2136,12 @@ class ProgramState:
         if isinstance(function, Block) and isinstance(iterable, PipIterable):
             return self.MAPZIP(function, Range(len(iterable)), iterable)
         else:
-            self.err.warn("Unimplemented argtypes for MAPENUMERATE:",
-                          type(function), "and", type(iterable))
+            self.err.warn(
+                "Unimplemented argtypes for MAPENUMERATE:",
+                type(function),
+                "and",
+                type(iterable),
+            )
             return nil
 
     def MAPFLATTEN(self, lhs, iterable):
@@ -1944,8 +2163,12 @@ class ProgramState:
         if isinstance(iterable, PipIterable):
             return List(self.MAP(lhs, item) for item in iterable)
         else:
-            self.err.warn("Unimplemented argtypes for MAPMAP:",
-                          type(function), "and", type(iterable))
+            self.err.warn(
+                "Unimplemented argtypes for MAPMAP:",
+                type(function),
+                "and",
+                type(iterable),
+            )
             return nil
 
     def MAPPAIRS(self, function, iterable):
@@ -1956,8 +2179,12 @@ class ProgramState:
         if isinstance(function, Block) and isinstance(iterable, PipIterable):
             return self.MAPZIP(function, iterable, iterable[1:])
         else:
-            self.err.warn("Unimplemented argtypes for MAPPAIRS:",
-                          type(function), "and", type(iterable))
+            self.err.warn(
+                "Unimplemented argtypes for MAPPAIRS:",
+                type(function),
+                "and",
+                type(iterable),
+            )
             return nil
 
     def MAPREGEX(self, lhs, regex, string):
@@ -1967,9 +2194,11 @@ class ProgramState:
             lhs, string = string, lhs
         elif isinstance(string, Pattern) and isinstance(regex, Scalar):
             regex, string = string, regex
-        if (isinstance(lhs, Block)
-                and isinstance(regex, Pattern)
-                and isinstance(string, Scalar)):
+        if (
+            isinstance(lhs, Block)
+            and isinstance(regex, Pattern)
+            and isinstance(string, Scalar)
+        ):
             matches = regex.asRegex().finditer(str(string))
             result = List()
             for matchObj in matches:
@@ -1977,8 +2206,13 @@ class ProgramState:
                 result.append(self.functionCall(lhs, groups))
             return result
         else:
-            self.err.warn("Unimplemented argtypes for MAPREGEX:",
-                          type(lhs), type(regex), "and", type(string))
+            self.err.warn(
+                "Unimplemented argtypes for MAPREGEX:",
+                type(lhs),
+                type(regex),
+                "and",
+                type(string),
+            )
             return nil
 
     def MAPSUM(self, function, iterable):
@@ -2017,8 +2251,12 @@ class ProgramState:
                 result.append(self.functionCall(function, arglist))
             return result
         else:
-            self.err.warn("Unimplemented argtypes for MAPUNPACK:",
-                          type(function), "and", type(iterable))
+            self.err.warn(
+                "Unimplemented argtypes for MAPUNPACK:",
+                type(function),
+                "and",
+                type(iterable),
+            )
             return nil
 
     def MAPZIP(self, lhs, iterable1, iterable2):
@@ -2026,28 +2264,39 @@ class ProgramState:
         if isinstance(iterable1, Block) and isinstance(lhs, PipIterable):
             # The arguments are reversible to enable things like lMZ:fm
             lhs, iterable1 = iterable1, lhs
-        if (isinstance(iterable1, PipIterable)
-                and isinstance(iterable2, PipIterable)
-                and isinstance(lhs, Block)):
-            return List(self.functionCall(lhs, [item1, item2])
-                        for item1, item2 in zip(iterable1, iterable2))
+        if (
+            isinstance(iterable1, PipIterable)
+            and isinstance(iterable2, PipIterable)
+            and isinstance(lhs, Block)
+        ):
+            return List(
+                self.functionCall(lhs, [item1, item2])
+                for item1, item2 in zip(iterable1, iterable2)
+            )
         else:
-            self.err.warn("Unimplemented argtypes for MAPZIP:",
-                          type(lhs), type(iterable1), "and", type(iterable2))
+            self.err.warn(
+                "Unimplemented argtypes for MAPZIP:",
+                type(lhs),
+                type(iterable1),
+                "and",
+                type(iterable2),
+            )
             return nil
 
     def MAX(self, iterable):
         """Return numeric maximum of iterable."""
         if isinstance(iterable, PipIterable):
             try:
-                return max(iterable, key=lambda x:x.toNumber())
+                return max(iterable, key=lambda x: x.toNumber())
             except AttributeError:
-                self.err.warn("Argument to MAX contains non-numeric value:",
-                              iterable)
+                self.err.warn(
+                    "Argument to MAX contains non-numeric value:", iterable
+                )
                 return nil
             except TypeError:
-                self.err.warn("Argument to MAX contains unorderable types:",
-                              iterable)
+                self.err.warn(
+                    "Argument to MAX contains unorderable types:", iterable
+                )
                 return nil
             except ValueError:
                 self.err.warn("Taking MAX of an empty sequence")
@@ -2060,14 +2309,16 @@ class ProgramState:
         """Return numeric minimum of iterable."""
         if isinstance(iterable, PipIterable):
             try:
-                return min(iterable, key=lambda x:x.toNumber())
+                return min(iterable, key=lambda x: x.toNumber())
             except AttributeError:
-                self.err.warn("Argument to MIN contains non-numeric value:",
-                              iterable)
+                self.err.warn(
+                    "Argument to MIN contains non-numeric value:", iterable
+                )
                 return nil
             except TypeError:
-                self.err.warn("Argument to MIN contains unorderable types:",
-                              iterable)
+                self.err.warn(
+                    "Argument to MIN contains unorderable types:", iterable
+                )
                 return nil
             except ValueError:
                 self.err.warn("Taking MIN of an empty sequence")
@@ -2075,7 +2326,7 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtype for MIN:", type(iterable))
             return nil
-    
+
     def MOD(self, lhs, rhs=None):
         if rhs is None:
             # Unary version takes its argument mod 2
@@ -2088,8 +2339,9 @@ class ProgramState:
                 self.err.warn("Modulo by zero")
                 return nil
         else:
-            self.err.warn("Unimplemented argtypes for MOD:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for MOD:", type(lhs), "and", type(rhs)
+            )
             return nil
 
     def MUL(self, lhs, rhs):
@@ -2104,8 +2356,9 @@ class ProgramState:
             result = f"(?:{lhs}){{{int(rhs)}}}"
             return Pattern(result)
         else:
-            self.err.warn("Unimplemented argtypes for MUL:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for MUL:", type(lhs), "and", type(rhs)
+            )
             return nil
 
     def NATURALLOG(self, number):
@@ -2115,12 +2368,12 @@ class ProgramState:
                 result = math.log(number.toNumber())
                 return Scalar(result)
             else:
-                self.err.warn("Can't take logarithm of nonpositive number",
-                              number)
+                self.err.warn(
+                    "Can't take logarithm of nonpositive number", number
+                )
                 return nil
         else:
-            self.err.warn("Unimplemented argtype for NATURALLOG:",
-                          type(number))
+            self.err.warn("Unimplemented argtype for NATURALLOG:", type(number))
             return nil
 
     def NEG(self, rhs):
@@ -2166,12 +2419,11 @@ class ProgramState:
         elif isinstance(lhs, Range) and isinstance(rhs, Range):
             # Just use the Range class's __eq__
             result = lhs == rhs
-        elif (isinstance(lhs, (List, Range))
-              and isinstance(rhs, (List, Range))):
+        elif isinstance(lhs, (List, Range)) and isinstance(rhs, (List, Range)):
             try:
-                result = (len(lhs) == len(rhs)
-                          and all(self.NUMEQUAL(i, j)
-                                  for i, j in zip(lhs, rhs)))
+                result = len(lhs) == len(rhs) and all(
+                    self.NUMEQUAL(i, j) for i, j in zip(lhs, rhs)
+                )
             except ValueError:
                 # Raised by taking len of infinite Range, which cannot be
                 # equal to any List
@@ -2203,8 +2455,7 @@ class ProgramState:
                 result = False
             else:
                 result = leftUpper > rightUpper
-        elif (isinstance(lhs, (List, Range))
-              and isinstance(rhs, (List, Range))):
+        elif isinstance(lhs, (List, Range)) and isinstance(rhs, (List, Range)):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMGREATER(i, j):
@@ -2257,8 +2508,7 @@ class ProgramState:
                 result = False
             else:
                 result = leftUpper > rightUpper
-        elif (isinstance(lhs, (List, Range))
-              and isinstance(rhs, (List, Range))):
+        elif isinstance(lhs, (List, Range)) and isinstance(rhs, (List, Range)):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMGREATER(i, j):
@@ -2313,8 +2563,7 @@ class ProgramState:
                 result = True
             else:
                 result = leftUpper < rightUpper
-        elif (isinstance(lhs, (List, Range))
-              and isinstance(rhs, (List, Range))):
+        elif isinstance(lhs, (List, Range)) and isinstance(rhs, (List, Range)):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMLESS(i, j):
@@ -2367,8 +2616,7 @@ class ProgramState:
                 result = True
             else:
                 result = leftUpper < rightUpper
-        elif (isinstance(lhs, (List, Range))
-              and isinstance(rhs, (List, Range))):
+        elif isinstance(lhs, (List, Range)) and isinstance(rhs, (List, Range)):
             result = None
             for i, j in zip(lhs, rhs):
                 if self.NUMLESS(i, j):
@@ -2406,12 +2654,11 @@ class ProgramState:
             result = lhs.toNumber() != rhs.toNumber()
         elif isinstance(lhs, Range) and isinstance(rhs, Range):
             result = lhs != rhs
-        elif (isinstance(lhs, (List, Range))
-              and isinstance(rhs, (List, Range))):
+        elif isinstance(lhs, (List, Range)) and isinstance(rhs, (List, Range)):
             try:
-                result = (len(lhs) != len(rhs)
-                          or any(self.NUMNOTEQUAL(i, j)
-                                  for i, j in zip(lhs, rhs)))
+                result = len(lhs) != len(rhs) or any(
+                    self.NUMNOTEQUAL(i, j) for i, j in zip(lhs, rhs)
+                )
             except ValueError:
                 # Raised by taking len of infinite Range, which cannot be
                 # equal to any List
@@ -2429,11 +2676,14 @@ class ProgramState:
         if isinstance(rows, Scalar) and isinstance(cols, Scalar):
             rows = range(int(rows))
             cols = range(int(cols))
-            return List(List(Scalar("1") for col in cols)
-                        for row in rows)
+            return List(List(Scalar("1") for col in cols) for row in rows)
         else:
-            self.err.warn("Unimplemented argtypes for ONEGRID:",
-                          type(rows), "and", type(cols))
+            self.err.warn(
+                "Unimplemented argtypes for ONEGRID:",
+                type(rows),
+                "and",
+                type(cols),
+            )
             return nil
 
     def OR(self, lhs, rhs):
@@ -2443,7 +2693,7 @@ class ProgramState:
             # The lhs was false, so we need to check the rhs
             result = self.getRval(rhs)
         return result
-    
+
     def OUTPUT(self, expression):
         """Output an expression, NO trailing newline, and pass it through."""
         expression = self.getRval(expression)
@@ -2475,10 +2725,11 @@ class ProgramState:
             else:
                 return Scalar()
         else:
-            self.err.warn("Unimplemented argtype for PALINDROMIZE:",
-                          type(iterable))
+            self.err.warn(
+                "Unimplemented argtype for PALINDROMIZE:", type(iterable)
+            )
             return nil
-    
+
     def PARENTHESIZE(self, expr):
         # Result of wrapping a single expression in parentheses
         return expr
@@ -2492,8 +2743,9 @@ class ProgramState:
             else:
                 return List(List(perm) for perm in result)
         else:
-            self.err.warn("Unimplemented argtype for PERMUTATIONS:",
-                          type(iterable))
+            self.err.warn(
+                "Unimplemented argtype for PERMUTATIONS:", type(iterable)
+            )
             return nil
 
     def PICK(self, iterable, index):
@@ -2502,8 +2754,9 @@ class ProgramState:
             index = int(index)
         else:
             # TODO: Allow List and Range indices
-            self.err.warn("Unimplemented right argument type for PICK:",
-                          type(index))
+            self.err.warn(
+                "Unimplemented right argument type for PICK:", type(index)
+            )
             return nil
         iterVal = self.getRval(iterable)
         if isinstance(iterVal, List):
@@ -2511,7 +2764,7 @@ class ProgramState:
                 iterVal = list(iterVal)
                 index %= len(iterVal)
                 item = iterVal[index]
-                iterVal = List(iterVal[:index] + iterVal[index+1:])
+                iterVal = List(iterVal[:index] + iterVal[index + 1 :])
             else:
                 self.err.warn("Cannot pick from empty List")
                 return nil
@@ -2536,7 +2789,7 @@ class ProgramState:
                     else:
                         iterVal = list(iterVal)
                         item = iterVal[index]
-                        iterVal = List(iterVal[:index] + iterVal[index+1:])
+                        iterVal = List(iterVal[:index] + iterVal[index + 1 :])
                 else:
                     self.err.warn("Cannot pick from empty Range")
                     return nil
@@ -2545,13 +2798,14 @@ class ProgramState:
                 item = iterVal[index]
                 iterVal = str(iterVal)
                 index %= len(iterVal)
-                iterVal = Scalar(iterVal[:index] + iterVal[index+1:])
+                iterVal = Scalar(iterVal[:index] + iterVal[index + 1 :])
             else:
                 self.err.warn("Cannot pick from empty Scalar")
                 return nil
         else:
-            self.err.warn("Unimplemented left argument type for PICK:",
-                          type(iterVal))
+            self.err.warn(
+                "Unimplemented left argument type for PICK:", type(iterVal)
+            )
             return nil
         if isinstance(iterable, Lval):
             if not isinstance(iterable.base, List):
@@ -2621,20 +2875,22 @@ class ProgramState:
             lhs = lhs.toNumber()
             rhs = rhs.toNumber()
             try:
-                result = lhs ** rhs
+                result = lhs**rhs
             except ZeroDivisionError:
                 self.err.warn("Can't raise zero to negative power")
                 return nil
             if lhs < 0 and int(rhs) != rhs:
                 # Negative number to fractional power would be a complex
                 # number; for now, return nil
-                self.err.warn("Can't raise negative number to "
-                              "fractional power")
+                self.err.warn(
+                    "Can't raise negative number to " "fractional power"
+                )
                 return nil
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for POW:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for POW:", type(lhs), "and", type(rhs)
+            )
             return nil
 
     def POWEROFTEN(self, lhs, rhs=None):
@@ -2646,11 +2902,15 @@ class ProgramState:
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             lhs = lhs.toNumber()
             rhs = rhs.toNumber()
-            result = lhs * 10 ** rhs
+            result = lhs * 10**rhs
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for POWEROFTEN:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for POWEROFTEN:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def PREFIX(self, lhs, rhs=None):
@@ -2674,8 +2934,12 @@ class ProgramState:
             # Use the lhs's __getitem__ with a slice argument
             return lhs[index]
         else:
-            self.err.warn("Unimplemented argtypes for PREFIX:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for PREFIX:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def PREPENDELEM(self, lhs, rhs):
@@ -2685,10 +2949,14 @@ class ProgramState:
         if isinstance(lhs, (List, Range)):
             return List([rhs] + list(lhs))
         else:
-            self.err.warn("Unimplemented argtypes for PREPENDELEM:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for PREPENDELEM:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
-    
+
     def PRINT(self, expression):
         """Output an expression with trailing newline and pass it through.
 
@@ -2768,8 +3036,9 @@ class ProgramState:
             index = random.randrange(len(iterable))
             return iterable[index]
         else:
-            self.err.warn("Unimplemented argtype for RANDCHOICE:",
-                          type(iterable))
+            self.err.warn(
+                "Unimplemented argtype for RANDCHOICE:", type(iterable)
+            )
             return nil
 
     def RANDRANGE(self, lower, upper):
@@ -2781,22 +3050,26 @@ class ProgramState:
             upper = int(upper)
             return Scalar(random.randrange(lower, upper))
         else:
-            self.err.warn("Unimplemented argtypes for RANDRANGE:",
-                          type(lower), "and", type(upper))
+            self.err.warn(
+                "Unimplemented argtypes for RANDRANGE:",
+                type(lower),
+                "and",
+                type(upper),
+            )
             return nil
-        
+
     def RANDRANGETO(self, upper):
         """Unary version of RANDRANGE."""
         if isinstance(upper, Scalar):
             return Scalar(random.randrange(int(upper)))
         else:
-            self.err.warn("Unimplemented argtype for RANDRANGETO:",
-                          type(upper))
+            self.err.warn("Unimplemented argtype for RANDRANGETO:", type(upper))
             return nil
 
     def RANGE(self, lower, upper):
-        if (isinstance(lower, (Scalar, Nil))
-                and isinstance(upper, (Scalar, Nil))):
+        if isinstance(lower, (Scalar, Nil)) and isinstance(
+            upper, (Scalar, Nil)
+        ):
             return Range(lower, upper)
         elif isinstance(lower, Pattern) and isinstance(upper, Pattern):
             # , with two Patterns returns a new Pattern that matches one OR
@@ -2804,8 +3077,12 @@ class ProgramState:
             result = f"(?:{lower})|(?:{upper})"
             return Pattern(result)
         else:
-            self.err.warn("Unimplemented argtypes for RANGE:",
-                          type(lower), "and", type(upper))
+            self.err.warn(
+                "Unimplemented argtypes for RANGE:",
+                type(lower),
+                "and",
+                type(upper),
+            )
             return nil
 
     def RANGETO(self, upper):
@@ -2823,8 +3100,7 @@ class ProgramState:
 
     def RECURSE(self, rhs):
         "Call the current function recursively with rhs as its argument."
-        return self.functionCall(self.locals[self.callDepth]["f"],
-                                 [rhs])
+        return self.functionCall(self.locals[self.callDepth]["f"], [rhs])
 
     def REFLECT(self, iterable):
         """Concatenate iterable with its reverse."""
@@ -2840,8 +3116,7 @@ class ProgramState:
             iterable = str(iterable)
             return Scalar(iterable + iterable[::-1])
         else:
-            self.err.warn("Unimplemented argtype for REFLECT:",
-                          type(iterable))
+            self.err.warn("Unimplemented argtype for REFLECT:", type(iterable))
             return nil
 
     def REGEX(self, rhs):
@@ -2856,9 +3131,9 @@ class ProgramState:
         elif isinstance(rhs, Pattern):
             return rhs
         elif isinstance(rhs, (List, Range)):
-            return Pattern("(?:"
-                           + "|".join(str(self.REGEX(item)) for item in rhs)
-                           + ")")
+            return Pattern(
+                "(?:" + "|".join(str(self.REGEX(item)) for item in rhs) + ")"
+            )
         else:
             self.err.warn("Unimplemented argtype for REGEX:", type(rhs))
             return nil
@@ -2869,8 +3144,12 @@ class ProgramState:
         if isinstance(lhs, (List, Range)) and isinstance(rhs, Scalar):
             return List(list(lhs.copy()) * int(rhs))
         else:
-            self.err.warn("Unimplemented argtypes for REPEATLIST:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for REPEATLIST:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def REPLACE(self, lhs, old, new):
@@ -2879,13 +3158,14 @@ class ProgramState:
         new = List(new) if isinstance(new, Range) else new
         if isinstance(old, Scalar) and isinstance(new, (Pattern, Block)):
             old = self.REGEX(old)
-        if (isinstance(lhs, PipIterable)
-                and isinstance(old, (PipIterable, Pattern))
-                and isinstance(new, (PipIterable, Pattern, Block, Nil))):
+        if (
+            isinstance(lhs, PipIterable)
+            and isinstance(old, (PipIterable, Pattern))
+            and isinstance(new, (PipIterable, Pattern, Block, Nil))
+        ):
             if isinstance(lhs, List):
                 # Return a List of results
-                return List(self.REPLACE(eachLhs, old, new)
-                            for eachLhs in lhs)
+                return List(self.REPLACE(eachLhs, old, new) for eachLhs in lhs)
             elif isinstance(old, List) and isinstance(new, List):
                 # Both are lists--zip and replace parallel items
                 result = lhs
@@ -2893,7 +3173,7 @@ class ProgramState:
                     result = self.REPLACE(result, eachOld, eachNew)
                 # Items in the old list that don't correspond to items
                 # in the new list should just be deleted
-                for eachOld in old[len(new):]:
+                for eachOld in old[len(new) :]:
                     result = self.REPLACE(result, eachOld, nil)
                 return result
             elif isinstance(old, List):
@@ -2919,6 +3199,7 @@ class ProgramState:
                         groups = self.assignRegexVars(matchObj)
                         retVal = self.functionCall(new, groups)
                         return str(retVal)
+
                 elif new is nil:
                     replacement = ""
                 result = old.asRegex().sub(replacement, str(lhs))
@@ -2933,13 +3214,17 @@ class ProgramState:
                 result = str(lhs).replace(str(old), replacement)
                 return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for REPLACE:",
-                          type(lhs), type(old), "and", type(new))
+            self.err.warn(
+                "Unimplemented argtypes for REPLACE:",
+                type(lhs),
+                type(old),
+                "and",
+                type(new),
+            )
             return nil
 
     def REPLACEAT(self, lhs, index, new):
-        if (isinstance(lhs, PipIterable)
-                and isinstance(index, PipIterable)):
+        if isinstance(lhs, PipIterable) and isinstance(index, PipIterable):
             result = lhs.copy()
             if isinstance(index, List):
                 if isinstance(new, List):
@@ -2966,8 +3251,13 @@ class ProgramState:
             # Replacing at nil index leaves lhs unchanged
             return lhs
         else:
-            self.err.warn("Unimplemented argtypes for REPLACEAT:",
-                          type(lhs), type(index), "and", type(new))
+            self.err.warn(
+                "Unimplemented argtypes for REPLACEAT:",
+                type(lhs),
+                type(index),
+                "and",
+                type(new),
+            )
             return nil
 
     def REMOVE(self, lhs, rhs):
@@ -2989,8 +3279,12 @@ class ProgramState:
                 result.remove(rhs)
             return List(result)
         else:
-            self.err.warn("Unimplemented argtypes for REMOVE:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for REMOVE:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             # Nothing to remove, so return the original value
             return lhs
 
@@ -3031,10 +3325,14 @@ class ProgramState:
             return List(self.RIGHTOF(lhs, index) for index in rhs)
         elif isinstance(lhs, PipIterable) and isinstance(rhs, Scalar):
             # Use the lhs's __getitem__ with a slice argument
-            return lhs[int(rhs):]
+            return lhs[int(rhs) :]
         else:
-            self.err.warn("Unimplemented argtypes for RIGHTOF:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for RIGHTOF:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def ROOT(self, lhs, rhs):
@@ -3044,7 +3342,7 @@ class ProgramState:
             if lhs == 0:
                 self.err.warn("Zeroth root is not defined")
                 return nil
-            elif rhs < 0 and int(1/lhs) != 1/lhs:
+            elif rhs < 0 and int(1 / lhs) != 1 / lhs:
                 # Root of negative number would be a complex number; for now,
                 # return nil
                 self.err.warn("Cannot take root of negative number", rhs)
@@ -3056,19 +3354,22 @@ class ProgramState:
                 return nil
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for ROOT:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for ROOT:", type(lhs), "and", type(rhs)
+            )
             return nil
 
     def RSTRIP(self, string, extra=None):
         if extra is nil:
             return string
-        elif (not isinstance(extra, (PipIterable, Pattern))
-              and extra is not None):
-            self.err.warn("Unimplemented argtype for rhs of RSTRIP:",
-                          type(extra))
+        elif (
+            not isinstance(extra, (PipIterable, Pattern)) and extra is not None
+        ):
+            self.err.warn(
+                "Unimplemented argtype for rhs of RSTRIP:", type(extra)
+            )
             return nil
-            
+
         if isinstance(string, (List, Range)):
             return List(self.RSTRIP(item, extra) for item in string)
         elif isinstance(string, Scalar):
@@ -3094,8 +3395,9 @@ class ProgramState:
             elif extra is None:
                 return Scalar(str(string).rstrip())
         else:
-            self.err.warn("Unimplemented argtype for lhs of RSTRIP:",
-                          type(string))
+            self.err.warn(
+                "Unimplemented argtype for lhs of RSTRIP:", type(string)
+            )
             return nil
 
     def RVALAND(self, lhs, rhs):
@@ -3146,8 +3448,7 @@ class ProgramState:
             else:
                 return List(items)
         else:
-            self.err.warn("Unimplemented argtype for SHUFFLE:",
-                          type(iterable))
+            self.err.warn("Unimplemented argtype for SHUFFLE:", type(iterable))
             return nil
 
     def SIGN(self, rhs):
@@ -3183,8 +3484,12 @@ class ProgramState:
                 self.err.warn("Sort key must always return a number")
                 return nil
         else:
-            self.err.warn("Unimplemented argtypes for SORTKEYED:",
-                          type(key), "and", type(iterable))
+            self.err.warn(
+                "Unimplemented argtypes for SORTKEYED:",
+                type(key),
+                "and",
+                type(iterable),
+            )
             return nil
 
     def SORTNUM(self, iterable):
@@ -3195,8 +3500,7 @@ class ProgramState:
                 self.err.warn("Cannot sort mixed types in list")
                 return nil
         else:
-            self.err.warn("Unimplemented argtype for SORTNUM:",
-                          type(iterable))
+            self.err.warn("Unimplemented argtype for SORTNUM:", type(iterable))
             return nil
 
     def SORTSTRING(self, iterable):
@@ -3207,8 +3511,9 @@ class ProgramState:
             # but not sure it's worth the effort to fix
             return List(sorted(iterable, key=str))
         else:
-            self.err.warn("Unimplemented argtype for SORTSTRING:",
-                          type(iterable))
+            self.err.warn(
+                "Unimplemented argtype for SORTSTRING:", type(iterable)
+            )
             return nil
 
     def SPLIT(self, string, sep=None):
@@ -3216,8 +3521,7 @@ class ProgramState:
             sep = str(sep)
         elif not isinstance(sep, Pattern) and sep is not None:
             # Some other type, not a valid separator
-            self.err.warn("Unimplemented separator type for SPLIT:",
-                          type(sep))
+            self.err.warn("Unimplemented separator type for SPLIT:", type(sep))
             return nil
         if isinstance(string, Scalar):
             if sep is None or sep == "":
@@ -3227,18 +3531,22 @@ class ProgramState:
                     result = (Scalar(char) for char in str(string))
                 else:
                     sep = sep.asSeparator()
-                    result = (Scalar(substr)
-                              for substr in sep.split(str(string)))
+                    result = (
+                        Scalar(substr) for substr in sep.split(str(string))
+                    )
             else:
                 result = (Scalar(substr) for substr in str(string).split(sep))
             return List(result)
         else:
             if sep is None:
-                self.err.warn("Unimplemented argtype for SPLIT:",
-                              type(string))
+                self.err.warn("Unimplemented argtype for SPLIT:", type(string))
             else:
-                self.err.warn("Unimplemented argtypes for SPLIT:",
-                              type(string), "and", type(sep))
+                self.err.warn(
+                    "Unimplemented argtypes for SPLIT:",
+                    type(string),
+                    "and",
+                    type(sep),
+                )
             return nil
 
     def SPLITAT(self, iterable, indices):
@@ -3253,8 +3561,9 @@ class ProgramState:
                 indices = list(set(int(index) for index in indices))
             except TypeError:
                 # The List contained items that couldn't be converted to int
-                self.err.warn("List of indices for SPLITAT must contain "
-                              "only Scalars")
+                self.err.warn(
+                    "List of indices for SPLITAT must contain " "only Scalars"
+                )
                 return nil
 
         if isinstance(iterable, PipIterable) and isinstance(indices, list):
@@ -3268,8 +3577,12 @@ class ProgramState:
             result.append(iterable[prevIndex:])
             return result
         else:
-            self.err.warn("Unimplemented argtypes for SPLITAT:",
-                          type(iterable), "and", type(indices))
+            self.err.warn(
+                "Unimplemented argtypes for SPLITAT:",
+                type(iterable),
+                "and",
+                type(indices),
+            )
             return nil
 
     def SQRT(self, rhs):
@@ -3278,10 +3591,9 @@ class ProgramState:
             if rhs < 0:
                 # Square root of negative number would be a complex number;
                 # for now, return nil
-                self.err.warn("Can't take square root of negative number",
-                              rhs)
+                self.err.warn("Can't take square root of negative number", rhs)
                 return nil
-            result = rhs ** 0.5
+            result = rhs**0.5
             return Scalar(result)
         else:
             self.err.warn("Unimplemented argtype for SQRT:", type(rhs))
@@ -3304,13 +3616,14 @@ class ProgramState:
             return Scalar(str(rhs))
 
     def STREQUAL(self, lhs, rhs):
-        if (isinstance(lhs, (Scalar, Pattern))
-                and isinstance(rhs, (Scalar, Pattern))):
+        if isinstance(lhs, (Scalar, Pattern)) and isinstance(
+            rhs, (Scalar, Pattern)
+        ):
             result = str(lhs) == str(rhs)
         elif isinstance(lhs, List) and isinstance(rhs, List):
-            result = (len(lhs) == len(rhs)
-                      and all(self.STREQUAL(i, j)
-                              for i, j in zip(lhs, rhs)))
+            result = len(lhs) == len(rhs) and all(
+                self.STREQUAL(i, j) for i, j in zip(lhs, rhs)
+            )
         else:
             result = lhs == rhs
         return Scalar(result)
@@ -3358,12 +3671,14 @@ class ProgramState:
     def STRIP(self, string, extra=None):
         if extra is nil:
             return string
-        elif (not isinstance(extra, (PipIterable, Pattern))
-              and extra is not None):
-            self.err.warn("Unimplemented argtype for rhs of STRIP:",
-                          type(extra))
+        elif (
+            not isinstance(extra, (PipIterable, Pattern)) and extra is not None
+        ):
+            self.err.warn(
+                "Unimplemented argtype for rhs of STRIP:", type(extra)
+            )
             return nil
-            
+
         if isinstance(string, (List, Range)):
             return List(self.STRIP(item, extra) for item in string)
         elif isinstance(string, Scalar):
@@ -3394,8 +3709,9 @@ class ProgramState:
             elif extra is None:
                 return Scalar(str(string).strip())
         else:
-            self.err.warn("Unimplemented argtype for lhs of STRIP:",
-                          type(string))
+            self.err.warn(
+                "Unimplemented argtype for lhs of STRIP:", type(string)
+            )
             return nil
 
     def STRLESS(self, lhs, rhs):
@@ -3442,19 +3758,23 @@ class ProgramState:
         if isinstance(lhs, (Scalar, Pattern)) and isinstance(rhs, Scalar):
             string = str(lhs)
             num = int(rhs)
-            return type(lhs)(string*num)
+            return type(lhs)(string * num)
         else:
-            self.err.warn("Unimplemented argtypes for STRMUL:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for STRMUL:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def STRNOTEQUAL(self, lhs, rhs):
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = str(lhs) != str(rhs)
         elif isinstance(lhs, List) and isinstance(rhs, List):
-            result = (len(lhs) != len(rhs)
-                      or any(self.STRNOTEQUAL(i, j)
-                              for i, j in zip(lhs, rhs)))
+            result = len(lhs) != len(rhs) or any(
+                self.STRNOTEQUAL(i, j) for i, j in zip(lhs, rhs)
+            )
         else:
             result = not (lhs == rhs)
         return Scalar(result)
@@ -3478,8 +3798,9 @@ class ProgramState:
             self.err.warn("Can't subtract two Ranges yet")
             return nil
         else:
-            self.err.warn("Unimplemented argtypes for SUB:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for SUB:", type(lhs), "and", type(rhs)
+            )
             return nil
 
     def SUFFIX(self, lhs, rhs=None):
@@ -3507,8 +3828,12 @@ class ProgramState:
             # Use the lhs's __getitem__ with a slice argument
             return lhs[index]
         else:
-            self.err.warn("Unimplemented argtypes for SUFFIX:",
-                          type(lhs), "and", type(rhs))
+            self.err.warn(
+                "Unimplemented argtypes for SUFFIX:",
+                type(lhs),
+                "and",
+                type(rhs),
+            )
             return nil
 
     def SWAP(self, lval1, lval2):
@@ -3550,14 +3875,13 @@ class ProgramState:
         elif isinstance(base, Scalar):
             base = int(base)
         else:
-            self.err.warn("Unimplemented base type for TOBASE:",
-                          type(base))
+            self.err.warn("Unimplemented base type for TOBASE:", type(base))
             return nil
         if base < 2 or base > 36:
             self.err.warn("Invalid base for TOBASE:", base)
             return nil
         if isinstance(number, Scalar):
-            number = int(number)   # sorry, no float support
+            number = int(number)  # sorry, no float support
             if number == 0:
                 return Scalar("0")
             elif number < 0:
@@ -3584,14 +3908,13 @@ class ProgramState:
         elif isinstance(base, Scalar):
             base = int(base)
         else:
-            self.err.warn("Unimplemented base type for TODIGITS:",
-                          type(base))
+            self.err.warn("Unimplemented base type for TODIGITS:", type(base))
             return nil
         if base < 2:
             self.err.warn("Invalid base for conversion:", base)
             return nil
         if isinstance(number, Scalar):
-            number = int(number)   # sorry, no float support
+            number = int(number)  # sorry, no float support
             if number < 0:
                 sign = -1
                 number = -number
@@ -3615,9 +3938,11 @@ class ProgramState:
         """
         if isinstance(lhs, (List, Range)):
             return List(self.TRANSLITERATE(item, old, new) for item in lhs)
-        elif (isinstance(lhs, Scalar)
-              and isinstance(old, PipIterable)
-              and isinstance(new, PipIterable)):
+        elif (
+            isinstance(lhs, Scalar)
+            and isinstance(old, PipIterable)
+            and isinstance(new, PipIterable)
+        ):
             result = str(lhs)
             infiniteRange = False
             if isinstance(old, Scalar):
@@ -3637,8 +3962,13 @@ class ProgramState:
                 except ValueError:
                     if infiniteRange:
                         # They're both infinite
-                        self.err.warn("Cannot TRANSLITERATE one infinite "
-                                      "Range into another:", old, "->", new)
+                        self.err.warn(
+                            "Cannot TRANSLITERATE one infinite "
+                            "Range into another:",
+                            old,
+                            "->",
+                            new,
+                        )
                         return nil
             mapping = {}
             for oldChar, newChar in zip(old, new):
@@ -3647,8 +3977,11 @@ class ProgramState:
                 elif isinstance(oldChar, Scalar):
                     oldChar = oldChar.toNumber()
                 else:
-                    self.err.warn("Cannot TRANSLITERATE from", type(oldChar),
-                                  repr(oldChar))
+                    self.err.warn(
+                        "Cannot TRANSLITERATE from",
+                        type(oldChar),
+                        repr(oldChar),
+                    )
                     continue
                 if isinstance(newChar, str):
                     newChar = ord(newChar)
@@ -3657,15 +3990,21 @@ class ProgramState:
                 elif newChar is nil:
                     newChar = None
                 else:
-                    self.err.warn("Cannot TRANSLITERATE to", type(newChar),
-                                  repr(newChar))
+                    self.err.warn(
+                        "Cannot TRANSLITERATE to", type(newChar), repr(newChar)
+                    )
                     continue
                 mapping[oldChar] = newChar
             result = result.translate(mapping)
             return Scalar(result)
         else:
-            self.err.warn("Unimplemented argtypes for TRANSLITERATE:",
-                          type(lhs), type(old), "and", type(new))
+            self.err.warn(
+                "Unimplemented argtypes for TRANSLITERATE:",
+                type(lhs),
+                type(old),
+                "and",
+                type(new),
+            )
             return nil
 
     def TRIM(self, string, extra=None):
@@ -3684,18 +4023,18 @@ class ProgramState:
         elif extra is nil:
             return string
         else:
-            self.err.warn("Unimplemented argtype for rhs of TRIM:",
-                          type(extra))
+            self.err.warn("Unimplemented argtype for rhs of TRIM:", type(extra))
             return nil
 
         if isinstance(string, Scalar):
             front = max(front, 0)
             back = max(back, 0)
             string = str(string)
-            return Scalar(string[front:len(string)-back])
+            return Scalar(string[front : len(string) - back])
         else:
-            self.err.warn("Unimplemented argtype for lhs of TRIM:",
-                          type(string))
+            self.err.warn(
+                "Unimplemented argtype for lhs of TRIM:", type(string)
+            )
             return nil
 
     def UNIQUE(self, iterable):
@@ -3724,8 +4063,7 @@ class ProgramState:
             elif isinstance(iterable, Scalar):
                 return self.JOIN(result)
         else:
-            self.err.warn("Unimplemented argtype for UNIQUE:",
-                          type(iterable))
+            self.err.warn("Unimplemented argtype for UNIQUE:", type(iterable))
             return nil
 
     def UNWEAVE(self, iterable, strands=2):
@@ -3739,8 +4077,9 @@ class ProgramState:
                 return nil
             else:
                 iterable = List(iterable)
-        if (isinstance(iterable, PipIterable)
-                and isinstance(strands, (int, Scalar))):
+        if isinstance(iterable, PipIterable) and isinstance(
+            strands, (int, Scalar)
+        ):
             # Unweave the items from iterable into given number of "strands"
             # E.g. 123456789 UW 3 == [147 258 369]
             if isinstance(strands, Scalar):
@@ -3759,12 +4098,17 @@ class ProgramState:
         else:
             if strands == 2:
                 # Unary version
-                self.err.warn("Unimplemented argtype for UNWEAVE:",
-                              type(iterable))
+                self.err.warn(
+                    "Unimplemented argtype for UNWEAVE:", type(iterable)
+                )
             else:
                 # Binary version
-                self.err.warn("Unimplemented argtypes for UNWEAVE:",
-                              type(iterable), "and", type(strands))
+                self.err.warn(
+                    "Unimplemented argtypes for UNWEAVE:",
+                    type(iterable),
+                    "and",
+                    type(strands),
+                )
             return nil
 
     def UPPERCASE(self, rhs):
@@ -3797,8 +4141,9 @@ class ProgramState:
                     elif isinstance(iterable, Scalar):
                         pass
                     else:
-                        self.err.warn("Cannot weave object of type",
-                                      type(iterable))
+                        self.err.warn(
+                            "Cannot weave object of type", type(iterable)
+                        )
                         return nil
                 for i in range(max(map(len, iterables))):
                     for iterable in iterables:
@@ -3814,32 +4159,43 @@ class ProgramState:
                 iterable1 = SCALAR_EMPTY
             if iterable2 is nil:
                 iterable2 = SCALAR_EMPTY
-            if (isinstance(iterable1, PipIterable)
-                    and isinstance(iterable2, PipIterable)):
+            if isinstance(iterable1, PipIterable) and isinstance(
+                iterable2, PipIterable
+            ):
                 result = []
                 for i in range(max(len(iterable1), len(iterable2))):
                     if i < len(iterable1):
                         result.append(iterable1[i])
                     if i < len(iterable2):
                         result.append(iterable2[i])
-                if (isinstance(iterable1, Scalar)
-                        and isinstance(iterable2, Scalar)):
+                if isinstance(iterable1, Scalar) and isinstance(
+                    iterable2, Scalar
+                ):
                     return Scalar(self.JOIN(result))
                 else:
                     return List(result)
             else:
-                self.err.warn("Unimplemented argtypes for WEAVE:",
-                              type(iterable1), "and", type(iterable2))
+                self.err.warn(
+                    "Unimplemented argtypes for WEAVE:",
+                    type(iterable1),
+                    "and",
+                    type(iterable2),
+                )
                 return nil
 
     def WRAP(self, string, outer):
         """Prepend and append characters around string."""
-        if (isinstance(string, (Scalar, Pattern))
-                and isinstance(outer, (Scalar, Pattern))):
+        if isinstance(string, (Scalar, Pattern)) and isinstance(
+            outer, (Scalar, Pattern)
+        ):
             return self.CAT(self.CAT(outer, string), outer)
         else:
-            self.err.warn("Unimplemented argtypes for WRAP:",
-                          type(string), "and", type(outer))
+            self.err.warn(
+                "Unimplemented argtypes for WRAP:",
+                type(string),
+                "and",
+                type(outer),
+            )
             return nil
 
     def YANK(self, rhs):
@@ -3864,13 +4220,16 @@ class ProgramState:
         if isinstance(rows, Scalar) and isinstance(cols, Scalar):
             rows = range(int(rows))
             cols = range(int(cols))
-            return List(List(Scalar("0") for col in cols)
-                        for row in rows)
+            return List(List(Scalar("0") for col in cols) for row in rows)
         else:
-            self.err.warn("Unimplemented argtypes for ZEROGRID:",
-                          type(rows), "and", type(cols))
+            self.err.warn(
+                "Unimplemented argtypes for ZEROGRID:",
+                type(rows),
+                "and",
+                type(cols),
+            )
             return nil
-    
+
     def ZIP(self, list1, list2=None):
         if list2 is None:
             if isinstance(list1, PipIterable):
@@ -3880,33 +4239,41 @@ class ProgramState:
                 return nil
         else:
             lists = [list1, list2]
-        noniterables = [item
-                        for item in lists
-                        if not isinstance(item, PipIterable)]
+        noniterables = [
+            item for item in lists if not isinstance(item, PipIterable)
+        ]
         if noniterables:
             # There are some of the "lists" that are not iterable
             # TBD: maybe this can find a non-error meaning?
-            self.err.warn("Trying to zip non-iterable value(s):",
-                          ", ".join(str(type(item)) for item in noniterables))
+            self.err.warn(
+                "Trying to zip non-iterable value(s):",
+                ", ".join(str(type(item)) for item in noniterables),
+            )
             return nil
         else:
             return List(List(tuple) for tuple in zip(*lists))
-    
+
     def ZIPDEFAULT(self, lists, default=None):
         if default is None:
             default = SCALAR_EMPTY
         if isinstance(lists, PipIterable):
-            noniterables = [item for item in lists
-                            if not isinstance(item, PipIterable)]
+            noniterables = [
+                item for item in lists if not isinstance(item, PipIterable)
+            ]
             if noniterables:
                 # There are some of the "lists" that are not iterable
                 # TBD: maybe this can find a non-error meaning?
-                self.err.warn("Trying to zip non-iterable value(s):",
-                              noniterables)
+                self.err.warn(
+                    "Trying to zip non-iterable value(s):", noniterables
+                )
                 return nil
             else:
-                return List(List(tuple) for tuple in
-                            itertools.zip_longest(*lists, fillvalue=default))
+                return List(
+                    List(tuple)
+                    for tuple in itertools.zip_longest(
+                        *lists, fillvalue=default
+                    )
+                )
         else:
             self.err.warn("Trying to zip non-iterable:", type(list1))
             return nil
@@ -3928,10 +4295,14 @@ class ProgramState:
         else:
             returnScalar = False
         # Each line should be an iterable; if it's not, cast it to Scalar
-        lines = [line if isinstance(line, PipIterable) else Scalar(line)
-                 for line in lines]
-        result = [self.JOIN(tuple) for tuple in
-                  itertools.zip_longest(*lines, fillvalue=Scalar(" "))]
+        lines = [
+            line if isinstance(line, PipIterable) else Scalar(line)
+            for line in lines
+        ]
+        result = [
+            self.JOIN(tuple)
+            for tuple in itertools.zip_longest(*lines, fillvalue=Scalar(" "))
+        ]
         if returnScalar:
             return self.JOIN(result, Scalar("\n"))
         else:
@@ -3975,4 +4346,3 @@ class Lval:
             return self.base == rhs.base and self.sliceList == rhs.sliceList
         elif isinstance(rhs, (str, List, tokens.Name)):
             return self.base == rhs and self.sliceList == []
-
