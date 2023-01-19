@@ -43,7 +43,8 @@ def pip(code=None, argv=None, interactive=True):
         interactive = False
     if interactive:
         print(f"=== Welcome to Pip, version {version.VERSION} ===")
-        print("Enter command-line args, terminated by newline (-h for help, -R for repl):")
+        print("Enter command-line args, terminated by newline "
+              "(-h for help, -R for repl):")
         argv = input()
     if argv is not None:
         # Artificial command-line input was provided
