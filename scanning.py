@@ -20,7 +20,9 @@ symbolsRgx = re.compile(r'[][(){};$]|EL')
 # The list is first sorted from longest to shortest so that "++" matches
 # before "+", e.g.
 operRgx = re.compile("|".join(
-    re.escape(op) for op in sorted(operators.operators, key=len, reverse=True)))
+    re.escape(op) for op in sorted(operators.operators,
+                                   key=len,
+                                   reverse=True)))
 
 # Combine all regexes together for the grand finale
 tokenRgx = re.compile("|".join(rgx.pattern for rgx in [nameRgx,
