@@ -286,22 +286,27 @@ def parseOperand(tokenList):
         statements = parseBlock(tokenList)
         return [operators.block, statements]
     elif (tokenList[0] in operators.opsByArity[1]
-          or tokenList[0] == "$"):
+          or tokenList[0] in ("$", r"\$")):
         # Parse a unary operator followed by its operand
         token = tokenList.pop(0)
-        if token == "$":
-            # The fold meta-operator is modifying a subsequent binary operator
+        if token in ("$", r"\$"):
+            # The fold and scan meta-operators modify a subsequent
+            # binary operator
+            metaop = token
             if tokenList[0] in operators.opsByArity[2]:
                 token = tokenList.pop(0)
                 op = operators.opsByArity[2][token]
                 op = op.copy()
-                op.fold = True
+                if metaop == "$":
+                    op.fold = True
+                elif metaop == r"\$":
+                    op.scan = True
                 op.arity = 1
             elif tokenList[0] is None:
-                err.die("Missing operator for $ meta-operator",
+                err.die(f"Missing operator for {metaop} meta-operator",
                         errorClass=IncompleteSyntax)
             else:
-                err.die("Wrong operator for $ meta-operator: got",
+                err.die(f"Wrong operator for {metaop} meta-operator: got",
                         tokenList[0], "instead", errorClass=BadSyntax)
         else:
             op = operators.opsByArity[1][token]
@@ -319,7 +324,7 @@ def parseOperand(tokenList):
             op.precedence = assignOp.precedence
         subOperand = parseExpr(tokenList, minPrecedence=op.precedence+1)
         return [op, subOperand]
-            
+    
     # If control reaches here, we've got a problem
     if tokenList[0] is None:
         err.die("Hit end of tokens while parsing expression",

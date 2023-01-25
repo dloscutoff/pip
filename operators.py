@@ -25,6 +25,7 @@ class Operator(tokens.Token):
         self.assign = False  # Turns + into +: for instance
         self.map = False  # Turns ! into !* for instance
         self.fold = False  # Turns + into $+ for instance
+        self.scan = False  # Turns + into \$+ for instance
 
         # The default argument represents the value when folding an empty list
         # with this operator. For economy of space, defaults are specified as
@@ -40,6 +41,8 @@ class Operator(tokens.Token):
         opString = self._text
         if self.fold:
             opString = "$" + opString
+        elif self.scan:
+            opString = r"\$" + opString
         if self.map:
             if self._text + "*" in operators:
                 # Add a space to mapped versions of operators like @
@@ -65,6 +68,7 @@ class Operator(tokens.Token):
                        self.flags)
         cpy.assign = self.assign
         cpy.fold = self.fold
+        cpy.scan = self.scan
         cpy.map = self.map
         return cpy
 

@@ -18,7 +18,7 @@ patternRgx = re.compile(r'`([^`\\]|\\.)*`')
 charRgx = re.compile(r"'(.|\n)")
 escStringRgx = re.compile(r'\\"(\\[^"]|[^\\])*\\"')
 numberRgx = re.compile(r'\d+(\.\d+)?')
-symbolsRgx = re.compile(r'[][(){};$]|EL')
+symbolsRgx = re.compile(r'[][(){};$]|\\\$|EL')
 
 # Create a regex from a list of operators by re.escape-ing them and joining
 # on |

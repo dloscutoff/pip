@@ -117,6 +117,9 @@ class ProgramState:
         elif operator.fold:
             # A binary operator being used in a unary fold operation
             result = self.FOLDMETA(operator, args[0])
+        elif operator.scan:
+            # A binary operator being used in a unary scan operation
+            result = self.SCANMETA(operator, args[0])
         else:
             argsToExpand = []
             blockArgs = []
@@ -617,7 +620,10 @@ class ProgramState:
             newReturnExpr = [operator, returnExpr]
             return Block(statements, newReturnExpr)
         elif isinstance(iterable, PipIterable):
-            if len(iterable) == 0:
+            if isinstance(iterable, Range) and iterable.getUpper() is None:
+                self.err.warn("Can't fold infinite Range")
+                return nil
+            elif len(iterable) == 0:
                 return operator.default
             else:
                 iterable = list(iterable)
@@ -634,7 +640,7 @@ class ProgramState:
                 elif operator.associativity == "C":
                     # Chaining fold for chaining operators
                     if len(iterable) == 1:
-                        foldValue = Scalar("1")
+                        foldValue = SCALAR_ONE
                     else:
                         chainExpr = [ops.chain, iterable[0]]
                         for val in iterable[1:]:
@@ -648,7 +654,7 @@ class ProgramState:
         elif iterable is nil:
             return nil
         else:
-            self.err.warn("Can't fold", type(iterable))
+            self.err.warn(f"Can't fold {type(iterable)}")
             return nil
 
     def MAPMETA(self, operator, iterable):
@@ -666,7 +672,61 @@ class ProgramState:
         elif iterable is nil:
             return nil
         else:
-            self.err.warn("Can't map operator over", type(iterable))
+            self.err.warn(f"Can't map operator over {type(iterable)}")
+            return nil
+
+    def SCANMETA(self, operator, iterable):
+        iterable = self.getRval(iterable)
+        normalOp = operator.copy()
+        normalOp.scan = False
+        if isinstance(iterable, Block):
+            # Create a lambda expression instead
+            statements = iterable.getStatements()
+            returnExpr = iterable.getReturnExpr()
+            newReturnExpr = [operator, returnExpr]
+            return Block(statements, newReturnExpr)
+        elif isinstance(iterable, PipIterable):
+            if isinstance(iterable, Range) and iterable.getUpper() is None:
+                self.err.warn("Can't scan infinite Range")
+                return nil
+            elif len(iterable) == 0:
+                # Scanning an empty iterable returns empty List
+                return List([])
+            else:
+                iterable = list(iterable)
+                if operator.associativity == "L":
+                    # Left scan for left-associative operators
+                    scanValue = iterable[0]
+                    scanResults = [scanValue]
+                    for val in iterable[1:]:
+                        scanValue = self.evaluate([normalOp, scanValue, val])
+                        scanResults.append(scanValue)
+                elif operator.associativity == "R":
+                    # Right scan for right-associative operators
+                    scanValue = iterable[-1]
+                    scanResults = [scanValue]
+                    for val in iterable[-2::-1]:
+                        scanValue = self.evaluate([normalOp, val, scanValue])
+                        scanResults.append(scanValue)
+                    scanResults.reverse()
+                elif operator.associativity == "C":
+                    # Chaining scan for chaining operators
+                    chainExpr = [ops.chain, iterable[0]]
+                    scanResults = [SCALAR_ONE]
+                    for val in iterable[1:]:
+                        chainExpr.extend((normalOp, val))
+                        scanResults.append(self.evaluate(chainExpr))
+                        # TODO: a better implementation that doesn't
+                        # evaluate progressively longer chains
+                else:
+                    self.err.die("Implementation error: unknown "
+                                 f"associativity {operator.associativity} "
+                                 "in SCANMETA")
+                return List(scanResults)
+        elif iterable is nil:
+            return nil
+        else:
+            self.err.warn(f"Can't scan {type(iterable)}")
             return nil
 
     ###############################
