@@ -617,7 +617,10 @@ class ProgramState:
             newReturnExpr = [operator, returnExpr]
             return Block(statements, newReturnExpr)
         elif isinstance(iterable, PipIterable):
-            if len(iterable) == 0:
+            if isinstance(iterable, Range) and iterable.getUpper() is None:
+                self.err.warn("Can't fold infinite Range")
+                return nil
+            elif len(iterable) == 0:
                 return operator.default
             else:
                 iterable = list(iterable)
