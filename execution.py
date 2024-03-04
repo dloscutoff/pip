@@ -1347,6 +1347,10 @@ class ProgramState:
                           type(function), "and", type(iterable))
             return nil
 
+    def FILTERJOIN(self, function, iterable=None):
+        """Same as FILTER, but join the result into a string afterwards."""
+        return self.JOIN(self.FILTER(function, iterable))
+
     def FILTERINDEXES(self, function, iterable=None):
         """Filter iterable: keep indexes where function returns truthy.
 
