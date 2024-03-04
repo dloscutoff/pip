@@ -1498,8 +1498,10 @@ class ProgramState:
             return nil
 
     def FIRSTMATCH(self, regex, string):
-        if isinstance(string, Pattern):
+        if isinstance(regex, Scalar) and isinstance(string, Pattern):
             regex, string = string, regex
+        elif isinstance(regex, Scalar):
+            regex = self.REGEX(regex)
         if isinstance(regex, Pattern) and isinstance(string, Scalar):
             matchObj = regex.asRegex().search(str(string))
             if matchObj:
@@ -2087,8 +2089,10 @@ class ProgramState:
         if isinstance(string, Block) and isinstance(lhs, Scalar):
             # The arguments are reversible to enable things like sMR:xf
             lhs, string = string, lhs
-        elif isinstance(string, Pattern) and isinstance(regex, Scalar):
+        elif isinstance(regex, Scalar) and isinstance(string, Pattern):
             regex, string = string, regex
+        elif isinstance(regex, Scalar):
+            regex = self.REGEX(regex)
         if (isinstance(lhs, Block)
                 and isinstance(regex, Pattern)
                 and isinstance(string, Scalar)):
