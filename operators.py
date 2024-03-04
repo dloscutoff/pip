@@ -140,6 +140,7 @@ precedenceTable = [
      ("V", "EVAL", None, RVALS),
      ("FI", "FILTER", None, RVALS),
      ("FN", "FILTERNOT", None, RVALS),
+     ("FU", "FILTERUNPACK", None, RVALS),
      ("RE", "RECURSE", None, RVALS),
      ],
     [2, "R",

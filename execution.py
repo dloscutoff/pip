@@ -1369,29 +1369,51 @@ class ProgramState:
                           type(function), "and", type(iterable))
             return nil
 
-    def FILTERUNPACK(self, function, iterable):
+    def FILTERUNPACK(self, function, iterable=None):
         """Filter iterable: keep items where function returns truthy.
 
         The function is passed one argument for each element of each
         item in the iterable.
         """
+        if iterable is None:
+            # The unary version keeps items whose first element is truthy
+            function, iterable = iterable, function
+            if isinstance(iterable, PipIterable):
+                result = List()
+                for item in iterable:
+                    if isinstance(item, PipIterable):
+                        try:
+                            if item[0]:
+                                result.append(item)
+                        except IndexError:
+                            # This happens when one of the items is empty
+                            pass
+                    else:
+                        self.err.warn(f"Cannot unpack {type(item)} value in "
+                                      "FILTERUNPACK")
+                return result
+            else:
+                self.err.warn("Unimplemented argtype for FILTERUNPACK:",
+                              type(iterable))
+                return nil
         if isinstance(iterable, Block) and isinstance(function, PipIterable):
             # The arguments are reversible to enable things like lFU:f
             function, iterable = iterable, function
         if isinstance(function, Block) and isinstance(iterable, PipIterable):
             result = List()
             for item in iterable:
-                try:
-                    arglist = list(item)
-                except ValueError:
-                    # This happens when one of the items is an infinite Range
-                    self.err.warn("Cannot unpack infinite Range in "
+                if isinstance(item, PipIterable):
+                    try:
+                        arglist = list(item)
+                    except ValueError:
+                        # This happens when one of the items is an
+                        # infinite Range
+                        self.err.warn("Cannot unpack infinite Range in "
+                                      "FILTERUNPACK")
+                        arglist = []
+                else:
+                    self.err.warn(f"Cannot unpack {type(item)} value in "
                                   "FILTERUNPACK")
-                    arglist = []
-                except TypeError:
-                    # This happens when one of the items is a
-                    # non-iterable type
-                    self.err.warn(f"Cannot unpack {item} in FILTERUNPACK")
                     arglist = []
                 if self.functionCall(function, arglist):
                     result.append(item)
