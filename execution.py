@@ -923,9 +923,9 @@ class ProgramState:
     
     def BITLENGTH(self, lhs):
         if isinstance(lhs, Scalar):
-            return len(bin(int(lhs))[2:])
+            return Scalar(int(lhs).bit_length())
         else:
-            self.err.warn("Cannot get bitlength of", type(lhs))
+            self.err.warn("Cannot get bit-length of", type(lhs))
             return nil
             
     def BITWISEAND(self, lhs, rhs):
