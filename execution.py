@@ -1347,6 +1347,35 @@ class ProgramState:
                           type(function), "and", type(iterable))
             return nil
 
+    def FILTERINDEXES(self, function, iterable=None):
+        """Filter iterable: keep indexes where function returns truthy.
+
+        The function is passed two arguments: the index of the item
+        in the iterable, and the item itself.
+        """
+        if iterable is None:
+            # The unary version keeps indexes whose items are truthy
+            function, iterable = iterable, function
+            if isinstance(iterable, PipIterable):
+                return List(Scalar(index)
+                            for index, item in enumerate(iterable)
+                            if item)
+            else:
+                self.err.warn("Unimplemented argtype for FILTERINDEXES:",
+                              type(iterable))
+                return nil
+        if isinstance(iterable, Block) and isinstance(function, PipIterable):
+            # The arguments are reversible to enable things like lFX:f
+            function, iterable = iterable, function
+        if isinstance(function, Block) and isinstance(iterable, PipIterable):
+            return List(Scalar(index)
+                        for index, item in enumerate(iterable)
+                        if self.functionCall(function, [Scalar(index), item]))
+        else:
+            self.err.warn("Unimplemented argtypes for FILTERINDEXES:",
+                          type(function), "and", type(iterable))
+            return nil
+
     def FILTERNOT(self, function, iterable=None):
         """Filter iterable: keep items where function returns falsey."""
         if iterable is None:
