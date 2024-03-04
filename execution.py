@@ -1279,7 +1279,7 @@ class ProgramState:
             return List(item for index, item in enumerate(iterable)
                         if self.functionCall(function, [Scalar(index), item]))
         else:
-            self.err.warn("Unimplemented argtypes for FILTER:",
+            self.err.warn("Unimplemented argtypes for FILTERENUMERATE:",
                           type(function), "and", type(iterable))
             return nil
 
@@ -1291,7 +1291,7 @@ class ProgramState:
             if isinstance(iterable, PipIterable):
                 return List(item for item in iterable if not item)
             else:
-                self.err.warn("Unimplemented argtype for FILTER:",
+                self.err.warn("Unimplemented argtype for FILTERNOT:",
                               type(iterable))
                 return nil
         if isinstance(iterable, Block) and isinstance(function, PipIterable):
