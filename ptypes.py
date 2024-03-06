@@ -167,8 +167,15 @@ class Scalar(PipIterable):
 class Pattern(PipType):
     """Represents a regular expression or substitution pattern."""
 
-    def __init__(self, value=""):
-        self._raw = str(value)
+    def __init__(self, value="", flags=0):
+        if isinstance(value, Pattern):
+            self._raw = value._raw
+            # Copy flags from the other pattern, then toggle any flags
+            # specified by the argument
+            self._flags = value._flags ^ flags
+        else:
+            self._raw = str(value)
+            self._flags = flags
         self._compiled = None
         self._separator = None
 
@@ -182,12 +189,12 @@ class Pattern(PipType):
                                         + "\\"
                                         + str(int(m.group(2))+1)),
                              pyRegex)
-            self._compiled = re.compile(pyRegex)
+            self._compiled = re.compile(pyRegex, self._flags)
         return self._compiled
 
     def asSeparator(self):
         if not self._separator:
-            self._separator = re.compile(self._raw)
+            self._separator = re.compile(self._raw, self._flags)
         return self._separator
 
     def asReplacement(self):
@@ -206,23 +213,64 @@ class Pattern(PipType):
         return pyReplace
 
     def copy(self):
-        copy = Pattern(self._raw)
+        copy = Pattern(self)
         copy._compiled = self._compiled
         copy._separator = self._separator
         return copy
+
+    def wrap(self):
+        if len(self._raw) > 1:
+            return Pattern(f"(?:{self._raw})", self._flags)
+        else:
+            # A length-1 regex doesn't need to be wrapped
+            return self
+
+    def group(self):
+        return Pattern(f"({self._raw})", self._flags)
+
+    def kleeneStar(self):
+        return Pattern(f"{self._raw}*", self._flags)
+
+    def plus(self):
+        return Pattern(f"{self._raw}+", self._flags)
+
+    def repeat(self, count):
+        if isinstance(count, int):
+            return Pattern(f"{self._raw}{{{count}}}", self._flags)
+        else:
+            raise TypeError(f"Cannot repeat Pattern by {type(count)}")
+
+    def concat(self, other):
+        return Pattern(f"{self._raw}{other._raw}",
+                       self._flags | other._flags)
+
+    def alternate(self, other):
+        return Pattern(f"{self._raw}|{other._raw}",
+                       self._flags | other._flags)
 
     def __str__(self):
         return self._raw
 
     def __repr__(self):
-        return "`" + self._raw.replace("`", r"\`") + "`"
+        flags = ""
+        if self._flags & re.ASCII:
+            flags += "A"
+        if self._flags & re.IGNORECASE:
+            flags += "-"
+        if self._flags & re.MULTILINE:
+            flags += ","
+        if self._flags & re.DOTALL:
+            flags += "."
+        return flags + "`" + self._raw.replace("`", r"\`") + "`"
 
     def __bool__(self):
         """A Pattern is false iff it is empty."""
         return self._raw != ""
 
     def __eq__(self, rhs):
-        return type(rhs) == type(self) and self._raw == rhs._raw
+        return (type(rhs) == type(self)
+                and self._raw == rhs._raw
+                and self._flags == rhs._flags)
 
     __hash__ = PipType.__hash__
 

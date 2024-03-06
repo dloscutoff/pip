@@ -585,7 +585,7 @@ class ProgramState:
             "VN": Scalar(version.VERSION),
             "VW": Scalar("aeiou"),
             "VY": Scalar("aeiouy"),
-            "XA": Pattern("[A-Za-z]"),
+            "XA": Pattern("[a-z]", re.IGNORECASE),
             "XC": Pattern("[bcdfghjklmnpqrstvwxyz]"),
             "XD": Pattern(r"\d"),
             "XI": Pattern(r"-?\d+"),
@@ -769,8 +769,7 @@ class ProgramState:
         elif isinstance(lhs, Pattern) and isinstance(rhs, Pattern):
             # + with two Patterns returns a new Pattern that matches one,
             # then the other
-            result = f"(?:{lhs})(?:{rhs})"
-            return Pattern(result)
+            return lhs.wrap().concat(rhs.wrap())
         else:
             self.err.warn("Unimplemented argtypes for ADD:",
                           type(lhs), "and", type(rhs))
@@ -830,9 +829,8 @@ class ProgramState:
                 self.err.warn("Cannot take ASC of empty string")
                 return nil
         elif isinstance(rhs, Pattern):
-            # A operator on a Pattern makes it ASCII-only
-            result = "(?a)" + str(rhs)
-            return Pattern(result)
+            # Given a Pattern, A toggles the ASCII-only flag
+            return Pattern(rhs, re.ASCII)
         else:
             self.err.warn("Unimplemented argtype for ASC:", type(rhs))
             return nil
@@ -999,8 +997,7 @@ class ProgramState:
             return Scalar(result)
         elif (isinstance(lhs, (Scalar, Pattern))
               and isinstance(rhs, (Scalar, Pattern))):
-            result = str(lhs) + str(rhs)
-            return Pattern(result)
+            return Pattern(lhs).concat(Pattern(rhs))
         else:
             self.err.warn("Unimplemented argtypes for CAT:",
                           type(lhs), "and", type(rhs))
@@ -1067,9 +1064,8 @@ class ProgramState:
             result = chr(int(rhs))
             return Scalar(result)
         elif isinstance(rhs, Pattern):
-            # C operator on Pattern wraps the regex in a capturing group
-            result = f"({rhs})"
-            return Pattern(result)
+            # Given a Pattern, C wraps the regex in a capturing group
+            return rhs.group()
         else:
             self.err.warn("Unimplemented argtype for CHR:", type(rhs))
             return nil
@@ -1237,9 +1233,8 @@ class ProgramState:
 
     def DOT(self, rhs):
         if isinstance(rhs, Pattern):
-            # . operator on Pattern makes . match newlines
-            result = "(?s)" + str(rhs)
-            return Pattern(result)
+            # Given a Pattern, . makes regex . match newlines
+            return Pattern(rhs, re.DOTALL)
         else:
             # For Scalars etc., pass through unchanged
             # TBD: is unary . useful for something for those types?
@@ -1805,18 +1800,10 @@ class ProgramState:
             return nil
 
     def KLEENESTAR(self, rhs):
-        if isinstance(rhs, Scalar):
-            regex = re.escape(str(rhs))
-            if len(rhs) > 1:
-                regex = f"(?:{regex})"
-            return Pattern(regex + "*")
-        elif isinstance(rhs, Range):
-            return Pattern("(?:"
-                           + "|".join(str(item) for item in rhs)
-                           + ")*")
+        if isinstance(rhs, (Scalar, Range)):
+            return self.REGEX(rhs).kleeneStar()
         elif isinstance(rhs, Pattern):
-            result = f"(?:{str(rhs)})*"
-            return Pattern(result)
+            return rhs.wrap().kleeneStar()
         else:
             self.err.warn("Unimplemented argtype for KLEENESTAR:", type(rhs))
             return nil
@@ -2227,8 +2214,7 @@ class ProgramState:
         elif isinstance(lhs, Pattern) and isinstance(rhs, Scalar):
             # * with a Pattern and a Scalar returns a new Pattern that matches
             # the original regex repeated rhs times
-            result = f"(?:{lhs}){{{int(rhs)}}}"
-            return Pattern(result)
+            return lhs.wrap().repeat(int(rhs))
         else:
             self.err.warn("Unimplemented argtypes for MUL:",
                           type(lhs), "and", type(rhs))
@@ -2256,8 +2242,7 @@ class ProgramState:
             return Scalar(result)
         elif isinstance(rhs, Pattern):
             # - operator on a Pattern makes it case-insensitive
-            result = "(?i)" + str(rhs)
-            return Pattern(result)
+            return Pattern(rhs, re.IGNORECASE)
         else:
             self.err.warn("Unimplemented argtype for NEG:", type(rhs))
             return nil
@@ -2731,9 +2716,8 @@ class ProgramState:
         elif isinstance(rhs, Range):
             return rhs
         elif isinstance(rhs, Pattern):
-            # + operator on Pattern applies regex + to the whole thing
-            result = f"(?:{rhs})+"
-            return Pattern(result)
+            # Given a Pattern, + applies regex + to the whole thing
+            return rhs.wrap().plus()
         else:
             self.err.warn("Unimplemented argtype for POS:", type(rhs))
             return nil
@@ -2898,53 +2882,51 @@ class ProgramState:
                           type(iterable))
             return nil
 
-    def RANDRANGE(self, lower, upper):
-        if isinstance(lower, (Scalar, Nil)) and isinstance(upper, Scalar):
-            if lower is nil:
-                lower = 0
+    def RANDRANGE(self, lhs, rhs):
+        if isinstance(lhs, (Scalar, Nil)) and isinstance(rhs, Scalar):
+            if lhs is nil:
+                lhs = 0
             else:
-                lower = int(lower)
-            upper = int(upper)
-            return Scalar(random.randrange(lower, upper))
+                lhs = int(lhs)
+            rhs = int(rhs)
+            return Scalar(random.randrange(lhs, rhs))
         else:
             self.err.warn("Unimplemented argtypes for RANDRANGE:",
-                          type(lower), "and", type(upper))
+                          type(lhs), "and", type(rhs))
             return nil
         
-    def RANDRANGETO(self, upper):
+    def RANDRANGETO(self, rhs):
         """Unary version of RANDRANGE."""
-        if isinstance(upper, Scalar):
-            return Scalar(random.randrange(int(upper)))
+        if isinstance(rhs, Scalar):
+            return Scalar(random.randrange(int(rhs)))
         else:
             self.err.warn("Unimplemented argtype for RANDRANGETO:",
-                          type(upper))
+                          type(rhs))
             return nil
 
-    def RANGE(self, lower, upper):
-        if (isinstance(lower, (Scalar, Nil))
-                and isinstance(upper, (Scalar, Nil))):
-            return Range(lower, upper)
-        elif isinstance(lower, Pattern) and isinstance(upper, Pattern):
+    def RANGE(self, lhs, rhs):
+        if (isinstance(lhs, (Scalar, Nil))
+                and isinstance(rhs, (Scalar, Nil))):
+            return Range(lhs, rhs)
+        elif isinstance(lhs, Pattern) and isinstance(rhs, Pattern):
             # , with two Patterns returns a new Pattern that matches one OR
             # the other
-            result = f"(?:{lower})|(?:{upper})"
-            return Pattern(result)
+            return lhs.wrap().alternate(rhs.wrap())
         else:
             self.err.warn("Unimplemented argtypes for RANGE:",
-                          type(lower), "and", type(upper))
+                          type(lhs), "and", type(rhs))
             return nil
 
-    def RANGETO(self, upper):
+    def RANGETO(self, rhs):
         """Unary version of RANGE."""
-        if isinstance(upper, (Scalar, Nil)):
-            return Range(nil, upper)
-        elif isinstance(upper, Pattern):
+        if isinstance(rhs, (Scalar, Nil)):
+            return Range(nil, rhs)
+        elif isinstance(rhs, Pattern):
             # , operator on a Pattern makes ^ and $ match fronts & ends of
             # lines
-            result = "(?m)" + str(upper)
-            return Pattern(result)
+            return Pattern(rhs, re.MULTILINE)
         else:
-            self.err.warn("Unimplemented argtype for RANGETO:", type(upper))
+            self.err.warn("Unimplemented argtype for RANGETO:", type(rhs))
             return nil
 
     def RECURSE(self, rhs):
@@ -2972,19 +2954,16 @@ class ProgramState:
 
     def REGEX(self, rhs):
         """Convert Scalar, List, or Range to properly-escaped Pattern."""
-        if isinstance(rhs, Scalar):
-            regex = re.escape(str(rhs))
-            if len(rhs) > 1:
-                # Surround expression in a non-capturing group so repetition
-                # constructs will function as expected if appended
-                regex = "(?:" + regex + ")"
-            return Pattern(regex)
-        elif isinstance(rhs, Pattern):
+        if isinstance(rhs, Pattern):
             return rhs
-        elif isinstance(rhs, (List, Range)):
-            return Pattern("(?:"
-                           + "|".join(str(self.REGEX(item)) for item in rhs)
-                           + ")")
+        elif isinstance(rhs, Scalar):
+            return Pattern(re.escape(str(rhs))).wrap()
+        elif isinstance(rhs, Range):
+            return Pattern("|".join(re.escape(str(item))
+                                    for item in rhs)).wrap()
+        elif isinstance(rhs, List):
+            return Pattern("|".join(str(self.REGEX(item))
+                                    for item in rhs)).wrap()
         else:
             self.err.warn("Unimplemented argtype for REGEX:", type(rhs))
             return nil
