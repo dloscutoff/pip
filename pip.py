@@ -38,6 +38,34 @@ REPL commands (abbreviated versions like ;h or ;he work too):
 """
 
 
+def main():
+    """Run the interpreter as a main program."""
+    try:
+        if len(sys.argv) == 1:
+            # No arguments given, just the name of the code file in argv
+            pip(interactive=True)
+        else:
+            pip(interactive=False)
+    except FatalError:
+        # The pip() function already gave the appropriate error output
+        pass
+
+
+def run(code=None, argv=None):
+    """Run specific code (or interactive with no args) and catch errors."""
+    try:
+        if code is None and argv is None:
+            pip(interactive=True)
+        else:
+            if argv is None:
+                # If code is given and args are not, run with empty arglist
+                argv = []
+            pip(code, argv, interactive=False)
+    except FatalError:
+        # The pip() function already gave the appropriate error output
+        pass
+
+
 def pip(code=None, argv=None, interactive=True):
     if code is not None or argv is not None:
         interactive = False
@@ -175,7 +203,7 @@ def pip(code=None, argv=None, interactive=True):
                   None)
     if options.repl:
         repl(listFormat, options.warnings)
-        sys.exit(0)
+        return
     if (code is None and options.execute is None and options.file is None
             and not options.stdin):
         if interactive:
@@ -186,7 +214,7 @@ def pip(code=None, argv=None, interactive=True):
             options.file = options.args.pop(0)
         else:
             print(f"Type {sys.argv[0]} -h for usage information.")
-            sys.exit(0)
+            return
     if code is not None:
         # Code is passed into function
         program = code
@@ -202,7 +230,7 @@ def pip(code=None, argv=None, interactive=True):
                 program = f.read()
         except:
             print("Could not read from file", options.file, file=sys.stderr)
-            sys.exit(1)
+            raise FatalError("Could not read from code file")
     elif options.stdin:
         # Get code from stdin, stopping at EOF
         program = ""
@@ -223,7 +251,7 @@ def pip(code=None, argv=None, interactive=True):
     except FatalError as err:
         print("Fatal error while scanning:", err, file=sys.stderr)
         print("Execution aborted.", file=sys.stderr)
-        sys.exit(1)
+        raise
     if options.verbose:
         print(addSpaces(tokens))
         print()
@@ -232,7 +260,7 @@ def pip(code=None, argv=None, interactive=True):
     except FatalError as err:
         print("Fatal error while parsing:", err, file=sys.stderr)
         print("Execution aborted.", file=sys.stderr)
-        sys.exit(1)
+        raise
     if options.verbose:
         pprint.pprint(parse_tree)
         print()
@@ -256,14 +284,14 @@ def pip(code=None, argv=None, interactive=True):
                 print(f"Fatal error while scanning argument {arg!r}:",
                       err, file=sys.stderr)
                 print("Execution aborted.", file=sys.stderr)
-                sys.exit(1)
+                raise
             try:
                 arg_parse_tree = parse(arg_tokens)
             except FatalError as err:
                 print(f"Fatal error while parsing argument {arg!r}:",
                       err, file=sys.stderr)
                 print("Execution aborted.", file=sys.stderr)
-                sys.exit(1)
+                raise
             parsed_arg = arg_parse_tree[0]
             try:
                 program_args.append(state.evaluate(parsed_arg))
@@ -273,12 +301,12 @@ def pip(code=None, argv=None, interactive=True):
                 print(f"Fatal error while evaluating argument {arg!r}:",
                       err, file=sys.stderr)
                 print("Execution aborted.", file=sys.stderr)
-                sys.exit(1)
+                raise FatalError(str(err))
             except KeyboardInterrupt:
                 print("Program terminated by user while evaluating "
                       f"argument {arg!r}.",
                       file=sys.stderr)
-                sys.exit(1)
+                raise FatalError("Keyboard interrupt")
     else:
         # Treat each argument as a Scalar
         program_args = [Scalar(arg) for arg in raw_args]
@@ -291,12 +319,14 @@ def pip(code=None, argv=None, interactive=True):
         # recursion depth
         print("Fatal error during execution:", err, file=sys.stderr)
         print("Program terminated.", file=sys.stderr)
-        sys.exit(1)
+        raise FatalError(str(err))
     except KeyboardInterrupt:
         print("Program terminated by user.", file=sys.stderr)
-        sys.exit(1)
+        raise FatalError("Keyboard interrupt")
+
 
 def repl(list_format=None, warnings=False):
+    """Run read-eval-print loop."""
     print(f"Pip {version.VERSION}")
     print("Type ;help for more information.")
     state = ProgramState(list_format, warnings)
@@ -366,10 +396,5 @@ def repl(list_format=None, warnings=False):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        # No arguments given, just the name of the code file in argv
-        pip(interactive=True)
-    else:
-        pip(interactive=False)
-
+    main()
 
