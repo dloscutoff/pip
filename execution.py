@@ -3085,6 +3085,13 @@ class ProgramState:
                 result = lhs
                 for item in rhs:
                     result = self.REMOVE(result, item)
+            elif rhs is nil:
+                # Nothing to remove, so return the original value
+                result = lhs
+            else:
+                self.err.warn("Unimplemented argtypes for REMOVE:",
+                              type(lhs), "and", type(rhs))
+                return nil
             return Scalar(result)
         elif isinstance(lhs, PipIterable):
             result = list(lhs)
@@ -3096,8 +3103,7 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtypes for REMOVE:",
                           type(lhs), "and", type(rhs))
-            # Nothing to remove, so return the original value
-            return lhs
+            return nil
 
     def REPR(self, rhs):
         if isinstance(rhs, Block):
