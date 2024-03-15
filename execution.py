@@ -65,6 +65,7 @@ class ProgramState:
         # arguments and the return value PRINTed after execution
         returnVal = self.functionCall(self.mainFunction, self.args)
         self.PRINT(returnVal)
+        sys.stdout.flush()
 
     def executeStatement(self, statement):
         if isinstance(statement, list):
