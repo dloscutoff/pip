@@ -1131,12 +1131,24 @@ class ProgramState:
 
     def DESCENDINGNUM(self, iterable):
         if isinstance(iterable, PipIterable):
+            def pyKey(item):
+                if isinstance(item, (Pattern, Block, Nil)):
+                    self.err.warn(f"Items of type {type(item)} "
+                                  "are sorted as if they were 0 "
+                                  "in DESCENDINGNUM")
+                    return 0
+                elif isinstance(item, Range) and item.getUpper() is None:
+                    self.err.warn("Infinite Ranges are sorted as if "
+                                  "they were [] in DESCENDINGNUM")
+                    return []
+                else:
+                    # Treat Scalars as numbers, (nested) Lists as
+                    # (nested) lists of numbers, Ranges as lists of numbers
+                    return item.toNumber()
             try:
-                return List(sorted(iterable,
-                                   key=lambda x: x.toNumber(),
-                                   reverse=True))
+                return List(sorted(iterable, key=pyKey, reverse=True))
             except TypeError:
-                self.err.warn("Cannot sort mixed types in list")
+                self.err.warn("DESCENDINGNUM cannot compare numbers to lists")
                 return nil
         else:
             self.err.warn("Unimplemented argtype for DESCENDINGNUM:",
@@ -3182,29 +3194,62 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for SINE:", type(rhs))
             return nil
 
-    def SORTKEYED(self, key, iterable):
-        """Sort by value of (numeric!) key function applied to each item."""
-        if not isinstance(key, Block) and isinstance(iterable, Block):
-            key, iterable = iterable, key
-        if isinstance(key, Block) and isinstance(iterable, PipIterable):
-            pyKey = lambda x: self.functionCall(key, [x]).toNumber()
+    def SORTKEYED(self, keyFunction, iterable):
+        """Sort by value of key function applied to each item.
+
+        The key function is expected to return a number. It can also
+        work if it returns a List, as long as it always returns a
+        List with the same structure. Finite Ranges also work.
+        """
+        if not isinstance(keyFunction, Block) and isinstance(iterable, Block):
+            keyFunction, iterable = iterable, keyFunction
+        if (isinstance(keyFunction, Block)
+                and isinstance(iterable, PipIterable)):
+            def pyKey(item):
+                keyValue = self.functionCall(keyFunction, [item])
+                if isinstance(keyValue, (Pattern, Block, Nil)):
+                    self.err.warn("Replacing key value of type "
+                                  f"{type(keyValue)} with 0 in SORTKEYED")
+                    return 0
+                elif (isinstance(keyValue, Range)
+                      and keyValue.getUpper() is None):
+                    self.err.warn("Replacing infinite Range key value "
+                                  "with [] in SORTKEYED")
+                    return []
+                else:
+                    # Convert Scalars to numbers, (nested) Lists to
+                    # (nested) lists of numbers, Ranges to lists of numbers
+                    return keyValue.toNumber()
             try:
                 return List(sorted(iterable, key=pyKey))
             except TypeError:
-                raise
-                self.err.warn("Sort key must always return a number")
+                self.err.warn("SORTKEYED cannot compare numbers to lists")
                 return nil
         else:
             self.err.warn("Unimplemented argtypes for SORTKEYED:",
-                          type(key), "and", type(iterable))
+                          type(keyFunction), "and", type(iterable))
             return nil
 
     def SORTNUM(self, iterable):
         if isinstance(iterable, PipIterable):
+            def pyKey(item):
+                if isinstance(item, (Pattern, Block, Nil)):
+                    self.err.warn(f"Items of type {type(item)} "
+                                  "are sorted as if they were 0 "
+                                  "in SORTNUM")
+                    return 0
+                elif isinstance(item, Range) and item.getUpper() is None:
+                    self.err.warn("Infinite Ranges are sorted as if "
+                                  "they were [] in SORTNUM")
+                    return []
+                else:
+                    # Treat Scalars as numbers, (nested) Lists as
+                    # (nested) lists of numbers, Ranges as lists of numbers
+                    return item.toNumber()
             try:
-                return List(sorted(iterable, key=lambda x: x.toNumber()))
+                return List(sorted(iterable, key=pyKey))
             except TypeError:
-                self.err.warn("Cannot sort mixed types in list")
+                self.err.warn("SORTNUM cannot compare numbers to lists")
                 return nil
         else:
             self.err.warn("Unimplemented argtype for SORTNUM:",
