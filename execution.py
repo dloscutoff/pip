@@ -919,6 +919,21 @@ class ProgramState:
         else:
             self.err.warn("Cannot index into", type(lhs))
             return nil
+
+    def BINARYLOG(self, number):
+        """Take the base-2 logarithm of number."""
+        if isinstance(number, Scalar):
+            if number.toNumber() > 0:
+                result = math.log2(number.toNumber())
+                return Scalar(result)
+            else:
+                self.err.warn("Can't take logarithm of nonpositive number",
+                              number)
+                return nil
+        else:
+            self.err.warn("Unimplemented argtype for BINARYLOG:",
+                          type(number))
+            return nil
     
     def BITLENGTH(self, lhs):
         if isinstance(lhs, Scalar):
@@ -1130,6 +1145,21 @@ class ProgramState:
             self.err.warn("Decrementing non-lvalue", rhs)
             # The expression still evaluates to the value minus one, though
             return result
+
+    def DECIMALLOG(self, number):
+        """Take the base-10 logarithm of number."""
+        if isinstance(number, Scalar):
+            if number.toNumber() > 0:
+                result = math.log10(number.toNumber())
+                return Scalar(result)
+            else:
+                self.err.warn("Can't take logarithm of nonpositive number",
+                              number)
+                return nil
+        else:
+            self.err.warn("Unimplemented argtype for DECIMALLOG:",
+                          type(number))
+            return nil
 
     def DELETECHARS(self, string, chars):
         """Delete characters from string."""

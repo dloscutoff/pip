@@ -391,6 +391,8 @@ precedenceTable = [
      ("RT", "SQRT", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("EX", "EXPONENTIAL", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("LN", "NATURALLOG", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     ("LB", "BINARYLOG", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     ("LD", "DECIMALLOG", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ],
     [2, "R",
      ("**", "POW", 1, RVALS | IN_LAMBDA | RANGE_EACH),
