@@ -1102,6 +1102,7 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtype for DOUBLE:",
                           type(rhs))
+            return nil
 
     def ENUMERATE(self, iterable):
         if isinstance(iterable, PipIterable):
@@ -1346,6 +1347,7 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtype for HALVE:",
                           type(rhs))
+            return nil
 
     def IDENTITYMATRIX(self, rhs):
         if isinstance(rhs, Scalar):
@@ -1358,6 +1360,7 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtype for IDENTITYMATRIX:",
                           type(rhs))
+            return nil
 
     def IFTE(self, test, trueBranch, falseBranch):
         # Ternary if-then-else operator
