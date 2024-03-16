@@ -162,6 +162,7 @@ precedenceTable = [
      ("FX", "FILTERINDEXES", [], RVALS),
      ("FJ", "FILTERJOIN", [], RVALS),
      ("SK", "SORTKEYED", [], RVALS),
+     ("DK", "DESCENDINGKEYED", [], RVALS),
      ("V", "EVAL", None, RVALS),
      ],
     [3, "R",
