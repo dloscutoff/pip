@@ -382,6 +382,7 @@ precedenceTable = [
      ("/", "INVERT", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("%", "MOD", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("HV", "HALVE", None, RVALS | IN_LAMBDA | RANGE_EACH),
+     ("HU", "HALVEUP", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("DB", "DOUBLE", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("SQ", "SQUARE", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("**", "POW", None, RVALS | IN_LAMBDA | RANGE_EACH),

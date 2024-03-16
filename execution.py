@@ -1641,10 +1641,20 @@ class ProgramState:
             return nil
 
     def HALVE(self, rhs):
+        """Halve and round down."""
         if isinstance(rhs, Scalar):
-            return Scalar(rhs.toNumber() // 2)
+            return Scalar(math.floor(rhs.toNumber() / 2))
         else:
             self.err.warn("Unimplemented argtype for HALVE:",
+                          type(rhs))
+            return nil
+
+    def HALVEUP(self, rhs):
+        """Halve and round up."""
+        if isinstance(rhs, Scalar):
+            return Scalar(math.ceil(rhs.toNumber() / 2))
+        else:
+            self.err.warn("Unimplemented argtype for HALVEUP:",
                           type(rhs))
             return nil
 
