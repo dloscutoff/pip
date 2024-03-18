@@ -34,21 +34,28 @@ class Operator(Token):
 class Symbol(Token):
     pass
 
-class Number(Token):
-    pass
-
-class String(Token):
-    pass
-
-class Pattern(Token):
-    pass
-
-class Char(Token):
-    pass
-
-class EscapedString(Token):
-    pass
-
 class Name(Token):
     pass
+
+class Literal(Token):
+    pass
+
+class Number(Literal):
+    pass
+
+class String(Literal):
+    pass
+
+class Pattern(Literal):
+    pass
+
+class Char(Literal):
+    pass
+
+class EscapedString(Literal):
+    pass
+
+class Nil(Literal):
+    def __init__(self):
+        self._text = "()"
     

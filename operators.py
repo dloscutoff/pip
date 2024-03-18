@@ -1,5 +1,5 @@
 
-import tokens, ptypes
+import tokens
 
 class Command(tokens.Token):
     def __init__(self, token, function, argtypes):
@@ -27,15 +27,16 @@ class Operator(tokens.Token):
         self.fold = False  # Turns + into $+ for instance
         self.scan = False  # Turns + into \$+ for instance
 
-        # The default argument represents the value when folding an empty list
-        # with this operator. For economy of space, defaults are specified as
-        # Python objects in the operator table; convert them to Pip types here.
-        try:
-            self.default = ptypes.toPipType(default)
-        except TypeError:
-            print("Unsupported default value type for operator "
-                  f"{token} ({function}):", type(default))
-            self.default = ptypes.nil
+        # The default argument represents the value when folding an empty
+        # iterable with this operator. Defaults are specified as Python
+        # objects here and converted to Pip types later.
+        if (isinstance(default, (int, str))
+                or default == []
+                or default is None):
+            self.default = default
+        else:
+            raise ValueError("Unsupported default value for operator "
+                             f"{token} ({function}): {default!r}")
 
     def __str__(self):
         opString = self._text

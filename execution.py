@@ -93,6 +93,9 @@ class ProgramState:
         if isinstance(expression, tokens.Name):
             # Evaluate a name as an lvalue (which may become an rvalue later)
             return Lval(expression)
+        elif isinstance(expression, tokens.Literal):
+            # Convert a literal into the appropriate Pip object
+            return ptypes.toPipType(expression)
         elif isinstance(expression, (Lval, PipType)):
             # This is a value (lvalue or rvalue) already--just return it
             return expression
@@ -240,8 +243,8 @@ class ProgramState:
         return varName in self.varTable(varName)
 
     def getRval(self, expr):
-        #!print("In getRval", expr)
-        if isinstance(expr, (list, tokens.Name)):
+        #!print("In getRval", repr(expr))
+        if isinstance(expr, (list, tokens.Name, tokens.Literal)):
             expr = self.evaluate(expr)
         if isinstance(expr, PipType):
             # Already an rval
@@ -625,7 +628,7 @@ class ProgramState:
                 self.err.warn("Can't fold infinite Range")
                 return nil
             elif len(iterable) == 0:
-                return operator.default
+                return ptypes.toPipType(operator.default)
             else:
                 iterable = list(iterable)
                 if operator.associativity == "L":
@@ -3265,11 +3268,7 @@ class ProgramState:
             return nil
 
     def REPR(self, rhs):
-        if isinstance(rhs, Block):
-            statements = rhs.getStatements() + [rhs.getReturnExpr()]
-            return Scalar("{" + parsing.unparse(statements) + "}")
-        else:
-            return Scalar(repr(rhs))
+        return Scalar(repr(rhs))
 
     def REVERSE(self, rhs):
         if isinstance(rhs, Scalar):
@@ -3655,11 +3654,7 @@ class ProgramState:
             return nil
 
     def STR(self, rhs):
-        if isinstance(rhs, Block):
-            statements = rhs.getStatements() + [rhs.getReturnExpr()]
-            return Scalar("{" + parsing.unparse(statements) + "}")
-        else:
-            return Scalar(str(rhs))
+        return Scalar(str(rhs))
 
     def STREQUAL(self, lhs, rhs):
         if (isinstance(lhs, (Scalar, Pattern))
