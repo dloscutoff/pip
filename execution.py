@@ -1574,12 +1574,12 @@ class ProgramState:
                           type(iterable), "and", type(item))
             return nil
 
-    def FIRSTMATCH(self, regex, string):
-        if isinstance(regex, Scalar) and isinstance(string, Pattern):
+    def FIRSTMATCH(self, string, regex):
+        if isinstance(string, Pattern) and isinstance(regex, Scalar):
             regex, string = string, regex
         elif isinstance(regex, Scalar):
             regex = self.REGEX(regex)
-        if isinstance(regex, Pattern) and isinstance(string, Scalar):
+        if isinstance(string, Scalar) and isinstance(regex, Pattern):
             matchObj = regex.asRegex().search(str(string))
             if matchObj:
                 self.assignRegexVars(matchObj)
@@ -1588,7 +1588,7 @@ class ProgramState:
                 return nil
         else:
             self.err.warn("Unimplemented argtypes for FIRSTMATCH:",
-                          type(regex), "and", type(string))
+                          type(string), "and", type(regex))
             return nil
 
     def FLATTEN(self, iterable):
@@ -1668,13 +1668,15 @@ class ProgramState:
                           type(digits))
             return nil
 
-    def FULLMATCH(self, regex, string):
-        if isinstance(string, Pattern):
+    def FULLMATCH(self, string, regex):
+        if isinstance(string, Pattern) and isinstance(regex, Scalar):
             regex, string = string, regex
-        if isinstance(regex, Pattern) and isinstance(string, (List, Range)):
+        elif isinstance(regex, Scalar):
+            regex = self.REGEX(regex)
+        if isinstance(string, (List, Range)) and isinstance(regex, Pattern):
             return Scalar(all(self.FULLMATCH(regex, item)
                               for item in string))
-        elif isinstance(regex, Pattern) and isinstance(string, Scalar):
+        elif isinstance(string, Scalar) and isinstance(regex, Pattern):
             matchObj = regex.asRegex().fullmatch(str(string))
             if matchObj:
                 self.assignRegexVars(matchObj)
@@ -1683,7 +1685,7 @@ class ProgramState:
                 return Scalar("0")
         else:
             self.err.warn("Unimplemented argtypes for FULLMATCH:",
-                          type(regex), "and", type(string))
+                          type(string), "and", type(regex))
             return Scalar("0")
 
     def GROUP(self, iterable, rhs=None):
@@ -2167,10 +2169,12 @@ class ProgramState:
 
     def MAPREGEX(self, lhs, regex, string):
         """Map function over regex matches in string."""
-        if isinstance(string, Block) and isinstance(lhs, Scalar):
-            # The arguments are reversible to enable things like sMR:xf
+        # The arguments are reversible to enable things like sMR:xf
+        if isinstance(regex, Block):
+            lhs, regex = regex, lhs
+        elif isinstance(string, Block):
             lhs, string = string, lhs
-        elif isinstance(regex, Scalar) and isinstance(string, Pattern):
+        if isinstance(regex, Scalar) and isinstance(string, Pattern):
             regex, string = string, regex
         elif isinstance(regex, Scalar):
             regex = self.REGEX(regex)
