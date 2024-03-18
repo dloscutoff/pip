@@ -1019,6 +1019,32 @@ class ProgramState:
                           type(lhs), "and", type(rhs))
             return nil
 
+    def CEIL(self, lhs, rhs=None):
+        """Round lhs to the nearest higher multiple of rhs."""
+        if rhs is None:
+            precision = 1
+        elif isinstance(rhs, Scalar):
+            precision = abs(rhs.toNumber())
+        else:
+            precision = None
+        if isinstance(lhs, Scalar) and precision is not None:
+            if precision == 0:
+                return lhs
+            elif precision == 1:
+                lhs = lhs.toNumber()
+                return Scalar(math.ceil(lhs))
+            else:
+                lhs = lhs.toNumber()
+                return Scalar(math.ceil(lhs / precision) * precision)
+        else:
+            if rhs is None:
+                self.err.warn("Unimplemented argtype for CEIL:",
+                              type(lhs))
+            else:
+                self.err.warn("Unimplemented argtypes for CEIL:",
+                              type(lhs), "and", type(rhs))
+            return nil
+
     def CHAIN(self, *chain):
         # The args here alternate between rvals and comparison operators
         if len(chain) % 2 == 0:
@@ -1616,6 +1642,32 @@ class ProgramState:
             return result
         else:
             return iterable
+
+    def FLOOR(self, lhs, rhs=None):
+        """Round lhs to the nearest lower multiple of rhs."""
+        if rhs is None:
+            precision = 1
+        elif isinstance(rhs, Scalar):
+            precision = abs(rhs.toNumber())
+        else:
+            precision = None
+        if isinstance(lhs, Scalar) and precision is not None:
+            if precision == 0:
+                return lhs
+            elif precision == 1:
+                lhs = lhs.toNumber()
+                return Scalar(math.floor(lhs))
+            else:
+                lhs = lhs.toNumber()
+                return Scalar(math.floor(lhs / precision) * precision)
+        else:
+            if rhs is None:
+                self.err.warn("Unimplemented argtype for FLOOR:",
+                              type(lhs))
+            else:
+                self.err.warn("Unimplemented argtypes for FLOOR:",
+                              type(lhs), "and", type(rhs))
+            return nil
 
     def FROMBASE(self, number, base=None):
         if base is None:
@@ -3267,6 +3319,61 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtypes for ROOT:",
                           type(lhs), "and", type(rhs))
+            return nil
+
+    def ROUNDNEAREST(self, lhs, rhs=None):
+        """Round lhs to the nearest multiple of rhs."""
+        if rhs is None:
+            precision = 1
+        elif isinstance(rhs, Scalar):
+            precision = abs(rhs.toNumber())
+        else:
+            precision = None
+        if isinstance(lhs, Scalar) and precision is not None:
+            if precision == 0:
+                return lhs
+            elif precision == 1:
+                lhs = lhs.toNumber()
+                if math.remainder(lhs, 1) > 0:
+                    return Scalar(math.floor(lhs))
+                else:
+                    return Scalar(math.ceil(lhs))
+            else:
+                lhs = lhs.toNumber()
+                return Scalar(lhs - math.remainder(lhs, precision))
+        else:
+            if rhs is None:
+                self.err.warn("Unimplemented argtype for ROUNDNEAREST:",
+                              type(lhs))
+            else:
+                self.err.warn("Unimplemented argtypes for ROUNDNEAREST:",
+                              type(lhs), "and", type(rhs))
+            return nil
+
+    def ROUNDZERO(self, lhs, rhs=None):
+        """Round lhs to the nearest multiple of rhs closer to zero."""
+        if rhs is None:
+            precision = 1
+        elif isinstance(rhs, Scalar):
+            precision = abs(rhs.toNumber())
+        else:
+            precision = None
+        if isinstance(lhs, Scalar) and precision is not None:
+            if precision == 0:
+                return lhs
+            elif precision == 1:
+                lhs = lhs.toNumber()
+                return Scalar(math.trunc(lhs))
+            else:
+                lhs = lhs.toNumber()
+                return Scalar(math.trunc(lhs / precision) * precision)
+        else:
+            if rhs is None:
+                self.err.warn("Unimplemented argtype for ROUNDZERO:",
+                              type(lhs))
+            else:
+                self.err.warn("Unimplemented argtypes for ROUNDZERO:",
+                              type(lhs), "and", type(rhs))
             return nil
 
     def RSTRIP(self, string, extra=None):
