@@ -1,10 +1,8 @@
 
 import re
+
 import operators
 import tokens
-import ptypes  # TBD: add another class or two to tokens and refactor this
-               # dependency? Would allow ptypes to import isExpr, which might
-               # be helpful for Blocks...?
 from errors import ErrorReporter, BadSyntax, IncompleteSyntax
 
 assignOp = operators.opsByArity[2][":"]
@@ -111,8 +109,7 @@ def isExpr(tree):
     "Tests whether the given parse tree is an expression or not."
     if isinstance(tree, list) and isinstance(tree[0], operators.Operator):
         return True
-    elif isinstance(tree, (tokens.Name, ptypes.Scalar,
-                           ptypes.Pattern, ptypes.Nil)):
+    if isinstance(tree, (tokens.Name, tokens.Literal)):
         return True
     else:
         return False
@@ -210,44 +207,32 @@ def bubble(exprTree):
 
 def parseOperand(tokenList):
     "Parse a name, literal, unary expression, or parenthesized expression."
-    if isinstance(tokenList[0], tokens.Name):
-        # For a Name token, just return it
-        return tokenList.pop(0)
-    elif isinstance(tokenList[0], tokens.String):
-        # Strip the double-quotes off a literal string
-        return ptypes.Scalar(tokenList.pop(0)[1:-1])
-    elif isinstance(tokenList[0], tokens.Pattern):
-        # Strip off backticks and simplify \` inside
-        # `\1\\\`2\\` -> \1\\`2\\
-        rawPattern = tokenList.pop(0)[1:-1].replace("\\`", "`")
-        return ptypes.Pattern(rawPattern)
-    elif isinstance(tokenList[0], tokens.Char):
-        # Single-quoted character
-        return ptypes.Scalar(tokenList.pop(0)[1])
-    elif isinstance(tokenList[0], tokens.EscapedString):
-        # \"String\" that allows for double quotes and limited interpolation
+    if isinstance(tokenList[0], tokens.EscapedString):
+        # Escaped strings allow limited interpolation
+        token = tokenList.pop(0)
         # Strip off \" delimiters
-        rawText = tokenList.pop(0)[2:-2]
+        rawText = token[2:-2]
         # Parse any interpolation sequences (for now, just names)
         litOrInterpolation = re.split(r"\\([a-z_]|[A-Z]{1,2})", rawText)
         if len(litOrInterpolation) == 1:
-            # No interpolations--just return a Scalar
-            return ptypes.Scalar(rawText.replace(r"\\", "\\"))
+            # No interpolations--return the token unchanged
+            return token
         else:
             # Translate the interpolations into a parse tree
             strOp = operators.opsByArity[1]["ST"]
             joinOp = operators.opsByArity[1]["J"]
             expression = [operators.enlist]
             literal = litOrInterpolation.pop(0)
-            expression.append(ptypes.Scalar(literal.replace(r"\\", "\\")))
+            expression.append(tokens.EscapedString(rf'\"{literal}\"'))
             while litOrInterpolation:
                 interpolation = litOrInterpolation.pop(0)
                 expression.append([strOp, tokens.Name(interpolation)])
                 literal = litOrInterpolation.pop(0)
-                expression.append(ptypes.Scalar(literal.replace(r"\\", "\\")))
+                expression.append(tokens.EscapedString(rf'\"{literal}\"'))
             return [operators.paren, [joinOp, expression]]
-    elif isinstance(tokenList[0], tokens.Number):
-        return ptypes.Scalar(tokenList.pop(0))
+    elif isinstance(tokenList[0], (tokens.Name, tokens.Literal)):
+        # Return other literals and names unchanged
+        return tokenList.pop(0)
     elif tokenList[0] == "(":
         # Parse a parenthesized expression: nil, grouped expr, or send-expr
         tokenList.pop(0)
@@ -262,7 +247,7 @@ def parseOperand(tokenList):
         tokenList.pop(0)
         if len(expressions) == 0:
             # () is equivalent to nil
-            return ptypes.nil
+            return tokens.Nil()
         elif len(expressions) == 1:
             # Exactly one expression in parentheses
             return [operators.paren, expressions[0]]
@@ -394,12 +379,11 @@ def unparseExpr(tree, statementSep):
                 code = f"{operands[0]} {op} {operands[1]}"
             elif op.arity == 3:
                 code = f"{operands[0]} {op} {operands[1]}; {operands[2]}"
-    elif isinstance(tree, tokens.Name):
+    elif isinstance(tree, tokens.Token):
         code = str(tree)
-    elif isinstance(tree, ptypes.PipType):
-        code = repr(tree)
     else:
-        # Shouldn't ever get here
-        raise ValueError(repr(tree))
+        # Assume that this is a Pip type, which can get into a parse
+        # tree via lambda-building operators
+        code = repr(tree)
     return code
 

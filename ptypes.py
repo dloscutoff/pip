@@ -6,6 +6,9 @@ import itertools
 import sys
 import types
 
+import tokens
+import parsing
+
 zeroRgx = re.compile(r"^(0+(\.0*)?|0*\.0+)$")
 exp = r"(?:e[+-]\d+)"
 pyFloatRgx = re.compile(rf"-?(\d+\.\d*{exp}?|\d+{exp}|\.\d+{exp}?)")
@@ -622,7 +625,8 @@ class Block(PipType):
         return repr(self)
 
     def __repr__(self):
-        return "{" + str(self._statements + [self._returnExpr])[1:-1] + "}"
+        statements = self._statements + [self._returnExpr]
+        return "{" + parsing.unparse(statements) + "}"
 
     def __bool__(self):
         return self._statements != [] or self._returnExpr is not nil
@@ -693,6 +697,31 @@ def toPipType(pyObj):
         return Range(pyObj)
     elif pyObj is None:
         return nil
+    elif isinstance(pyObj, tokens.Token):
+        token = pyObj
+        tokenString = str(token)
+        if isinstance(token, tokens.Number):
+            # Numbers and nil need no further processing
+            return Scalar(tokenString)
+        elif isinstance(token, tokens.String):
+            # Strip the double-quotes off a literal string
+            return Scalar(tokenString[1:-1])
+        elif isinstance(token, tokens.Pattern):
+            # Strip off backticks and simplify \` inside
+            # `\1\\\`2\\` -> \1\\`2\\
+            rawPattern = tokenString[1:-1].replace("\\`", "`")
+            return Pattern(rawPattern)
+        elif isinstance(token, tokens.Char):
+            # Single-quoted character
+            return Scalar(tokenString[1])
+        elif isinstance(token, tokens.EscapedString):
+            # This will be an escaped string without any interpolations
+            # Strip off \" delimiters and simplify backslash escapes
+            return Scalar(tokenString[2:-2].replace(r"\\", "\\"))
+        elif isinstance(token, tokens.Nil):
+            return nil
+        else:
+            raise TypeError(f"Cannot convert {token!r} to Pip type")
     else:
         raise TypeError(f"Cannot convert {type(pyObj)} to Pip type")
 
