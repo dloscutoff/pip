@@ -1872,6 +1872,15 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for INCLRANGETO:", type(rhs))
             return nil
 
+    def INITIALCAPS(self, rhs):
+        if isinstance(rhs, Scalar):
+            return Scalar(str(rhs).capitalize())
+        elif isinstance(rhs, (Range, Nil)):
+            return rhs
+        else:
+            self.err.warn("Unimplemented argtype for INITIALCAPS:", type(rhs))
+            return nil
+
     def INTDIV(self, lhs, rhs):
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             try:
@@ -3890,6 +3899,15 @@ class ProgramState:
             return Scalar(math.tan(rhs.toNumber()))
         else:
             self.err.warn("Unimplemented argtype for TANGENT:", type(rhs))
+            return nil
+
+    def TITLECASE(self, rhs):
+        if isinstance(rhs, Scalar):
+            return Scalar(str(rhs).title())
+        elif isinstance(rhs, (Range, Nil)):
+            return rhs
+        else:
+            self.err.warn("Unimplemented argtype for TITLECASE:", type(rhs))
             return nil
 
     def TOBASE(self, number, base=None):
