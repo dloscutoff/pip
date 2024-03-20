@@ -23,6 +23,8 @@ You can also clone the Pip repository and run it from the command line. Pip is i
 
 `pip.py [flags] -e 'code' [args]`
 
+`pip.py -R` (REPL mode)
+
 `pip.py` (interactive mode)
 
 Execute `pip.py --help` for more detailed information.
