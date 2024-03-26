@@ -31,7 +31,7 @@ class ProgramState:
         # The showWarnings parameter determines whether non-fatal errors
         # (such as dividing by 0) show warning messages or continue silently
         self.err = ErrorReporter(showWarnings)
-        self.callDepth = 0
+        self.callDepth = -1
         # There is no maximum recursion depth, but in practice recursion is
         # severely limited by Python's maximum recursion depth. In one test,
         # the program crashed after 140 levels of recursion.
@@ -45,8 +45,10 @@ class ProgramState:
             "q": {"get": self.getq},
             "r": {"get": self.getr, "set": self.setr},
             }
-        # Local variables--one set per function call level
-        self.locals = [{}]
+        # Local scopes--one per function call level
+        self.scopes = []
+        # Keep the current local scope in its own variable for convenience
+        self.localScope = None
 
     def executeProgram(self, statements, args=None):
         if not statements:
@@ -234,7 +236,7 @@ class ProgramState:
         """Return which table (local or global) a variable resides in."""
         if varName in "abcdefg" or re.fullmatch(r"\$_+", varName):
             # Local variable
-            return self.locals[self.callDepth]
+            return self.localScope.vars
         else:
             # Global variable
             return self.vars
@@ -400,12 +402,7 @@ class ProgramState:
         argList = [self.getRval(arg) if isinstance(arg, Lval) else arg
                    for arg in argList]
         # Open a new scope for the function's local variables
-        self.callDepth += 1
-        self.locals.append({})
-        for name, arg in zip("abcde", argList):
-            self.assign(Lval(name), arg)
-        self.assign(Lval("f"), function)
-        self.assign(Lval("g"), List(argList))
+        self.openScope(function, argList)
         for statement in function.getStatements():
             statementValue = self.executeStatement(statement)
             # If the statement was actually an expression, store its
@@ -417,10 +414,22 @@ class ProgramState:
             returnVal = self.getRval(returnExpr)
         else:
             returnVal = nil
-        # Delete this call's local variables
-        del self.locals[self.callDepth]
-        self.callDepth -= 1
+        self.closeScope()
         return returnVal
+
+    def openScope(self, function, argList):
+        self.callDepth += 1
+        self.localScope = LocalScope(function, argList)
+        self.scopes.append(self.localScope)
+
+    def closeScope(self):
+        # Delete this scope's local variables
+        self.scopes.pop()
+        if self.scopes:
+            self.localScope = self.scopes[-1]
+        else:
+            self.localScope = None
+        self.callDepth -= 1
 
     def updateHistoryVars(self, newValue):
         """Set $_ to new value and bump history vars down one spot."""
@@ -3093,7 +3102,7 @@ class ProgramState:
 
     def RECURSE(self, rhs):
         "Call the current function recursively with rhs as its argument."
-        return self.functionCall(self.locals[self.callDepth]["f"],
+        return self.functionCall(self.localScope.function,
                                  [rhs])
 
     def REFLECT(self, iterable):
@@ -4337,4 +4346,16 @@ class Lval:
             return self.base == rhs.base and self.sliceList == rhs.sliceList
         elif isinstance(rhs, (str, List, tokens.Name)):
             return self.base == rhs and self.sliceList == []
+
+
+class LocalScope:
+    def __init__(self, function=None, argList=None):
+        self.function = function
+        self.argList = argList
+        self.vars = {}
+        if self.argList is not None:
+            for name, arg in zip("abcde", argList):
+                self.vars[name] = arg
+            self.vars["f"] = function
+            self.vars["g"] = List(argList)
 
