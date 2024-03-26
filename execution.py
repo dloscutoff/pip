@@ -521,6 +521,10 @@ class ProgramState:
             count = int(count)
         elif isinstance(count, (List, Range)):
             count = len(count)
+        else:
+            self.err.warn("Unimplemented argtype for LOOP:",
+                          type(count))
+            return
         for i in range(count):
             for statement in code:
                 self.executeStatement(statement)
