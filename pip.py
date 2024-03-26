@@ -48,7 +48,7 @@ def main():
             pip(interactive=False)
     except FatalError:
         # The pip() function already gave the appropriate error output
-        pass
+        sys.exit(1)
 
 
 def run(code=None, argv=None):
