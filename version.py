@@ -1,3 +1,3 @@
 
-VERSION = "1.2.1"
+VERSION = "1.3.0-alpha"
 COMMIT_DATE = "2025-08-02"

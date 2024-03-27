@@ -496,6 +496,7 @@ class ProgramState:
         """Execute code for each item in iterable, assigned to loopVar."""
         loopVar = self.evaluate(loopVar)
         iterable = self.getRval(iterable)
+        self.localScope.openLoop()
         try:
             iterator = iter(iterable)
         except TypeError:
@@ -505,6 +506,8 @@ class ProgramState:
                 self.assign(loopVar, item)
                 for statement in code:
                     self.executeStatement(statement)
+                self.localScope.stepLoop()
+        self.localScope.closeLoop()
     
     def IF(self, cond, code, elseCode):
         """Execute code if cond evaluates to true; otherwise, elseCode."""
@@ -523,7 +526,7 @@ class ProgramState:
         of times equal to the number of items."""
         loopCount = self.getRval(loopCount)
         if loopCount is nil:
-            return
+            loopObject = []
         elif isinstance(loopCount, Scalar):
             loopObject = range(int(loopCount))
         elif isinstance(loopCount, List):
@@ -535,10 +538,13 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtype for LOOP:",
                           type(loopCount))
-            return
+            loopObject = []
+        self.localScope.openLoop()
         for i in loopObject:
             for statement in code:
                 self.executeStatement(statement)
+            self.localScope.stepLoop()
+        self.localScope.closeLoop()
     
     def LOOPREGEX(self, regex, string, code):
         """Execute code for each match of regex in string."""
@@ -548,6 +554,7 @@ class ProgramState:
             regex, string = string, regex
         elif isinstance(regex, Scalar):
             regex = self.REGEX(regex)
+        self.localScope.openLoop()
         if isinstance(regex, Pattern) and isinstance(string, Scalar):
             # TBD: behavior for other types, such as isinstance(string, List)?
             matches = regex.asRegex().finditer(str(string))
@@ -556,25 +563,33 @@ class ProgramState:
                 # Then execute the loop body
                 for statement in code:
                     self.executeStatement(statement)
+                self.localScope.stepLoop()
         else:
             self.err.warn("Unimplemented argtypes for LOOPREGEX:",
                           type(regex), "and", type(string))
+        self.localScope.closeLoop()
 
     def TILL(self, cond, code):
         """Loop, executing code, until cond evaluates to true."""
+        self.localScope.openLoop()
         condVal = self.getRval(cond)
         while not condVal:
             for statement in code:
                 self.executeStatement(statement)
+            self.localScope.stepLoop()
             condVal = self.getRval(cond)
+        self.localScope.closeLoop()
 
     def WHILE(self, cond, code):
         """Loop, executing code, while cond evaluates to true."""
+        self.localScope.openLoop()
         condVal = self.getRval(cond)
         while condVal:
             for statement in code:
                 self.executeStatement(statement)
+            self.localScope.stepLoop()
             condVal = self.getRval(cond)
+        self.localScope.closeLoop()
 
     def WIPEGLOBALS(self):
         """Reset all global variables to their default values."""
@@ -4484,10 +4499,32 @@ class LocalScope:
     def __init__(self, function=None, argList=None):
         self.function = function
         self.argList = argList
+        self.loopNestingLevel = -1
         self.vars = {}
         if self.argList is not None:
             for name, arg in zip("abcde", argList):
                 self.vars[name] = arg
             self.vars["f"] = function
             self.vars["g"] = List(argList)
+
+    def openLoop(self):
+        self.loopNestingLevel += 1
+        loopVar = self.currentLoopVar()
+        if loopVar is not None:
+            self.vars[loopVar] = Scalar("0")
+
+    def stepLoop(self):
+        loopVar = self.currentLoopVar()
+        if loopVar is not None:
+            loopCount = int(self.vars[loopVar])
+            self.vars[loopVar] = Scalar(loopCount + 1)
+
+    def closeLoop(self):
+        self.loopNestingLevel -= 1
+
+    def currentLoopVar(self):
+        if 0 <= self.loopNestingLevel <= 4:
+            return "edcba"[self.loopNestingLevel]
+        else:
+            return None
 
