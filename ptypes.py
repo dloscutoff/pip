@@ -44,6 +44,12 @@ class Scalar(PipIterable):
     def copy(self):
         return Scalar(self._value)
 
+    def isEmpty(self):
+        return self._value == ""
+
+    def isFinite(self):
+        return True
+
     def __str__(self):
         return self._value
 
@@ -71,7 +77,7 @@ class Scalar(PipIterable):
 
     def __bool__(self):
         """A Scalar is false iff it is empty string or some form of 0."""
-        return self._value != "" and not zeroRgx.match(self._value)
+        return not self.isEmpty() and not zeroRgx.match(self._value)
 
     def __eq__(self, rhs):
         return type(self) is type(rhs) and self._value == rhs._value
@@ -214,6 +220,12 @@ class Pattern(PipType):
         copy._separator = self._separator
         return copy
 
+    def isEmpty(self):
+        return self._raw == ""
+
+    def isFinite(self):
+        return True
+
     def __str__(self):
         return self._raw
 
@@ -222,7 +234,7 @@ class Pattern(PipType):
 
     def __bool__(self):
         """A Pattern is false iff it is empty."""
-        return self._raw != ""
+        return not self.isEmpty()
 
     def __eq__(self, rhs):
         return type(rhs) == type(self) and self._raw == rhs._raw
@@ -278,6 +290,12 @@ class List(PipIterable):
     def copy(self):
         return List(item.copy() for item in self._value)
 
+    def isEmpty(self):
+        return self._value == []
+
+    def isFinite(self):
+        return True
+
     def __str__(self):
         # How a List is formatted depends on the command-line flags
         if not self.outFormat:
@@ -313,7 +331,7 @@ class List(PipIterable):
         return "[" + ";".join(repr(i) for i in self._value) + "]"
 
     def __bool__(self):
-        return self._value != []
+        return not self.isEmpty()
 
     def __eq__(self, rhs):
         return type(rhs) == type(self) and self._value == rhs._value
@@ -339,7 +357,7 @@ class List(PipIterable):
             index = index.toSlice()
         
         if isinstance(index, int):
-            if self._value == []:
+            if self.isEmpty():
                 raise IndexError("Cannot index into empty list.")
             else:
                 index %= len(self._value)
@@ -435,12 +453,19 @@ class Range(PipIterable):
     def getUpper(self):
         return self._upper
 
+    def isEmpty(self):
+        lower = self._lower or 0
+        return self.isFinite() and self._upper <= lower
+
+    def isFinite(self):
+        return self._upper is not None
+
     def __str__(self):
-        if self._upper is not None:
-            # Treat non-infinite Ranges like lists
+        if self.isFinite():
+            # Treat finite Ranges like Lists
             return str(List(self))
         else:
-            # Infinite ranges have to use the repr
+            # Infinite Ranges have to use the repr
             return repr(self)
 
     def __repr__(self):
@@ -461,7 +486,7 @@ class Range(PipIterable):
 
     def __len__(self):
         lower = self._lower or 0
-        if self._upper is not None:
+        if self.isFinite():
             return max(0, self._upper - lower)
         else:
             # A Range with no upper bound has an infinite length
@@ -469,7 +494,7 @@ class Range(PipIterable):
 
     def toNumber(self):
         # Returns a Python list containing Python numbers (probably ints)
-        if self._upper is not None:
+        if self.isFinite():
             return [item.toNumber() for item in self]
         else:
             # TBD: possibly return a generator instead? Check contexts where
@@ -480,10 +505,11 @@ class Range(PipIterable):
         # TBD: Should this return true only for ints, or for any number
         # between lower and upper?
         if isinstance(item, Scalar):
-            if self._upper is None:
-                return (self._lower or 0) <= item.toNumber()
+            lower = self._lower or 0
+            if self.isFinite():
+                return lower <= item.toNumber() < self._upper
             else:
-                return (self._lower or 0) <= item.toNumber() < self._upper
+                return lower <= item.toNumber()
         else:
             return False
 
@@ -491,114 +517,104 @@ class Range(PipIterable):
         return slice(self._lower, self._upper)
 
     def toRange(self):
-        if self._upper is None:
-            # Can't return an infinite range
-            return None
-        else:
+        if self.isFinite():
             # Treat lower value of None as 0
             lower = self._lower or 0
             return range(lower, self._upper)
+        else:
+            # Can't return an infinite range
+            # TODO: ValueError instead
+            return None
 
     def __iter__(self):
-        if self._upper is not None:
-            for i in self.toRange():
-                yield Scalar(i)
-        else:
-            # Null upper value results in an infinite iterator
+        isInfinite = not self.isFinite()
+        if isInfinite:
             # TODO: use warning mechanism instead of print()?
             print("Iterating over an infinite Range", file=sys.stderr)
-            i = self._lower or 0
-            while True:
-                yield Scalar(i)
-                i += 1
+        i = self._lower or 0
+        while isInfinite or i < self._upper:
+            yield Scalar(i)
+            i += 1
 
     def __getitem__(self, index):
         if isinstance(index, List):
             return List(self[i] for i in index)
-        elif isinstance(index, Scalar):
-            index = int(index)
-        elif isinstance(index, Range):
-            index = index.toSlice()
         
         lower = self._lower or 0
-        if isinstance(index, int):
-            if self._upper is not None:
-                length = len(self)
-                if length == 0:
-                    raise IndexError("Cannot index into empty range.")
-                else:
-                    index %= length
-                r = self.toRange()
-                return Scalar(r[index])
+        if isinstance(index, (Scalar, int)):
+            # Get a single element of the Range
+            index = int(index)
+            if self.isEmpty():
+                raise IndexError("Cannot index into empty range.")
+            elif not self.isFinite() and index < 0:
+                # Can't count from the end of an infinite Range
+                # TODO: IndexError instead
+                return nil
+            if self.isFinite():
+                # Indices wrap around for finite Ranges
+                index %= len(self)
+            return Scalar(lower + index)
+        elif isinstance(index, (Range, slice)):
+            # Get a slice of the Range
+            if isinstance(index, Range):
+                start, stop = index._lower, index._upper
             else:
-                # Without an upper bound, can't convert to a Python range
-                if index < 0:
-                    # Can't count from the end of an infinite Range
-                    return nil
-                else:
-                    return Scalar(lower + index)
-        elif isinstance(index, slice):
-            start, stop = index.start, index.stop
-            if self._upper is not None:
+                start, stop = index.start, index.stop
+            if self.isEmpty():
+                # Any slice of an empty Range will be empty
+                return self
+            elif self.isFinite():
                 length = len(self)
-                if length == 0:
-                    # Can't slice an empty Range or one where upper < lower
-                    return self
                 start = start if start is not None else 0
                 stop = stop if stop is not None else length
                 if start >= -length and stop <= length:
-                    # Just do a regular range slice
-                    r = self.toRange()
-                    return Range(r[index])
+                    # Convert to Python range, slice it, and convert back
+                    result = range(lower, self._upper)[start:stop]
+                    return Range(result)
                 else:
                     # One or both slice bounds are outside the size of the
                     # Range; convert to a List to do extended slicing
                     result = List(self)
                     return result[start:stop]
             else:
-                if start is stop is None:
-                    return self
-                elif None is not start < 0 or None is not stop < 0:
+                if (start is not None and start < 0
+                        or stop is not None and stop < 0):
                     # One of the indices is negative; can't count from the end
                     # of an infinite Range
+                    # TODO: IndexError instead
                     return nil
-                elif start is None:
-                    # Keep the bottom end of the Range the same, but stop it
-                    # somewhere
-                    return Range(self._lower, stop + lower)
-                elif stop is None:
-                    # Move the bottom end of the Range up and leave it
-                    # unbounded above
-                    return Range(lower + start, nil)
+                if start is None:
+                    # Keep the bottom end of the Range the same
+                    newLower = self._lower
                 else:
-                    # Both indices are nonnegative ints
+                    # Move the bottom end of the Range up
                     newLower = lower + start
+                if stop is None:
+                    # Leave the Range unbounded above
+                    newUpper = nil
+                else:
+                    # Bound the Range above
                     newUpper = lower + stop
-                    # If the stop is lower than the start, return an empty
-                    # Range i.e. (start,start)
-                    newUpper = max(newLower, newUpper)
-                    return Range(newLower, newUpper)
+                return Range(newLower, newUpper)
     
     def count(self, number):
-        if isinstance(number, Scalar):
-            if self._upper is None:
-                return (self._lower or 0) <= number.toNumber()
-            else:
-                return (self._lower or 0) <= number.toNumber() < self._upper
+        # 1 if number is in the Range, 0 otherwise
+        return int(number in self)
 
     def index(self, searchItem, startIndex=0):
-        if searchItem in self and int(searchItem) == searchItem.toNumber():
-            index = int(searchItem) - (self._lower or 0)
-            if index >= startIndex:
+        if isinstance(searchItem, (List, Range)):
+            return List(self.index(subitem) for subitem in searchItem)
+        elif isinstance(searchItem, Scalar) and searchItem in self[startIndex:]:
+            # __contains__ returns true for floats, but index shouldn't
+            if int(searchItem) == searchItem.toNumber():
+                index = int(searchItem) - (self._lower or 0)
                 return Scalar(index)
             else:
                 return nil
-        elif isinstance(searchItem, (List, Range)):
-            return List(self.index(subitem) for subitem in searchItem)
         else:
             return nil
 
-            
+
 class Block(PipType):
     """Represents a Pip function object."""
 
@@ -620,6 +636,12 @@ class Block(PipType):
 
     def isExpr(self):
         return not self._statements
+
+    def isEmpty(self):
+        return not self._statements and self._returnExpr is nil
+
+    def isFinite(self):
+        return True
     
     def __str__(self):
         return repr(self)
@@ -629,7 +651,7 @@ class Block(PipType):
         return "{" + parsing.unparse(statements) + "}"
 
     def __bool__(self):
-        return self._statements != [] or self._returnExpr is not nil
+        return not self.isEmpty()
 
     def __eq__(self, rhs):
         return (isinstance(rhs, Block)
@@ -657,6 +679,12 @@ class Nil(PipType):
     def copy(self):
         # Not really a copy, but implemented for completeness
         return self
+
+    def isEmpty(self):
+        return True
+
+    def isFinite(self):
+        return True
 
     def __str__(self):
         return ""
