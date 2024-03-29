@@ -45,10 +45,10 @@ class ProgramState:
             "q": {"get": self.getq},
             "r": {"get": self.getr, "set": self.setr},
             }
-        # Local scopes--one per function call level
-        self.scopes = []
-        # Keep the current local scope in its own variable for convenience
-        self.localScope = None
+        # Initialize empty outermost local scope (used only in REPL)
+        self.localScope = LocalScope()
+        # Keep a call stack of local scopes
+        self.scopes = [self.localScope]
 
     def executeProgram(self, statements, args=None):
         if not statements:
