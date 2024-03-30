@@ -64,9 +64,11 @@ class RangeTypeTest(unittest.TestCase):
         self.assertEqual(str(self.nilFive), "0 1 2 3 4")
         self.assertEqual(repr(self.nilFive), "((),5)")
     
-    @unittest.skip("Bool test TODO")
     def test_bool(self):
-        pass
+        self.assertTrue(self.fourTen)
+        self.assertTrue(self.fourNil)
+        self.assertFalse(self.threeNegOne)
+        self.assertTrue(self.nilFive)
     
     @unittest.skip("Equality test TODO")
     def test_equality(self):
