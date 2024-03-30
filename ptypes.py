@@ -474,8 +474,7 @@ class Range(PipIterable):
         return f"({lower},{upper})"
 
     def __bool__(self):
-        # TBD: can this ever return false?
-        return True
+        return not self.isEmpty()
 
     def __eq__(self, rhs):
         return (type(self) is type(rhs)
