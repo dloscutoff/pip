@@ -571,8 +571,7 @@ class Range(PipIterable):
             return range(lower, self._upper)
         else:
             # Can't return an infinite range
-            # TODO: ValueError instead
-            return None
+            raise ValueError("Cannot convert infinite Range to Python range")
 
     def __iter__(self):
         isInfinite = not self.isFinite()

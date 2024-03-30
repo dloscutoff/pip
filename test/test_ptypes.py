@@ -74,6 +74,7 @@ class RangeTypeTest(unittest.TestCase):
     
     def test_length(self):
         self.assertEqual(len(self.fourTen), 6)
+        # Length of infinite Range raises an error
         with self.assertRaises(ValueError):
             len(self.fourNil)
         self.assertEqual(len(self.threeNegOne), 0)
@@ -120,13 +121,13 @@ class RangeTypeTest(unittest.TestCase):
         self.assertEqual(self.fourTen.toSlice(), slice(4, 10))
         self.assertEqual(self.fourTen.toRange(), range(4, 10))
         self.assertEqual(self.fourNil.toSlice(), slice(4, None))
-        # Inf Range to range should be a ValueError
+        # Infinite Range to range raises an error
         with self.assertRaises(ValueError):
             self.fourNil.toRange()
         self.assertEqual(self.threeNegOne.toSlice(), slice(3, -1))
         self.assertEqual(self.threeNegOne.toRange(), range(3, -1))
         self.assertEqual(self.nilFive.toSlice(), slice(None, 5))
-        self.assertEqual(self.nilFive.toRange(), range(None, 5))
+        self.assertEqual(self.nilFive.toRange(), range(5))
     
     def test_iter(self):
         self.assertEqual(list(self.fourTen),
