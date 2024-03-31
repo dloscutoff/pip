@@ -172,9 +172,41 @@ class RangeTypeTest(unittest.TestCase):
         self.assertEqual(self.fourNil.count(ptypes.nil), 0)
         self.assertEqual(self.nilFive.count(ptypes.nil), 0)
     
-    @unittest.skip("Index test TODO")
     def test_index(self):
-        pass
+        with self.assertRaises(ValueError):
+            self.fourTen.index(self.zero)
+        self.assertEqual(self.fourTen.index(self.five), 1)
+        with self.assertRaises(ValueError):
+            self.fourTen.index(self.hundred)
+        
+        with self.assertRaises(ValueError):
+            self.fourNil.index(self.zero)
+        self.assertEqual(self.fourNil.index(self.five), 1)
+        self.assertEqual(self.fourNil.index(self.hundred), 96)
+        
+        with self.assertRaises(ValueError):
+            self.threeNegOne.index(self.zero)
+        with self.assertRaises(ValueError):
+            self.threeNegOne.index(self.five)
+        
+        self.assertEqual(self.nilFive.index(self.zero), 0)
+        with self.assertRaises(ValueError):
+            self.nilFive.index(self.five)
+        with self.assertRaises(ValueError):
+            print(self.nilFive.index(self.pi))
+        
+        with self.assertRaises(TypeError):
+            self.fourNil.index(self.fourTen)
+        with self.assertRaises(TypeError):
+            self.fourTen.index(self.someList)
+        with self.assertRaises(TypeError):
+            self.fourTen.index(self.somePattern)
+        with self.assertRaises(TypeError):
+            self.fourTen.index(self.someBlock)
+        with self.assertRaises(TypeError):
+            self.fourNil.index(ptypes.nil)
+        with self.assertRaises(TypeError):
+            self.nilFive.index(ptypes.nil)
 
 
 if __name__ == "__main__":
