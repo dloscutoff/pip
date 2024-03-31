@@ -444,14 +444,30 @@ class List(PipIterable):
         return self._value.count(item)
 
     def append(self, item):
-        # This assumes that item is an instance of a Pip type--unpredictable
-        # behavior may follow if it's not
-        self._value.append(item)
+        if isinstance(item, PipType):
+            self._value.append(item)
+        else:
+            raise TypeError(f"Cannot append {type(item)} to Pip List")
 
     def extend(self, iterable):
-        # This assumes that iterable is either a Python list of Pip objects or
-        # a List/Range/Scalar--unpredictable behavior otherwise
-        self._value.extend(list(iterable))
+        if isinstance(iterable, Range) and not iterable.isFinite():
+            raise ValueError("Cannot extend List with infinite Range "
+                             f"{iterable!r}")
+        elif (isinstance(iterable, PipType)
+              and not isinstance(iterable, PipIterable)):
+            raise TypeError("Cannot extend List with non-iterable "
+                            f"{iterable!r}")
+        else:
+            try:
+                values = list(iterable)
+            except TypeError:
+                raise TypeError("Cannot extend List with non-iterable "
+                                f"{iterable!r}")
+            for value in values:
+                if not isinstance(value, PipType):
+                    raise TypeError("Cannot extend Pip List with iterable "
+                                    f"containing {type(value)}")
+            self._value.extend(values)
 
     def index(self, searchItem, startIndex=0):
         try:

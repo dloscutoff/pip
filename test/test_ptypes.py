@@ -5,6 +5,92 @@ import itertools
 import ptypes
 
 
+class ListTypeTest(unittest.TestCase):
+    def setUp(self):
+        self.zero = ptypes.Scalar("0")
+        self.emptyList = ptypes.List([])
+        self.list123 = ptypes.List([ptypes.Scalar(i) for i in range(1, 4)])
+        self.rangeThreeFive = ptypes.Range(3, 5)
+        self.rangeFourNil = ptypes.Range(4, ptypes.nil)
+        self.somePattern = ptypes.Pattern(".")
+        self.emptyBlock = ptypes.Block([])
+    
+    # TODO: test all the other stuff in the class
+    
+    def test_append(self):
+        testList = ptypes.List([])
+        testList.append(self.zero)
+        testList.append(self.list123)
+        testList.append(self.rangeThreeFive)
+        testList.append(self.rangeFourNil)
+        testList.append(self.somePattern)
+        testList.append(self.emptyBlock)
+        testList.append(ptypes.nil)
+        self.assertEqual(testList, ptypes.List([self.zero,
+                                                self.list123,
+                                                self.rangeThreeFive,
+                                                self.rangeFourNil,
+                                                self.somePattern,
+                                                self.emptyBlock,
+                                                ptypes.nil]))
+        with self.assertRaises(TypeError):
+            testList.append(42)
+        with self.assertRaises(TypeError):
+            testList.append("xyz")
+        with self.assertRaises(TypeError):
+            testList.append([])
+        with self.assertRaises(TypeError):
+            testList.append(range(2))
+        with self.assertRaises(TypeError):
+            testList.append(slice(3, 5))
+        with self.assertRaises(TypeError):
+            testList.append(None)
+    
+    def test_extend(self):
+        testList = ptypes.List([])
+        testList.extend(self.zero)
+        testList.extend(self.emptyList)
+        testList.extend(self.list123)
+        testList.extend(self.rangeThreeFive)
+        testList.extend([ptypes.nil])
+        testList.extend(map(ptypes.Scalar, "ab"))
+        self.assertEqual(testList, ptypes.List([ptypes.Scalar("0"),
+                                                ptypes.Scalar("1"),
+                                                ptypes.Scalar("2"),
+                                                ptypes.Scalar("3"),
+                                                ptypes.Scalar("3"),
+                                                ptypes.Scalar("4"),
+                                                ptypes.nil,
+                                                ptypes.Scalar("a"),
+                                                ptypes.Scalar("b")]))
+        
+        with self.assertRaises(ValueError):
+            testList.extend(self.rangeFourNil)
+        with self.assertRaises(TypeError):
+            testList.extend(self.somePattern)
+        with self.assertRaises(TypeError):
+            testList.extend(self.emptyBlock)
+        with self.assertRaises(TypeError):
+            testList.extend(ptypes.nil)
+        
+        with self.assertRaises(TypeError):
+            testList.extend([42])
+        with self.assertRaises(TypeError):
+            testList.extend("xyz")
+        with self.assertRaises(TypeError):
+            testList.extend(range(5))
+        with self.assertRaises(TypeError):
+            testList.extend([ptypes.nil, 42])
+        with self.assertRaises(TypeError):
+            testList.extend(slice(3, 5))
+        with self.assertRaises(TypeError):
+            testList.extend(None)
+    
+    @unittest.skip("Index test TODO")
+    def test_index(self):
+        pass
+
+
 class RangeTypeTest(unittest.TestCase):
     def setUp(self):
         self.fourTen = ptypes.Range(4, 10)
