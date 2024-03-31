@@ -160,17 +160,15 @@ class Scalar(PipIterable):
             return nil
 
     def index(self, searchItem, startIndex=0):
-        if isinstance(searchItem, Scalar):
-            try:
-                return Scalar(self._value.index(searchItem._value,
-                                                startIndex))
-            except ValueError:
-                return nil
-        elif isinstance(searchItem, (List, Range)):
-            return List(self.index(subitem, startIndex)
-                        for subitem in searchItem)
+        if not isinstance(searchItem, Scalar):
+            raise TypeError("Scalar.index requires Scalar argument, "
+                            f"not {type(searchItem)}")
         else:
-            return nil
+            try:
+                return self._value.index(searchItem._value, startIndex)
+            except ValueError:
+                raise ValueError(f"{searchItem} is not in Scalar at index "
+                                 f">= {startIndex}")
 
 
 class Pattern(PipType):
@@ -409,9 +407,10 @@ class List(PipIterable):
 
     def index(self, searchItem, startIndex=0):
         try:
-            return Scalar(self._value.index(searchItem, startIndex))
+            return self._value.index(searchItem, startIndex)
         except ValueError:
-            return nil
+            raise ValueError(f"{searchItem} is not in List at index "
+                             f">= {startIndex}")
 
 
 class Range(PipIterable):
@@ -600,17 +599,20 @@ class Range(PipIterable):
         return int(number in self)
 
     def index(self, searchItem, startIndex=0):
-        if isinstance(searchItem, (List, Range)):
-            return List(self.index(subitem) for subitem in searchItem)
-        elif isinstance(searchItem, Scalar) and searchItem in self[startIndex:]:
+        if not isinstance(searchItem, Scalar):
+            raise TypeError("Range.index requires Scalar argument, "
+                            f"not {type(searchItem)}")
+        elif searchItem in self[startIndex:]:
             # __contains__ returns true for floats, but index shouldn't
             if int(searchItem) == searchItem.toNumber():
                 index = int(searchItem) - (self._lower or 0)
-                return Scalar(index)
+                return index
             else:
-                return nil
+                raise ValueError("Range.index requires integer argument, "
+                                 f"not {searchItem}")
         else:
-            return nil
+            raise ValueError(f"{searchItem} is not in Range at index "
+                             f">= {startIndex}")
 
 
 class Block(PipType):

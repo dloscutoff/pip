@@ -1367,23 +1367,44 @@ class ProgramState:
             return nil
 
     def FIND(self, iterable, item):
-        if isinstance(item, Pattern) and isinstance(iterable, Scalar):
+        if (isinstance(item, (List, Range))
+                and isinstance(iterable, (Scalar, Range))):
+            if item.isFinite():
+                return List(self.FIND(iterable, subitem)
+                            for subitem in item)
+            else:
+                self.err.warn("Cannot find indices of all items in "
+                              f"infinite Range {item}")
+                return nil
+        elif isinstance(item, Pattern) and isinstance(iterable, Scalar):
             matchObj = item.asRegex().search(str(iterable))
             if matchObj:
                 self.assignRegexVars(matchObj)
                 return Scalar(matchObj.start())
             else:
                 return nil
-        elif isinstance(iterable, PipIterable):
-            return iterable.index(item)
+        elif (isinstance(item, Scalar) and isinstance(iterable, PipIterable)
+              or isinstance(iterable, List)):
+            try:
+                return Scalar(iterable.index(item))
+            except:
+                # Item not found
+                return nil
         else:
             self.err.warn("Unimplemented argtypes for FIND:",
                           type(iterable), "and", type(item))
             return nil
 
     def FINDALL(self, iterable, item):
-        if isinstance(item, List) and isinstance(iterable, (Scalar, Range)):
-            return List(self.FINDALL(iterable, subitem) for subitem in item)
+        if (isinstance(item, (List, Range))
+                and isinstance(iterable, (Scalar, Range))):
+            if item.isFinite():
+                return List(self.FINDALL(iterable, subitem)
+                            for subitem in item)
+            else:
+                self.err.warn("Cannot find all indices of all items in "
+                              f"infinite Range {item}")
+                return nil
         elif isinstance(item, Pattern) and isinstance(iterable, Scalar):
             # Return indices of all regex matches in Scalar
             matches = item.asRegex().finditer(str(iterable))
@@ -1392,15 +1413,19 @@ class ProgramState:
                 self.assignRegexVars(matchObj)
                 result.append(Scalar(matchObj.start()))
             return result
-        elif (isinstance(item, (Scalar, Range))
-                  and isinstance(iterable, PipIterable)
-              or isinstance(item, (List, Pattern, Nil))
-                  and isinstance(iterable, List)):
+        elif (isinstance(item, Scalar) and isinstance(iterable, PipIterable)
+              or isinstance(iterable, List)):
+            # Return indices of all occurrences of item in iterable
             result = List()
-            lastIndex = iterable.index(item)
-            while lastIndex is not nil:
-                result.append(lastIndex)
-                lastIndex = iterable.index(item, int(lastIndex) + 1)
+            index = -1
+            try:
+                while True:
+                    # Find the next index of item in iterable
+                    index = iterable.index(item, index + 1)
+                    result.append(Scalar(index))
+            except ValueError:
+                # Found all indices
+                pass
             return result
         else:
             self.err.warn("Unimplemented argtypes for FINDALL:",
