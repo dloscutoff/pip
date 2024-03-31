@@ -409,7 +409,7 @@ class List(PipIterable):
                 index %= len(self._value)
                 return self._value[index]
         elif isinstance(index, slice):
-            if self._value == []:
+            if self.isEmpty():
                 # Slicing the empty list gives empty list
                 return self
             length = len(self._value)
@@ -606,11 +606,10 @@ class Range(PipIterable):
             # Get a single element of the Range
             index = int(index)
             if self.isEmpty():
-                raise IndexError("Cannot index into empty range.")
+                raise IndexError("Cannot index into empty Range")
             elif not self.isFinite() and index < 0:
-                # Can't count from the end of an infinite Range
-                # TODO: IndexError instead
-                return nil
+                raise IndexError("Cannot index from the end of "
+                                 "infinite Range")
             if self.isFinite():
                 # Indices wrap around for finite Ranges
                 index %= len(self)
@@ -640,10 +639,9 @@ class Range(PipIterable):
             else:
                 if (start is not None and start < 0
                         or stop is not None and stop < 0):
-                    # One of the indices is negative; can't count from the end
-                    # of an infinite Range
-                    # TODO: IndexError instead
-                    return nil
+                    # One of the indices is negative
+                    raise IndexError("Cannot index from the end of "
+                                     "infinite Range")
                 if start is None:
                     # Keep the bottom end of the Range the same
                     newLower = self._lower

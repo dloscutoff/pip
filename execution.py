@@ -918,15 +918,9 @@ class ProgramState:
         elif isinstance(rhs, List) and isinstance(lhs, PipIterable):
             return List(self.AT(lhs, item) for item in rhs)
         elif isinstance(lhs, PipIterable):
-            try:
-                if len(lhs) == 0:
-                    self.err.warn("Indexing into empty iterable")
-                    return nil
-            except ValueError:
-                # This happens when trying to take the len of an
-                # infinite Range
-                # Clearly the length is not zero, so just continue
-                pass
+            if lhs.isEmpty():
+                self.err.warn("Indexing into empty iterable")
+                return nil
             try:
                 return lhs[index]
             except IndexError:
@@ -2021,7 +2015,16 @@ class ProgramState:
             return List(self.LEFTOF(lhs, index) for index in rhs)
         elif isinstance(lhs, PipIterable) and isinstance(rhs, Scalar):
             # Use the lhs's __getitem__ with a slice argument
-            return lhs[:int(rhs)]
+            try:
+                return lhs[:int(rhs)]
+            except IndexError:
+                if not lhs.isFinite():
+                    self.err.warn("Cannot slice from end of infinite Range")
+                    return nil
+                else:
+                    # Other cases shouldn't cause an IndexError, so it's
+                    # probably an implementation bug
+                    raise
         else:
             self.err.warn("Unimplemented argtypes for LEFTOF:",
                           type(lhs), "and", type(rhs))
@@ -2982,7 +2985,16 @@ class ProgramState:
             return Lval(lhs, index)
         elif isinstance(lhs, PipIterable) and index is not None:
             # Use the lhs's __getitem__ with a slice argument
-            return lhs[index]
+            try:
+                return lhs[index]
+            except IndexError:
+                if not lhs.isFinite():
+                    self.err.warn("Cannot slice from end of infinite Range")
+                    return nil
+                else:
+                    # Other cases shouldn't cause an IndexError, so it's
+                    # probably an implementation bug
+                    raise
         else:
             self.err.warn("Unimplemented argtypes for PREFIX:",
                           type(lhs), "and", type(rhs))
@@ -3338,7 +3350,16 @@ class ProgramState:
             return List(self.RIGHTOF(lhs, index) for index in rhs)
         elif isinstance(lhs, PipIterable) and isinstance(rhs, Scalar):
             # Use the lhs's __getitem__ with a slice argument
-            return lhs[int(rhs):]
+            try:
+                return lhs[int(rhs):]
+            except IndexError:
+                if not lhs.isFinite():
+                    self.err.warn("Cannot slice from end of infinite Range")
+                    return nil
+                else:
+                    # Other cases shouldn't cause an IndexError, so it's
+                    # probably an implementation bug
+                    raise
         else:
             self.err.warn("Unimplemented argtypes for RIGHTOF:",
                           type(lhs), "and", type(rhs))
@@ -3896,7 +3917,16 @@ class ProgramState:
             return Lval(lhs, index)
         elif isinstance(lhs, PipIterable) and index is not None:
             # Use the lhs's __getitem__ with a slice argument
-            return lhs[index]
+            try:
+                return lhs[index]
+            except IndexError:
+                if not lhs.isFinite():
+                    self.err.warn("Cannot slice from end of infinite Range")
+                    return nil
+                else:
+                    # Other cases shouldn't cause an IndexError, so it's
+                    # probably an implementation bug
+                    raise
         else:
             self.err.warn("Unimplemented argtypes for SUFFIX:",
                           type(lhs), "and", type(rhs))
