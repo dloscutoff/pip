@@ -722,6 +722,8 @@ class ProgramState:
                 lower += int(lhs)
                 if upper is not None:
                     upper += int(lhs)
+                else:
+                    upper = nil
                 return Range(lower, upper)
             else:
                 return List(self.ADD(lhs, item) for item in rhs)
@@ -1340,20 +1342,21 @@ class ProgramState:
         if isinstance(function, Block) and isinstance(iterable, PipIterable):
             result = List()
             for item in iterable:
-                try:
-                    arglist = list(item)
-                except ValueError:
-                    # This happens when one of the items is an infinite Range
-                    self.err.warn("Cannot unpack infinite Range in "
+                if isinstance(item, PipIterable):
+                    if item.isFinite():
+                        arglist = list(item)
+                    else:
+                        # The item is an infinite Range
+                        self.err.warn("Cannot unpack infinite Range in "
+                                      "FILTERUNPACK")
+                        arglist = None
+                else:
+                    self.err.warn(f"Cannot unpack {type(item)} value in "
                                   "FILTERUNPACK")
-                    arglist = []
-                except TypeError:
-                    # This happens when one of the items is a
-                    # non-iterable type
-                    self.err.warn(f"Cannot unpack {item} in FILTERUNPACK")
-                    arglist = []
-                if self.functionCall(function, arglist):
-                    result.append(item)
+                    arglist = None
+                if arglist is not None:
+                    if self.functionCall(function, arglist):
+                        result.append(item)
             return result
         else:
             self.err.warn("Unimplemented argtypes for FILTERUNPACK:",
@@ -1381,7 +1384,7 @@ class ProgramState:
               or isinstance(iterable, List)):
             try:
                 return Scalar(iterable.index(item))
-            except:
+            except ValueError:
                 # Item not found
                 return nil
         else:
@@ -1444,10 +1447,11 @@ class ProgramState:
     def FLATTEN(self, iterable):
         if isinstance(iterable, (List, Range)):
             result = List()
+            # TODO: check for infinite Range
             for item in iterable:
                 if isinstance(item, (List, Range)):
-                    for subitem in item:
-                        result.append(subitem)
+                    # TODO: check for infinite Range
+                    result.extend(item)
                 else:
                     result.append(item)
             return result
@@ -1457,10 +1461,13 @@ class ProgramState:
     def FLATTENALL(self, iterable):
         if isinstance(iterable, (List, Range)):
             result = List()
+            # TODO: check for infinite Range
             for item in iterable:
-                if isinstance(item, (List, Range)):
-                    for subitem in self.FLATTENALL(item):
-                        result.append(subitem)
+                if isinstance(item, List):
+                    result.extend(self.FLATTENALL(item))
+                elif isinstance(item, Range):
+                    # TODO: check for infinite Range
+                    result.extend(item)
                 else:
                     result.append(item)
             return result
@@ -1795,13 +1802,12 @@ class ProgramState:
 
     def LENEQUAL(self, lhs, rhs):
         if isinstance(lhs, PipIterable) and isinstance(rhs, PipIterable):
-            try:
+            if lhs.isFinite() and rhs.isFinite():
                 result = len(lhs) == len(rhs)
-            except ValueError:
+            else:
                 # One or both of the arguments is an infinite Range
                 # Their lengths are equal iff they are both infinite
-                result = (isinstance(lhs, Range) and isinstance(rhs, Range)
-                          and lhs.getUpper() is rhs.getUpper() is None)
+                result = not lhs.isFinite() and not rhs.isFinite()
             return Scalar(result)
         else:
             self.err.warn("Unimplemented argtypes for LENEQUAL:",
@@ -1810,19 +1816,13 @@ class ProgramState:
 
     def LENGREATER(self, lhs, rhs):
         if isinstance(lhs, PipIterable) and isinstance(rhs, PipIterable):
-            try:
+            if lhs.isFinite() and rhs.isFinite():
                 result = len(lhs) > len(rhs)
-            except ValueError:
+            else:
                 # One or both of the arguments is an infinite Range
                 # The lhs's length is greater iff it is infinite
                 # and the rhs is not
-                if not isinstance(lhs, Range):
-                    result = False
-                elif not isinstance(rhs, Range):
-                    result = True
-                else:
-                    result = (lhs.getUpper() is None
-                              and rhs.getUpper() is not None)
+                result = not lhs.isFinite() and rhs.isFinite()
             return Scalar(result)
         else:
             self.err.warn("Unimplemented argtypes for LENGREATER:",
@@ -1831,19 +1831,13 @@ class ProgramState:
 
     def LENLESS(self, lhs, rhs):
         if isinstance(lhs, PipIterable) and isinstance(rhs, PipIterable):
-            try:
+            if lhs.isFinite() and rhs.isFinite():
                 result = len(lhs) < len(rhs)
-            except ValueError:
+            else:
                 # One or both of the arguments is an infinite Range
                 # The lhs's length is less iff it is not an infinite
                 # Range and the rhs is one
-                if not isinstance(lhs, Range):
-                    result = True
-                elif not isinstance(rhs, Range):
-                    result = False
-                else:
-                    result = (lhs.getUpper() is not None
-                              and rhs.getUpper() is None)
+                result = lhs.isFinite() and not rhs.isFinite()
             return Scalar(result)
         else:
             self.err.warn("Unimplemented argtypes for LENLESS:",
@@ -1941,14 +1935,9 @@ class ProgramState:
             # If there are more than two numbers, we use the first two;
             # if there is only one number, we use it twice; but if there
             # are no numbers, that's a problem
-            try:
-                if len(rhs) == 0:
-                    self.err.warn("Empty List/Range argument to MAPCOORDS")
-                    return nil
-            except ValueError:
-                # An infinite Range doesn't have a len(), but it does
-                # have at least two numbers, so it's fine for our purposes
-                pass
+            if rhs.isEmpty():
+                self.err.warn("Empty List/Range argument to MAPCOORDS")
+                return nil
             if isinstance(rhs[0], Scalar) and isinstance(rhs[1], Scalar):
                 rows = range(int(rhs[0]))
                 cols = range(int(rhs[1]))
@@ -2065,18 +2054,22 @@ class ProgramState:
         if isinstance(iterable, PipIterable) and isinstance(function, Block):
             result = List()
             for item in iterable:
-                try:
-                    arglist = list(item)
-                except ValueError:
-                    # This happens when one of the items is an infinite Range
-                    self.err.warn("Cannot unpack infinite Range in MAPUNPACK")
-                    arglist = []
-                except TypeError:
-                    # This happens when one of the items is a
-                    # non-iterable type
-                    self.err.warn(f"Cannot unpack {item} in MAPUNPACK")
-                    arglist = []
-                result.append(self.functionCall(function, arglist))
+                if isinstance(item, PipIterable):
+                    if item.isFinite():
+                        arglist = list(item)
+                    else:
+                        # The item is an infinite Range
+                        self.err.warn("Cannot unpack infinite Range in "
+                                      "MAPUNPACK")
+                        arglist = None
+                else:
+                    self.err.warn(f"Cannot unpack {type(item)} value in "
+                                  "MAPUNPACK")
+                    arglist = None
+                if arglist is not None:
+                    result.append(self.functionCall(function, arglist))
+                else:
+                    result.append(nil)
             return result
         else:
             self.err.warn("Unimplemented argtypes for MAPUNPACK:",
@@ -2101,19 +2094,23 @@ class ProgramState:
     def MAX(self, iterable):
         """Return numeric maximum of iterable."""
         if isinstance(iterable, PipIterable):
-            try:
-                return max(iterable, key=lambda x:x.toNumber())
-            except AttributeError:
-                self.err.warn("Argument to MAX contains non-numeric value:",
-                              iterable)
+            if iterable.isEmpty():
+                self.err.warn("Cannot take MAX of an empty sequence")
                 return nil
-            except TypeError:
-                self.err.warn("Argument to MAX contains unorderable types:",
-                              iterable)
+            elif not iterable.isFinite():
+                self.err.warn("Cannot take MAX of an infinite Range")
                 return nil
-            except ValueError:
-                self.err.warn("Taking MAX of an empty sequence")
-                return nil
+            else:
+                try:
+                    return max(iterable, key=lambda x:x.toNumber())
+                except AttributeError:
+                    self.err.warn("Argument to MAX contains non-numeric "
+                                  f"value: {iterable!r}")
+                    return nil
+                except TypeError:
+                    self.err.warn("Argument to MAX contains unorderable "
+                                  f"types: {iterable!r}")
+                    return nil
         else:
             self.err.warn("Unimplemented argtype for MAX:", type(iterable))
             return nil
@@ -2121,19 +2118,24 @@ class ProgramState:
     def MIN(self, iterable):
         """Return numeric minimum of iterable."""
         if isinstance(iterable, PipIterable):
-            try:
-                return min(iterable, key=lambda x:x.toNumber())
-            except AttributeError:
-                self.err.warn("Argument to MIN contains non-numeric value:",
-                              iterable)
+            if iterable.isEmpty():
+                self.err.warn("Cannot take MIN of an empty sequence")
                 return nil
-            except TypeError:
-                self.err.warn("Argument to MIN contains unorderable types:",
-                              iterable)
-                return nil
-            except ValueError:
-                self.err.warn("Taking MIN of an empty sequence")
-                return nil
+            elif not iterable.isFinite():
+                # Assuming that Ranges are ordered ascending, the minimum
+                # value of an infinite Range is the first value
+                return iterable[0]
+            else:
+                try:
+                    return min(iterable, key=lambda x:x.toNumber())
+                except AttributeError:
+                    self.err.warn("Argument to MIN contains non-numeric "
+                                  f"value: {iterable!r}")
+                    return nil
+                except TypeError:
+                    self.err.warn("Argument to MIN contains unorderable "
+                                  f"types: {iterable!r}")
+                    return nil
         else:
             self.err.warn("Unimplemented argtype for MIN:", type(iterable))
             return nil
@@ -2230,13 +2232,12 @@ class ProgramState:
             result = lhs == rhs
         elif (isinstance(lhs, (List, Range))
               and isinstance(rhs, (List, Range))):
-            try:
+            if lhs.isFinite() and rhs.isFinite():
                 result = (len(lhs) == len(rhs)
                           and all(self.NUMEQUAL(i, j)
                                   for i, j in zip(lhs, rhs)))
-            except ValueError:
-                # Raised by taking len of infinite Range, which cannot be
-                # equal to any List
+            else:
+                # We're comparing an infinite Range to a (finite) List
                 result = False
         else:
             # Any other types are equal if they are identical
@@ -2257,10 +2258,10 @@ class ProgramState:
                 result = False
             elif leftUpper == rightUpper:
                 result = False
-            elif leftUpper is None:
+            elif not lhs.isFinite():
                 # lhs is an infinite Range, thus bigger
                 result = True
-            elif rightUpper is None:
+            elif not rhs.isFinite():
                 # rhs is an infinite Range, thus bigger
                 result = False
             else:
@@ -2268,6 +2269,9 @@ class ProgramState:
         elif (isinstance(lhs, (List, Range))
               and isinstance(rhs, (List, Range))):
             result = None
+            # TODO: some other way of clipping to the shorter length
+            # that doesn't give the Iterating over an infinite Range
+            # warning?
             for i, j in zip(lhs, rhs):
                 if self.NUMGREATER(i, j):
                     result = True
@@ -2278,21 +2282,14 @@ class ProgramState:
             if result is None:
                 # The two lists were equal as far as they went... but are they
                 # the same length?
-                try:
-                    leftLen = len(lhs)
-                except ValueError:
-                    # Lhs is infinite Range
+                if lhs.isFinite() and rhs.isFinite():
+                    result = len(lhs) > len(rhs)
+                elif not lhs.isFinite():
+                    # lhs is an infinite Range, thus bigger
                     result = True
-                else:
-                    try:
-                        rightLen = len(rhs)
-                    except ValueError:
-                        # Rhs is infinite Range
-                        result = False
-                if result is None:
-                    # Neither was an infinite Range, so we can just
-                    # compare their lengths directly
-                    result = leftLen > rightLen
+                elif not rhs.isFinite():
+                    # rhs is an infinite Range, thus bigger
+                    result = False
         else:
             result = False
         return Scalar(result)
@@ -2311,10 +2308,10 @@ class ProgramState:
                 result = False
             elif leftUpper == rightUpper:
                 result = True
-            elif leftUpper is None:
+            elif not lhs.isFinite():
                 # lhs is an infinite Range, thus bigger
                 result = True
-            elif rightUpper is None:
+            elif not rhs.isFinite():
                 # rhs is an infinite Range, thus bigger
                 result = False
             else:
@@ -2322,6 +2319,9 @@ class ProgramState:
         elif (isinstance(lhs, (List, Range))
               and isinstance(rhs, (List, Range))):
             result = None
+            # TODO: some other way of clipping to the shorter length
+            # that doesn't give the Iterating over an infinite Range
+            # warning?
             for i, j in zip(lhs, rhs):
                 if self.NUMGREATER(i, j):
                     result = True
@@ -2332,21 +2332,14 @@ class ProgramState:
             if result is None:
                 # The two lists were equal as far as they went... but are they
                 # the same length?
-                try:
-                    leftLen = len(lhs)
-                except ValueError:
-                    # Lhs is infinite Range
+                if lhs.isFinite() and rhs.isFinite():
+                    result = len(lhs) >= len(rhs)
+                elif not lhs.isFinite():
+                    # lhs is an infinite Range, thus bigger
                     result = True
-                else:
-                    try:
-                        rightLen = len(rhs)
-                    except ValueError:
-                        # Rhs is infinite Range
-                        result = False
-                if result is None:
-                    # Neither was an infinite Range, so we can just
-                    # compare their lengths directly
-                    result = leftLen >= rightLen
+                elif not rhs.isFinite():
+                    # rhs is an infinite Range, thus bigger
+                    result = False
         else:
             # For non-comparable types, the only way they can be >=
             # is if they are identical and thus equal
@@ -2367,10 +2360,10 @@ class ProgramState:
                 result = False
             elif leftUpper == rightUpper:
                 result = False
-            elif leftUpper is None:
+            elif not lhs.isFinite():
                 # lhs is an infinite Range, thus bigger
                 result = False
-            elif rightUpper is None:
+            elif not rhs.isFinite():
                 # rhs is an infinite Range, thus bigger
                 result = True
             else:
@@ -2378,6 +2371,9 @@ class ProgramState:
         elif (isinstance(lhs, (List, Range))
               and isinstance(rhs, (List, Range))):
             result = None
+            # TODO: some other way of clipping to the shorter length
+            # that doesn't give the Iterating over an infinite Range
+            # warning?
             for i, j in zip(lhs, rhs):
                 if self.NUMLESS(i, j):
                     result = True
@@ -2388,21 +2384,14 @@ class ProgramState:
             if result is None:
                 # The two lists were equal as far as they went... but are they
                 # the same length?
-                try:
-                    leftLen = len(lhs)
-                except ValueError:
-                    # Lhs is infinite Range
+                if lhs.isFinite() and rhs.isFinite():
+                    result = len(lhs) < len(rhs)
+                elif not lhs.isFinite():
+                    # lhs is an infinite Range, thus bigger
                     result = False
-                else:
-                    try:
-                        rightLen = len(rhs)
-                    except ValueError:
-                        # Rhs is infinite Range
-                        result = True
-                if result is None:
-                    # Neither was an infinite Range, so we can just
-                    # compare their lengths directly
-                    result = leftLen < rightLen
+                elif not rhs.isFinite():
+                    # rhs is an infinite Range, thus bigger
+                    result = True
         else:
             result = False
         return Scalar(result)
@@ -2421,10 +2410,10 @@ class ProgramState:
                 result = False
             elif leftUpper == rightUpper:
                 result = True
-            elif leftUpper is None:
+            elif not lhs.isFinite():
                 # lhs is an infinite Range, thus bigger
                 result = False
-            elif rightUpper is None:
+            elif not rhs.isFinite():
                 # rhs is an infinite Range, thus bigger
                 result = True
             else:
@@ -2432,6 +2421,9 @@ class ProgramState:
         elif (isinstance(lhs, (List, Range))
               and isinstance(rhs, (List, Range))):
             result = None
+            # TODO: some other way of clipping to the shorter length
+            # that doesn't give the Iterating over an infinite Range
+            # warning?
             for i, j in zip(lhs, rhs):
                 if self.NUMLESS(i, j):
                     result = True
@@ -2442,21 +2434,14 @@ class ProgramState:
             if result is None:
                 # The two lists were equal as far as they went... but are they
                 # the same length?
-                try:
-                    leftLen = len(lhs)
-                except ValueError:
-                    # Lhs is infinite Range
+                if lhs.isFinite() and rhs.isFinite():
+                    result = len(lhs) <= len(rhs)
+                elif not lhs.isFinite():
+                    # lhs is an infinite Range, thus bigger
                     result = False
-                else:
-                    try:
-                        rightLen = len(rhs)
-                    except ValueError:
-                        # Rhs is infinite Range
-                        result = True
-                if result is None:
-                    # Neither was an infinite Range, so we can just
-                    # compare their lengths directly
-                    result = leftLen <= rightLen
+                elif not rhs.isFinite():
+                    # rhs is an infinite Range, thus bigger
+                    result = True
         else:
             # For non-comparable types, the only way they can be <=
             # is if they are identical and thus equal
@@ -2470,14 +2455,14 @@ class ProgramState:
             result = lhs != rhs
         elif (isinstance(lhs, (List, Range))
               and isinstance(rhs, (List, Range))):
-            try:
+            if lhs.isFinite() and not rhs.isFinite():
+                result = True
+            elif not lhs.isFinite() and rhs.isFinite():
+                result = True
+            else:
                 result = (len(lhs) != len(rhs)
                           or any(self.NUMNOTEQUAL(i, j)
                                   for i, j in zip(lhs, rhs)))
-            except ValueError:
-                # Raised by taking len of infinite Range, which cannot be
-                # equal to any List
-                result = True
         else:
             result = not (lhs == rhs)
         return Scalar(result)
@@ -2520,22 +2505,20 @@ class ProgramState:
         Empty List/Range or Scalar results in empty List or Scalar.
         """
         if isinstance(iterable, (Range, List)):
-            try:
+            if iterable.isEmpty():
+                return List()
+            elif iterable.isFinite():
                 iterable = list(iterable)
-            except ValueError:
-                self.err.warn("Cannot PALINDROMIZE an infinite range")
+                return List(iterable + iterable[-2::-1])
+            else:
+                self.err.warn("Cannot PALINDROMIZE an infinite Range")
                 return nil
-            else:
-                if iterable:
-                    return List(iterable + iterable[-2::-1])
-                else:
-                    return List()
         elif isinstance(iterable, Scalar):
-            iterable = str(iterable)
-            if iterable:
-                return Scalar(iterable + iterable[-2::-1])
-            else:
+            if iterable.isEmpty():
                 return Scalar()
+            else:
+                iterable = str(iterable)
+                return Scalar(iterable + iterable[-2::-1])
         else:
             self.err.warn("Unimplemented argtype for PALINDROMIZE:",
                           type(iterable))
@@ -2548,11 +2531,16 @@ class ProgramState:
     def PERMUTATIONS(self, iterable):
         """Return List of all permutations of iterable."""
         if isinstance(iterable, PipIterable):
-            result = itertools.permutations(iterable)
-            if isinstance(iterable, Scalar):
-                return List(self.JOIN(perm) for perm in result)
+            if iterable.isFinite():
+                result = itertools.permutations(iterable)
+                if isinstance(iterable, Scalar):
+                    return List(self.JOIN(perm) for perm in result)
+                else:
+                    return List(List(perm) for perm in result)
             else:
-                return List(List(perm) for perm in result)
+                self.err.warn("Cannot get PERMUTATIONS of an infinite "
+                              "Range")
+                return nil
         else:
             self.err.warn("Unimplemented argtype for PERMUTATIONS:",
                           type(iterable))
@@ -2569,48 +2557,46 @@ class ProgramState:
             return nil
         iterVal = self.getRval(iterable)
         if isinstance(iterVal, List):
-            if len(iterVal) > 0:
+            if iterVal.isEmpty():
+                self.err.warn("Cannot PICK from empty List")
+                return nil
+            else:
                 iterVal = list(iterVal)
                 index %= len(iterVal)
                 item = iterVal[index]
                 iterVal = List(iterVal[:index] + iterVal[index+1:])
-            else:
-                self.err.warn("Cannot pick from empty List")
-                return nil
         elif isinstance(iterVal, Range):
             lower = iterVal.getLower() or 0
-            try:
-                rangeLength = len(iterVal)
-            except ValueError:
-                # Infinite range raises this when you try to take the len()
+            if iterVal.isEmpty():
+                self.err.warn("Cannot PICK from empty Range")
+                return nil
+            elif iterVal.isFinite():
+                index %= len(iterVal)
+                if index == 0:
+                    item = iterVal[0]
+                    iterVal = Range(lower + 1, iterVal.getUpper())
+                else:
+                    iterVal = list(iterVal)
+                    item = iterVal[index]
+                    iterVal = List(iterVal[:index] + iterVal[index+1:])
+            else:
+                # We can PICK from an infinite Range, but only if it's
+                # the first value so the result is another Range
                 if index == 0:
                     item = iterVal[0]
                     iterVal = Range(lower + 1, nil)
                 else:
-                    self.err.warn("Cannot pick from middle of infinite Range")
-                    return nil
-            else:
-                if rangeLength > 0:
-                    index %= rangeLength
-                    if index == 0:
-                        item = iterVal[0]
-                        iterVal = Range(lower + 1, iterVal.getUpper())
-                    else:
-                        iterVal = list(iterVal)
-                        item = iterVal[index]
-                        iterVal = List(iterVal[:index] + iterVal[index+1:])
-                else:
-                    self.err.warn("Cannot pick from empty Range")
+                    self.err.warn("Cannot PICK from middle of infinite Range")
                     return nil
         elif isinstance(iterVal, Scalar):
-            if len(iterVal) > 0:
+            if iterVal.isEmpty():
+                self.err.warn("Cannot PICK from empty Scalar")
+                return nil
+            else:
                 item = iterVal[index]
                 iterVal = str(iterVal)
                 index %= len(iterVal)
                 iterVal = Scalar(iterVal[:index] + iterVal[index+1:])
-            else:
-                self.err.warn("Cannot pick from empty Scalar")
-                return nil
         else:
             self.err.warn("Unimplemented left argument type for PICK:",
                           type(iterVal))
@@ -2625,31 +2611,30 @@ class ProgramState:
     def POP(self, iterable):
         iterVal = self.getRval(iterable)
         if isinstance(iterVal, List):
-            if len(iterVal) > 0:
+            if iterVal.isEmpty():
+                self.err.warn("Cannot POP from empty List")
+                return nil
+            else:
                 item = iterVal[0]
                 iterVal = iterVal[1:]
-            else:
-                self.err.warn("Popping from empty list")
-                return nil
         elif isinstance(iterVal, Range):
             lower = iterVal.getLower() or 0
-            try:
-                if len(iterVal) > 0:
-                    iterVal = Range(lower + 1, iterVal.getUpper())
-                else:
-                    self.err.warn("Popping from empty range")
-                    return nil
-            except ValueError:
-                # Infinite range raises this when you try to take the len()
+            if iterVal.isEmpty():
+                self.err.warn("Cannot POP from empty Range")
+                return nil
+            elif iterVal.isFinite():
+                iterVal = Range(lower + 1, iterVal.getUpper())
+            else:
+                # Infinite Range
                 iterVal = Range(lower + 1, nil)
             item = Scalar(lower)
         elif isinstance(iterVal, Scalar):
-            if len(iterVal) > 0:
+            if iterVal.isEmpty():
+                self.err.warn("Cannot POP from empty Scalar")
+                return nil
+            else:
                 item = iterVal[0]
                 iterVal = iterVal[1:]
-            else:
-                self.err.warn("Popping from empty scalar")
-                return nil
         else:
             self.err.warn("Unimplemented argtype for POP:", type(iterVal))
             return nil
@@ -2734,16 +2719,11 @@ class ProgramState:
             return Lval(lhs, index)
         elif isinstance(lhs, PipIterable) and index is not None:
             # Use the lhs's __getitem__ with a slice argument
-            try:
+            if not lhs.isFinite() and sliceLength < 0:
+                self.err.warn("Cannot slice from end of infinite Range")
+                return nil
+            else:
                 return lhs[index]
-            except IndexError:
-                if not lhs.isFinite():
-                    self.err.warn("Cannot slice from end of infinite Range")
-                    return nil
-                else:
-                    # Other cases shouldn't cause an IndexError, so it's
-                    # probably an implementation bug
-                    raise
         else:
             self.err.warn("Unimplemented argtypes for PREFIX:",
                           type(lhs), "and", type(rhs))
@@ -2754,7 +2734,11 @@ class ProgramState:
         if isinstance(lhs, (Scalar, Pattern, Nil)):
             lhs = List([lhs])
         if isinstance(lhs, (List, Range)):
-            return List([rhs] + list(lhs))
+            if lhs.isFinite():
+                return List([rhs] + list(lhs))
+            else:
+                self.err.warn("Cannot PREPENDELEM to infinite Range")
+                return nil
         else:
             self.err.warn("Unimplemented argtypes for PREPENDELEM:",
                           type(lhs), "and", type(rhs))
@@ -2774,7 +2758,11 @@ class ProgramState:
         item = self.getRval(item)
         iterVal = self.getRval(iterable)
         if isinstance(iterVal, (List, Range)):
-            iterVal = self.PREPENDELEM(iterVal, item)
+            if iterVal.isFinite():
+                iterVal = self.PREPENDELEM(iterVal, item)
+            else:
+                self.err.warn("Cannot PUSH to infinite Range")
+                return nil
         elif isinstance(iterVal, (Scalar, Pattern)):
             iterVal = self.CAT(Scalar(item), iterVal)
         elif isinstance(iterVal, Nil):
@@ -2794,7 +2782,11 @@ class ProgramState:
         item = self.getRval(item)
         iterVal = self.getRval(iterable)
         if isinstance(iterVal, (List, Range)):
-            iterVal = self.APPENDELEM(iterVal, item)
+            if iterVal.isFinite():
+                iterVal = self.APPENDELEM(iterVal, item)
+            else:
+                self.err.warn("Cannot PUSHBACK to infinite Range")
+                return nil
         elif isinstance(iterVal, (Scalar, Pattern)):
             iterVal = self.CAT(iterVal, Scalar(item))
         elif isinstance(iterVal, Nil):
@@ -2836,8 +2828,14 @@ class ProgramState:
 
     def RANDCHOICE(self, iterable):
         if isinstance(iterable, PipIterable):
-            index = random.randrange(len(iterable))
-            return iterable[index]
+            if iterable.isEmpty():
+                self.err.warn("Cannot take RANDCHOICE from empty iterable")
+                return nil
+            elif iterable.isFinite():
+                index = random.randrange(len(iterable))
+                return iterable[index]
+            else:
+                self.err.warn("Cannot take RANDCHOICE from infinite Range")
         else:
             self.err.warn("Unimplemented argtype for RANDCHOICE:",
                           type(iterable))
@@ -2900,13 +2898,12 @@ class ProgramState:
     def REFLECT(self, iterable):
         """Concatenate iterable with its reverse."""
         if isinstance(iterable, (Range, List)):
-            try:
+            if iterable.isFinite():
                 iterable = list(iterable)
-            except ValueError:
-                self.err.warn("Cannot REFLECT an infinite range")
-                return nil
-            else:
                 return List(iterable + iterable[::-1])
+            else:
+                self.err.warn("Cannot REFLECT an infinite Range")
+                return nil
         elif isinstance(iterable, Scalar):
             iterable = str(iterable)
             return Scalar(iterable + iterable[::-1])
@@ -2927,9 +2924,14 @@ class ProgramState:
         elif isinstance(rhs, Pattern):
             return rhs
         elif isinstance(rhs, (List, Range)):
-            return Pattern("(?:"
-                           + "|".join(str(self.REGEX(item)) for item in rhs)
-                           + ")")
+            if rhs.isFinite():
+                return Pattern("(?:"
+                               + "|".join(str(self.REGEX(item))
+                                          for item in rhs)
+                               + ")")
+            else:
+                self.err.warn("Cannot take REGEX of infinite Range")
+                return nil
         else:
             self.err.warn("Unimplemented argtype for REGEX:", type(rhs))
             return nil
@@ -2938,7 +2940,11 @@ class ProgramState:
         if isinstance(lhs, (Scalar, Pattern, Nil)):
             lhs = List([lhs])
         if isinstance(lhs, (List, Range)) and isinstance(rhs, Scalar):
-            return List(list(lhs.copy()) * int(rhs))
+            if lhs.isFinite():
+                return List(list(lhs.copy()) * int(rhs))
+            else:
+                self.err.warn("Cannot REPEATLIST an infinite Range")
+                return nil
         else:
             self.err.warn("Unimplemented argtypes for REPEATLIST:",
                           type(lhs), "and", type(rhs))
@@ -3060,12 +3066,16 @@ class ProgramState:
                 return nil
             return Scalar(result)
         elif isinstance(lhs, PipIterable):
-            result = list(lhs)
-            while rhs in result:
-                # Loop is necessary because list.remove only removes the
-                # first instance
-                result.remove(rhs)
-            return List(result)
+            if lhs.isFinite():
+                result = list(lhs)
+                while rhs in result:
+                    # Loop is necessary because list.remove only removes the
+                    # first instance
+                    result.remove(rhs)
+                return List(result)
+            else:
+                self.err.warn("Cannot REMOVE item(s) from infinite Range")
+                return nil
         else:
             self.err.warn("Unimplemented argtypes for REMOVE:",
                           type(lhs), "and", type(rhs))
@@ -3078,13 +3088,12 @@ class ProgramState:
         if isinstance(rhs, Scalar):
             return Scalar(str(rhs)[::-1])
         elif isinstance(rhs, (Range, List)):
-            try:
+            if rhs.isFinite():
                 rhs = list(rhs)
-            except ValueError:
-                self.err.warn("Cannot REVERSE an infinite range")
-                return nil
-            else:
                 return List(rhs[::-1])
+            else:
+                self.err.warn("Cannot REVERSE an infinite Range")
+                return nil
         else:
             self.err.warn("Unimplemented argtype for REVERSE:", type(rhs))
             return nil
@@ -3104,16 +3113,11 @@ class ProgramState:
             return List(self.RIGHTOF(lhs, index) for index in rhs)
         elif isinstance(lhs, PipIterable) and isinstance(rhs, Scalar):
             # Use the lhs's __getitem__ with a slice argument
-            try:
+            if not lhs.isFinite() and int(rhs) < 0:
+                self.err.warn("Cannot slice from end of infinite Range")
+                return nil
+            else:
                 return lhs[int(rhs):]
-            except IndexError:
-                if not lhs.isFinite():
-                    self.err.warn("Cannot slice from end of infinite Range")
-                    return nil
-                else:
-                    # Other cases shouldn't cause an IndexError, so it's
-                    # probably an implementation bug
-                    raise
         else:
             self.err.warn("Unimplemented argtypes for RIGHTOF:",
                           type(lhs), "and", type(rhs))
@@ -3221,12 +3225,16 @@ class ProgramState:
     def SHUFFLE(self, iterable):
         """Return a random permutation of the iterable."""
         if isinstance(iterable, PipIterable):
-            items = list(iterable)
-            random.shuffle(items)
-            if isinstance(iterable, Scalar):
-                return self.JOIN(items)
+            if iterable.isFinite():
+                items = list(iterable)
+                random.shuffle(items)
+                if isinstance(iterable, Scalar):
+                    return self.JOIN(items)
+                else:
+                    return List(items)
             else:
-                return List(items)
+                self.err.warn("Cannot SHUFFLE infinite Range")
+                return nil
         else:
             self.err.warn("Unimplemented argtype for SHUFFLE:",
                           type(iterable))
@@ -3278,10 +3286,14 @@ class ProgramState:
                     # Convert Scalars to numbers, (nested) Lists to
                     # (nested) lists of numbers, Ranges to lists of numbers
                     return keyValue.toNumber()
-            try:
-                return List(sorted(iterable, key=pyKey))
-            except TypeError:
-                self.err.warn("SORTKEYED cannot compare numbers to lists")
+            if iterable.isFinite():
+                try:
+                    return List(sorted(iterable, key=pyKey))
+                except TypeError:
+                    self.err.warn("SORTKEYED cannot compare numbers to lists")
+                    return nil
+            else:
+                self.err.warn("Cannot sort infinite Range")
                 return nil
         else:
             self.err.warn("Unimplemented argtypes for SORTKEYED:",
@@ -3304,10 +3316,14 @@ class ProgramState:
                     # Treat Scalars as numbers, (nested) Lists as
                     # (nested) lists of numbers, Ranges as lists of numbers
                     return item.toNumber()
-            try:
-                return List(sorted(iterable, key=pyKey))
-            except TypeError:
-                self.err.warn("SORTNUM cannot compare numbers to lists")
+            if iterable.isFinite():
+                try:
+                    return List(sorted(iterable, key=pyKey))
+                except TypeError:
+                    self.err.warn("SORTNUM cannot compare numbers to lists")
+                    return nil
+            else:
+                self.err.warn("Cannot sort infinite Range")
                 return nil
         else:
             self.err.warn("Unimplemented argtype for SORTNUM:",
@@ -3318,9 +3334,13 @@ class ProgramState:
         if isinstance(iterable, Scalar):
             return Scalar("".join(sorted(str(iterable))))
         elif isinstance(iterable, PipIterable):
-            # This is going to get a bit wonky when sorting lists of lists,
-            # but not sure it's worth the effort to fix
-            return List(sorted(iterable, key=str))
+            if iterable.isFinite():
+                # This is going to get a bit wonky when sorting lists of
+                # lists, but not sure it's worth the effort to fix
+                return List(sorted(iterable, key=str))
+            else:
+                self.err.warn("Cannot sort infinite Range")
+                return nil
         else:
             self.err.warn("Unimplemented argtype for SORTSTRING:",
                           type(iterable))
@@ -3361,8 +3381,12 @@ class ProgramState:
         if isinstance(indices, Scalar):
             indices = [int(indices)]
         elif isinstance(indices, Range):
-            # TODO: Handle infinite ranges gracefully
-            indices = list(int(index) for index in indices)
+            # TODO: Handle infinite Ranges better?
+            if indices.isFinite:
+                indices = [int(index) for index in indices]
+            else:
+                self.err.warn("Cannot SPLITAT infinite Range of indices")
+                return nil
         elif isinstance(indices, List):
             try:
                 indices = list(set(int(index) for index in indices))
@@ -3373,15 +3397,19 @@ class ProgramState:
                 return nil
 
         if isinstance(iterable, PipIterable) and isinstance(indices, list):
-            result = List()
-            prevIndex = 0
-            length = len(iterable)
-            for i in range(length):
-                if i in indices or i - length in indices:
-                    result.append(iterable[prevIndex:i])
-                    prevIndex = i
-            result.append(iterable[prevIndex:])
-            return result
+            if iterable.isFinite():
+                result = List()
+                prevIndex = 0
+                length = len(iterable)
+                for i in range(length):
+                    if i in indices or i - length in indices:
+                        result.append(iterable[prevIndex:i])
+                        prevIndex = i
+                result.append(iterable[prevIndex:])
+                return result
+            else:
+                self.err.warn("Cannot split infinite Range at indices")
+                return nil
         else:
             self.err.warn("Unimplemented argtypes for SPLITAT:",
                           type(iterable), "and", type(indices))
@@ -3430,6 +3458,7 @@ class ProgramState:
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = str(lhs) > str(rhs)
         elif isinstance(lhs, List) and isinstance(rhs, List):
+            # TODO: Handle Ranges like Lists?
             result = None
             for i, j in zip(lhs, rhs):
                 if self.STRGREATER(i, j):
@@ -3580,14 +3609,29 @@ class ProgramState:
             lower -= int(rhs)
             if upper is not None:
                 upper -= int(rhs)
+            else:
+                upper = nil
             return Range(lower, upper)
         elif isinstance(lhs, Scalar) and isinstance(rhs, Range):
-            return List(self.SUB(lhs, item) for item in rhs)
+            if rhs.isFinite():
+                return List(self.SUB(lhs, item) for item in rhs)
+            else:
+                self.err.warn("Cannot subtract infinite Range from Scalar")
+                return nil
         elif isinstance(lhs, Range) and isinstance(rhs, Range):
-            # TODO... this sort of situation might warrant some rethinking of
-            # the RANGE_EACH/LIST_EACH handling
-            self.err.warn("Can't subtract two Ranges yet")
-            return nil
+            if lhs.isFinite() and rhs.isFinite():
+                result = List()
+                for a, b in itertools.zip_longest(lhs, rhs, fillvalue=None):
+                    if a is None:
+                        result.append(b)
+                    elif b is None:
+                        result.append(a)
+                    else:
+                        result.append(self.SUB(a, b))
+                return result
+            else:
+                self.err.warn("Cannot subtract infinite Ranges")
+                return nil
         else:
             self.err.warn("Unimplemented argtypes for SUB:",
                           type(lhs), "and", type(rhs))
@@ -3616,16 +3660,11 @@ class ProgramState:
             return Lval(lhs, index)
         elif isinstance(lhs, PipIterable) and index is not None:
             # Use the lhs's __getitem__ with a slice argument
-            try:
+            if not lhs.isFinite() and sliceLength > 0:
+                self.err.warn("Cannot slice from end of infinite Range")
+                return nil
+            else:
                 return lhs[index]
-            except IndexError:
-                if not lhs.isFinite():
-                    self.err.warn("Cannot slice from end of infinite Range")
-                    return nil
-                else:
-                    # Other cases shouldn't cause an IndexError, so it's
-                    # probably an implementation bug
-                    raise
         else:
             self.err.warn("Unimplemented argtypes for SUFFIX:",
                           type(lhs), "and", type(rhs))
@@ -3640,11 +3679,11 @@ class ProgramState:
         if isinstance(lval1, Lval):
             self.assign(lval1, rval2)
         else:
-            self.err.warn("Attempting to swap non-lvalue", lval1)
+            self.err.warn("Attempting to SWAP non-lvalue", lval1)
         if isinstance(lval2, Lval):
             self.assign(lval2, rval1)
         else:
-            self.err.warn("Attempting to swap non-lvalue", lval2)
+            self.err.warn("Attempting to SWAP non-lvalue", lval2)
         return lval1
 
     def SWAPCASE(self, rhs):
@@ -3738,28 +3777,16 @@ class ProgramState:
         elif (isinstance(lhs, Scalar)
               and isinstance(old, PipIterable)
               and isinstance(new, PipIterable)):
+            if not old.isFinite() and not new.isFinite():
+                # Both are infinite Ranges
+                self.err.warn("Cannot TRANSLITERATE one infinite "
+                              "Range into another:", old, "->", new)
+                return nil
             result = str(lhs)
-            infiniteRange = False
             if isinstance(old, Scalar):
                 old = str(old)
-            elif isinstance(old, Range):
-                try:
-                    len(old)
-                except ValueError:
-                    infiniteRange = True
-                    # This isn't a problem yet, but if new is also an
-                    # infinite range, we're in trouble
             if isinstance(new, Scalar):
                 new = str(new)
-            elif isinstance(new, Range):
-                try:
-                    len(new)
-                except ValueError:
-                    if infiniteRange:
-                        # They're both infinite
-                        self.err.warn("Cannot TRANSLITERATE one infinite "
-                                      "Range into another:", old, "->", new)
-                        return nil
             mapping = {}
             for oldChar, newChar in zip(old, new):
                 if isinstance(oldChar, str):
@@ -3851,14 +3878,11 @@ class ProgramState:
     def UNWEAVE(self, iterable, strands=2):
         """Distribute items into multiple iterables; inverse of WEAVE."""
         if isinstance(iterable, Range):
-            try:
-                len(iterable)
-            except ValueError:
-                # Infinite Range, no can do
+            if iterable.isFinite():
+                iterable = List(iterable)
+            else:
                 self.err.warn("Cannot UNWEAVE an infinite Range:", iterable)
                 return nil
-            else:
-                iterable = List(iterable)
         if (isinstance(iterable, PipIterable)
                 and isinstance(strands, (int, Scalar))):
             # Unweave the items from iterable into given number of "strands"
@@ -3905,19 +3929,30 @@ class ProgramState:
             if isinstance(iterables, Scalar):
                 # Weaving the characters just results in the same thing anyway
                 return iterables
-            elif isinstance(iterables, (List, Range)):
+            elif isinstance(iterables, Range):
+                if iterables.isFinite():
+                    iterables = List(iterables)
+                else:
+                    self.err.warn("Cannot WEAVE infinite Range")
+                    return nil
+            if isinstance(iterables, List):
                 result = []
                 allScalar = True
                 for i, iterable in enumerate(iterables):
                     if isinstance(iterable, (List, Range)):
                         allScalar = False
+                        if not iterable.isFinite():
+                            self.err.warn("Cannot WEAVE a List containing",
+                                          "an infinite Range")
+                            return nil
                     elif iterable is nil:
                         # Replace nil with empty string
                         iterables[i] = SCALAR_EMPTY
                     elif isinstance(iterable, Scalar):
                         pass
                     else:
-                        self.err.warn("Cannot weave object of type",
+                        self.err.warn("Cannot WEAVE a List containing",
+                                      "an object of type",
                                       type(iterable))
                         return nil
                 for i in range(max(map(len, iterables))):
@@ -3936,17 +3971,21 @@ class ProgramState:
                 iterable2 = SCALAR_EMPTY
             if (isinstance(iterable1, PipIterable)
                     and isinstance(iterable2, PipIterable)):
-                result = []
-                for i in range(max(len(iterable1), len(iterable2))):
-                    if i < len(iterable1):
-                        result.append(iterable1[i])
-                    if i < len(iterable2):
-                        result.append(iterable2[i])
-                if (isinstance(iterable1, Scalar)
-                        and isinstance(iterable2, Scalar)):
-                    return Scalar(self.JOIN(result))
+                if iterable1.isFinite() and iterable2.isFinite():
+                    result = []
+                    for i in range(max(len(iterable1), len(iterable2))):
+                        if i < len(iterable1):
+                            result.append(iterable1[i])
+                        if i < len(iterable2):
+                            result.append(iterable2[i])
+                    if (isinstance(iterable1, Scalar)
+                            and isinstance(iterable2, Scalar)):
+                        return Scalar(self.JOIN(result))
+                    else:
+                        return List(result)
                 else:
-                    return List(result)
+                    self.err.warn("Cannot WEAVE infinite Ranges")
+                    return nil
             else:
                 self.err.warn("Unimplemented argtypes for WEAVE:",
                               type(iterable1), "and", type(iterable2))
@@ -3991,53 +4030,66 @@ class ProgramState:
                           type(rows), "and", type(cols))
             return nil
     
-    def ZIP(self, list1, list2=None):
-        if list2 is None:
-            if isinstance(list1, PipIterable):
-                lists = list1
+    def ZIP(self, iterable1, iterable2=None):
+        if iterable2 is None:
+            if isinstance(iterable1, PipIterable):
+                if iterable1.isFinite():
+                    iterables = iterable1
+                else:
+                    self.err.warn("Cannot ZIP infinite Range")
+                    return nil
             else:
-                self.err.warn("Trying to zip non-iterable:", type(list1))
+                self.err.warn("Cannot ZIP non-iterable:", type(iterable1))
                 return nil
         else:
-            lists = [list1, list2]
+            iterables = [iterable1, iterable2]
         noniterables = [item
-                        for item in lists
+                        for item in iterables
                         if not isinstance(item, PipIterable)]
         if noniterables:
-            # There are some of the "lists" that are not iterable
+            # There are some of the "iterables" that are not iterable
             # TBD: maybe this can find a non-error meaning?
-            self.err.warn("Trying to zip non-iterable value(s):",
+            self.err.warn("Trying to ZIP non-iterable value(s):",
                           ", ".join(str(type(item)) for item in noniterables))
             return nil
         else:
-            return List(List(tuple) for tuple in zip(*lists))
+            return List(List(tuple) for tuple in zip(*iterables))
     
-    def ZIPDEFAULT(self, lists, default=None):
+    def ZIPDEFAULT(self, iterables, default=None):
         if default is None:
             default = SCALAR_EMPTY
-        if isinstance(lists, PipIterable):
-            noniterables = [item for item in lists
+        if isinstance(iterables, PipIterable):
+            if not iterables.isFinite():
+                self.err.warn("Cannot ZIPDEFAULT infinite Range")
+                return nil
+            noniterables = [item for item in iterables
                             if not isinstance(item, PipIterable)]
             if noniterables:
-                # There are some of the "lists" that are not iterable
+                # There are some of the "iterables" that are not iterable
                 # TBD: maybe this can find a non-error meaning?
-                self.err.warn("Trying to zip non-iterable value(s):",
+                self.err.warn("Trying to ZIPDEFAULT non-iterable value(s):",
                               noniterables)
                 return nil
             else:
                 return List(List(tuple) for tuple in
-                            itertools.zip_longest(*lists, fillvalue=default))
+                            itertools.zip_longest(*iterables,
+                                                  fillvalue=default))
         else:
-            self.err.warn("Trying to zip non-iterable:", type(list1))
+            self.err.warn("Trying to ZIPDEFAULT non-iterable:",
+                          type(iterable1))
             return nil
 
     def ZIPJOIN(self, line1, line2=None):
         if line2 is None:
             # Unary version expects its argument to be a list of lines
             if isinstance(line1, PipIterable):
-                lines = line1
+                if line1.isFinite():
+                    lines = line1
+                else:
+                    self.err.warn("Cannot ZIPJOIN infinite Range")
+                    return nil
             else:
-                self.err.warn("Trying to zip non-iterable:", type(line1))
+                self.err.warn("Trying to ZIPJOIN non-iterable:", type(line1))
                 return nil
         else:
             # Binary version expects its arguments to be two lines
