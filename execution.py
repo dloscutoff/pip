@@ -512,20 +512,27 @@ class ProgramState:
             for statement in elseCode:
                 self.executeStatement(statement)
 
-    def LOOP(self, count, code):
-        """Execute code count times."""
-        count = self.getRval(count)
-        if count is nil:
+    def LOOP(self, loopCount, code):
+        """Execute code loopCount times.
+
+        If loopCount is not a Scalar but is an iterable, loop a number
+        of times equal to the number of items."""
+        loopCount = self.getRval(loopCount)
+        if loopCount is nil:
             return
-        elif isinstance(count, Scalar):
-            count = int(count)
-        elif isinstance(count, (List, Range)):
-            count = len(count)
+        elif isinstance(loopCount, Scalar):
+            loopObject = range(int(loopCount))
+        elif isinstance(loopCount, List):
+            loopObject = range(len(loopCount))
+        elif isinstance(loopCount, Range):
+            # The Range could be infinite, so just loop over it
+            # directly rather than taking its len
+            loopObject = loopCount
         else:
             self.err.warn("Unimplemented argtype for LOOP:",
-                          type(count))
+                          type(loopCount))
             return
-        for i in range(count):
+        for i in loopObject:
             for statement in code:
                 self.executeStatement(statement)
     
