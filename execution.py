@@ -1453,31 +1453,51 @@ class ProgramState:
 
     def FLATTEN(self, iterable):
         if isinstance(iterable, (List, Range)):
-            result = List()
-            # TODO: check for infinite Range
-            for item in iterable:
-                if isinstance(item, (List, Range)):
-                    # TODO: check for infinite Range
-                    result.extend(item)
-                else:
-                    result.append(item)
-            return result
+            if iterable.isFinite():
+                result = List()
+                for item in iterable:
+                    if isinstance(item, (List, Range)):
+                        if item.isFinite():
+                            result.extend(item)
+                        else:
+                            self.err.warn("Cannot FLATTEN List",
+                                          "containing infinite Range")
+                            return nil
+                    else:
+                        result.append(item)
+                return result
+            else:
+                self.err.warn("Cannot FLATTEN infinite Range")
+                return nil
         else:
             return iterable
 
     def FLATTENALL(self, iterable):
         if isinstance(iterable, (List, Range)):
-            result = List()
-            # TODO: check for infinite Range
-            for item in iterable:
-                if isinstance(item, List):
-                    result.extend(self.FLATTENALL(item))
-                elif isinstance(item, Range):
-                    # TODO: check for infinite Range
-                    result.extend(item)
-                else:
-                    result.append(item)
-            return result
+            if iterable.isFinite():
+                result = List()
+                for item in iterable:
+                    if isinstance(item, List):
+                        flatList = self.FLATTENALL(item)
+                        if flatList is nil:
+                            # A nested List caused an error condition;
+                            # propagate it
+                            return nil
+                        else:
+                            result.extend(self.FLATTENALL(item))
+                    elif isinstance(item, Range):
+                        if item.isFinite():
+                            result.extend(item)
+                        else:
+                            self.err.warn("Cannot FLATTENALL List",
+                                          "containing infinite Range")
+                            return nil
+                    else:
+                        result.append(item)
+                return result
+            else:
+                self.err.warn("Cannot FLATTENALL infinite Range")
+                return nil
         else:
             return iterable
 
