@@ -1460,8 +1460,10 @@ class ProgramState:
             # The arguments are reversible to enable things like lFI:f
             function, iterable = iterable, function
         if isinstance(function, Block) and isinstance(iterable, PipIterable):
-            return List(item for item in iterable
-                        if self.functionCall(function, [item]))
+            return List(item
+                        for index, item in enumerate(iterable)
+                        if self.functionCall(function,
+                                             [item, Scalar(index)]))
         else:
             self.err.warn("Unimplemented argtypes for FILTER:",
                           type(function), "and", type(iterable))
@@ -1477,8 +1479,10 @@ class ProgramState:
             # The arguments are reversible to enable things like lFE:f
             function, iterable = iterable, function
         if isinstance(function, Block) and isinstance(iterable, PipIterable):
-            return List(item for index, item in enumerate(iterable)
-                        if self.functionCall(function, [Scalar(index), item]))
+            return List(item
+                        for index, item in enumerate(iterable)
+                        if self.functionCall(function,
+                                             [Scalar(index), item]))
         else:
             self.err.warn("Unimplemented argtypes for FILTERENUMERATE:",
                           type(function), "and", type(iterable))
@@ -1511,7 +1515,8 @@ class ProgramState:
         if isinstance(function, Block) and isinstance(iterable, PipIterable):
             return List(Scalar(index)
                         for index, item in enumerate(iterable)
-                        if self.functionCall(function, [Scalar(index), item]))
+                        if self.functionCall(function,
+                                             [Scalar(index), item]))
         else:
             self.err.warn("Unimplemented argtypes for FILTERINDEXES:",
                           type(function), "and", type(iterable))
@@ -1532,8 +1537,10 @@ class ProgramState:
             # The arguments are reversible to enable things like lFN:f
             function, iterable = iterable, function
         if isinstance(function, Block) and isinstance(iterable, PipIterable):
-            return List(item for item in iterable
-                        if not self.functionCall(function, [item]))
+            return List(item
+                        for index, item in enumerate(iterable)
+                        if not self.functionCall(function,
+                                                 [item, Scalar(index)]))
         else:
             self.err.warn("Unimplemented argtypes for FILTERNOT:",
                           type(function), "and", type(iterable))
@@ -2196,7 +2203,8 @@ class ProgramState:
             lhs, iterable = iterable, lhs
         if isinstance(iterable, PipIterable):
             if isinstance(lhs, Block):
-                result = (self.functionCall(lhs, [item]) for item in iterable)
+                result = (self.functionCall(lhs, [item, Scalar(index)])
+                          for index, item in enumerate(iterable))
             elif isinstance(lhs, List):
                 # Might be a list of functions; map each of them
                 result = (self.MAP(item, iterable) for item in lhs)
@@ -2280,7 +2288,22 @@ class ProgramState:
             # The arguments are reversible to enable things like lMM:f
             lhs, iterable = iterable, lhs
         if isinstance(iterable, PipIterable):
-            return List(self.MAP(lhs, item) for item in iterable)
+            if isinstance(lhs, Block):
+                result = (List(self.functionCall(lhs, [subitem,
+                                                       Scalar(outerIndex),
+                                                       Scalar(innerIndex)])
+                               for innerIndex, subitem in enumerate(item))
+                          for outerIndex, item in enumerate(iterable))
+            elif isinstance(lhs, List):
+                # Might be a list of functions; map each of them
+                result = (self.MAPMAP(item, iterable) for item in lhs)
+            else:
+                # If lhs isn't a function, just replace each subitem
+                # in iterable with it
+                # TBD: different behavior for Patterns?
+                result = (List(lhs for subitem in item)
+                          for item in iterable)
+            return List(result)
         else:
             self.err.warn("Unimplemented argtypes for MAPMAP:",
                           type(function), "and", type(iterable))
