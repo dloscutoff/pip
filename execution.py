@@ -3229,15 +3229,20 @@ class ProgramState:
         elif isinstance(rhs, Scalar):
             return Pattern(re.escape(str(rhs))).wrap()
         elif isinstance(rhs, Range):
-            if rhs.isFinite():
+            if rhs.isEmpty():
+                return Pattern(r"\b\B").wrap()
+            elif rhs.isFinite():
                 return Pattern("|".join(re.escape(str(item))
                                         for item in rhs)).wrap()
             else:
                 self.err.warn("Cannot take REGEX of infinite Range")
                 return nil
         elif isinstance(rhs, List):
-            return Pattern("|".join(str(self.REGEX(item))
-                                    for item in rhs)).wrap()
+            if rhs.isEmpty():
+                return Pattern(r"\b\B").wrap()
+            else:
+                return Pattern("|".join(str(self.REGEX(item))
+                                        for item in rhs)).wrap()
         else:
             self.err.warn("Unimplemented argtype for REGEX:", type(rhs))
             return nil
