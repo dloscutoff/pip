@@ -222,10 +222,22 @@ def parseOperand(tokenList):
             strOp = operators.opsByArity[1]["ST"]
             joinOp = operators.opsByArity[1]["J"]
             expression = [operators.enlist]
+            # The string consists of runs of literal characters
+            # interleaved with interpolation sequences
             literal = litOrInterpolation.pop(0)
             expression.append(tokens.EscapedString(rf'\"{literal}\"'))
             while litOrInterpolation:
                 interpolation = litOrInterpolation.pop(0)
+                # Some things that look like names are operators or
+                # commands, which can't be interpolated
+                if interpolation in operators.operators:
+                    err.die("Cannot interpolate operator", interpolation,
+                            errorClass=BadSyntax)
+                elif interpolation in operators.commands:
+                    err.die("Cannot interpolate command", interpolation,
+                            errorClass=BadSyntax)
+                # If it is actually a name, interpolate by converting
+                # it to a string
                 expression.append([strOp, tokens.Name(interpolation)])
                 literal = litOrInterpolation.pop(0)
                 expression.append(tokens.EscapedString(rf'\"{literal}\"'))
