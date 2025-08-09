@@ -625,16 +625,19 @@ class ProgramState:
             "VW": Scalar("aeiou"),
             "VY": Scalar("aeiouy"),
             "XA": Pattern("[a-z]", re.IGNORECASE),
-            "XC": Pattern("[bcdfghjklmnpqrstvwxyz]"),
+            "XB": Pattern(r"\b"),
+            "XC": Pattern("[bcdfghjklmnpqrstvwxyz]", re.IGNORECASE),
             "XD": Pattern(r"\d"),
+            "XH": Pattern(r"[0-9a-f]", re.IGNORECASE),
             "XI": Pattern(r"-?\d+"),
             "XL": Pattern("[a-z]"),
             "XN": Pattern(r"-?\d+(?:\.\d+)?"),
+            "XS": Pattern(r"\s"),
             "XU": Pattern("[A-Z]"),
-            "XV": Pattern("[aeiou]"),
+            "XV": Pattern("[aeiou]", re.IGNORECASE),
             "XW": Pattern(r"\w"),
             "XX": Pattern("."),
-            "XY": Pattern("[aeiouy]"),
+            "XY": Pattern("[aeiouy]", re.IGNORECASE),
             }
         self.vars["\\g"] = List(self.args)
         for name, arg in zip("abcde", self.args):
