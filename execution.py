@@ -2540,8 +2540,8 @@ class ProgramState:
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = lhs.toNumber() == rhs.toNumber()
         elif isinstance(lhs, Range) and isinstance(rhs, Range):
-            # Just use the Range class's __eq__
-            result = lhs == rhs
+            result = ((lhs.getLower() or 0) == (rhs.getLower() or 0)
+                      and lhs.getUpper() == rhs.getUpper())
         elif (isinstance(lhs, (List, Range))
               and isinstance(rhs, (List, Range))):
             if lhs.isFinite() and rhs.isFinite():
@@ -2764,7 +2764,8 @@ class ProgramState:
         if isinstance(lhs, Scalar) and isinstance(rhs, Scalar):
             result = lhs.toNumber() != rhs.toNumber()
         elif isinstance(lhs, Range) and isinstance(rhs, Range):
-            result = lhs != rhs
+            result = ((lhs.getLower() or 0) != (rhs.getLower() or 0)
+                      or lhs.getUpper() != rhs.getUpper())
         elif (isinstance(lhs, (List, Range))
               and isinstance(rhs, (List, Range))):
             if lhs.isFinite() and not rhs.isFinite():
