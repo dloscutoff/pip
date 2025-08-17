@@ -8,7 +8,7 @@ from errors import ErrorReporter, IncompleteSyntax
 err = ErrorReporter(warnings=True)  # TODO: get this setting from the args?
 
 nameRgx = re.compile(r"[A-Z]+"
-                     r"|[a-ik-z_]"
+                     r"|[a-z_]"
                      r"|\$[][()$`'0-9]"
                      r"|\$[a-z][a-z0-9_]*"
                      r"|\$_{1,3}"
@@ -122,12 +122,8 @@ def tokenize(code):
             err.die("Unterminated string or pattern literal:",
                     code.strip(), errorClass=IncompleteSyntax)
         else:
-            if code[0] == "j":
-                err.warn("While scanning, ignored 'j' "
-                         "(reserved for future use)")
-            else:
-                err.warn("While scanning, ignored unrecognized character: "
-                         f"{code[0]!r}")
+            err.warn("While scanning, ignored unrecognized character: "
+                     f"{code[0]!r}")
             code = code[1:]
     return tokenList
 
