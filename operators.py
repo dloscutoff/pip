@@ -102,6 +102,9 @@ commands = {cmdSpecs[0]:Command(*cmdSpecs) for cmdSpecs in cmdTable}
 # operator symbol, the function, the default value if used to fold an empty
 # iterable, and optionally some flags.
 
+ARITIES = {1: "Unary", 2: "Binary", 3: "Ternary"}
+ASSOCIATIVITIES = {"L": "Left", "R": "Right", "C": "Chaining", None: "None"}
+
 # Flags for operator properties:
 VALS = 0x01          # Evaluate all arguments (to lvals or rvals)
 RVALS = 0x02         # Evaluate all arguments to rvals

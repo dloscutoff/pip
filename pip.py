@@ -6,6 +6,7 @@ import pprint
 
 import version
 from scanning import scan, addSpaces
+import operators
 from parsing import parse
 from ptypes import Scalar
 from execution import ProgramState
@@ -34,6 +35,7 @@ REPL commands (abbreviated versions like ;h or ;he work too):
             as ;warnings off or ;warnings on)
 ;quit       Quit the REPL
 ;exit       Identical to ;quit
+;help AB    Display information about AB
 ;help       Display this help message
 """
 
@@ -352,7 +354,8 @@ def repl(list_format=None, warnings=False):
                 continue
             # Some Pip comments are used as repl commands
             if code.startswith(";") and code[1:].strip():
-                repl_command, *repl_cmd_args = code[1:].lower().split()
+                repl_command, *repl_cmd_args = code[1:].split()
+                repl_command = repl_command.lower()
                 if ("quit".startswith(repl_command)
                         or "exit".startswith(repl_command)
                         or repl_command == "x"):
@@ -360,18 +363,43 @@ def repl(list_format=None, warnings=False):
                     break
                 elif "help".startswith(repl_command):
                     # Show help text
-                    print(REPL_HELP_TEXT)
+                    if len(repl_cmd_args) == 1:
+                        # With one argument, show help text for that thing
+                        found = False
+                        arg = repl_cmd_args[0]
+                        # TODO: things that aren't operators
+                        for arity, ops in operators.opsByArity.items():
+                            if arg in ops:
+                                print()
+                                print(operators.ARITIES[arity],
+                                      "operator:",
+                                      ops[arg].function)
+                                print("Precedence:", ops[arg].precedence)
+                                assoc = ops[arg].associativity
+                                print("Associativity:",
+                                      operators.ASSOCIATIVITIES[assoc])
+                                found = True
+                        if found:
+                            print()
+                        else:
+                            print("No help text found for", arg)
+                    else:
+                        # Otherwise, show general help text
+                        print(REPL_HELP_TEXT)
                 elif "warnings".startswith(repl_command):
                     # Turn warnings on/off
                     status_changed = False
-                    if repl_cmd_args == ["on"]:
-                        state.err.warnings = True
-                        status_changed = True
-                    elif repl_cmd_args == ["off"]:
-                        state.err.warnings = False
-                        status_changed = True
-                    elif repl_cmd_args == []:
-                        # With no argument, toggle
+                    if len(repl_cmd_args) == 1:
+                        # With an argument, set status
+                        arg = repl_cmd_args[0].lower()
+                        if arg == "on":
+                            state.err.warnings = True
+                            status_changed = True
+                        elif arg == "off":
+                            state.err.warnings = False
+                            status_changed = True
+                    else:
+                        # Otherwise, toggle status
                         state.err.warnings = not state.err.warnings
                         status_changed = True
                     if status_changed:
