@@ -6,10 +6,10 @@ import pprint
 
 import version
 from scanning import scan, addSpaces
-import operators
+from operators import opsByArity, ARITIES, ASSOCIATIVITIES
 from parsing import parse
 from ptypes import Scalar
-from execution import ProgramState
+from execution import ProgramState, DEFAULT_VARS
 from errors import FatalError, BadSyntax, IncompleteSyntax
 
 
@@ -367,21 +367,28 @@ def repl(list_format=None, warnings=False):
                         # With one argument, show help text for that thing
                         found = False
                         arg = repl_cmd_args[0]
-                        # TODO: things that aren't operators
-                        for arity, ops in operators.opsByArity.items():
+                        # Check if it is an operator
+                        for arity, ops in opsByArity.items():
                             if arg in ops:
                                 print()
-                                print(operators.ARITIES[arity],
+                                print(ARITIES[arity],
                                       "operator:",
                                       ops[arg].function)
                                 print("Precedence:", ops[arg].precedence)
                                 assoc = ops[arg].associativity
                                 print("Associativity:",
-                                      operators.ASSOCIATIVITIES[assoc])
+                                      ASSOCIATIVITIES[assoc])
                                 found = True
                         if found:
                             print()
-                        else:
+                        if not found:
+                            # Check if it is a global variable
+                            if arg in DEFAULT_VARS:
+                                print("Global variable:",
+                                      repr(DEFAULT_VARS[arg]))
+                                found = True
+                        # TODO: help text for other things
+                        if not found:
                             print("No help text found for", arg)
                     else:
                         # Otherwise, show general help text

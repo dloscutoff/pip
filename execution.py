@@ -20,6 +20,58 @@ SCALAR_EMPTY = Scalar("")
 SCALAR_ONE = Scalar("1")
 SCALAR_TWO = Scalar("2")
 
+# Default values of global variables
+DEFAULT_VARS = {
+    "_": Block([], tokens.Name("a")),
+    "h": Scalar("100"),
+    "i": Scalar("0"),
+    # j is still TBD
+    "k": Scalar(", "),
+    "l": List([]),
+    "m": Scalar("1000"),
+    "n": Scalar("\n"),
+    "o": Scalar("1"),
+    "p": Scalar("()"),
+    # q is a special variable
+    # r is a special variable
+    "s": Scalar(" "),
+    "t": Scalar("10"),
+    "u": nil,
+    "v": Scalar("-1"),
+    "w": Pattern(r"\s+"),
+    "x": Scalar(""),
+    "y": Scalar(""),
+    "z": Scalar("abcdefghijklmnopqrstuvwxyz"),
+    "B": Block([], tokens.Name("b")),
+    "G": Block([], tokens.Name("g")),
+    "AZ": Scalar("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+    "CZ": Scalar("bcdfghjklmnpqrstvwxyz"),
+    "NB": Pattern(r"\B"),
+    "ND": Pattern(r"\D"),
+    "NS": Pattern(r"\S"),
+    "NW": Pattern(r"\W"),
+    "PA": Scalar("".join(chr(i) for i in range(32, 127))),
+    "PI": Scalar(math.pi),
+    "VD": Scalar(version.COMMIT_DATE),
+    "VN": Scalar(version.VERSION),
+    "VW": Scalar("aeiou"),
+    "VY": Scalar("aeiouy"),
+    "XA": Pattern("[a-z]", re.IGNORECASE),
+    "XB": Pattern(r"\b"),
+    "XC": Pattern("[bcdfghjklmnpqrstvwxyz]", re.IGNORECASE),
+    "XD": Pattern(r"\d"),
+    "XH": Pattern(r"[0-9a-f]", re.IGNORECASE),
+    "XI": Pattern(r"-?\d+"),
+    "XL": Pattern("[a-z]"),
+    "XN": Pattern(r"-?\d+(?:\.\d+)?"),
+    "XS": Pattern(r"\s"),
+    "XU": Pattern("[A-Z]"),
+    "XV": Pattern("[aeiou]", re.IGNORECASE),
+    "XW": Pattern(r"\w"),
+    "XX": Pattern("."),
+    "XY": Pattern("[aeiouy]", re.IGNORECASE),
+    }
+
 
 class ProgramState:
     """The internal state of a program during execution."""
@@ -593,56 +645,7 @@ class ProgramState:
 
     def WIPEGLOBALS(self):
         """Reset all global variables to their default values."""
-        self.vars = {
-            "_": Block([], tokens.Name("a")),
-            "h": Scalar("100"),
-            "i": Scalar("0"),
-            #j is reserved for complex numbers
-            "k": Scalar(", "),
-            "l": List([]),
-            "m": Scalar("1000"),
-            "n": Scalar("\n"),
-            "o": Scalar("1"),
-            "p": Scalar("()"),
-            #q is a special variable
-            #r is a special variable
-            "s": Scalar(" "),
-            "t": Scalar("10"),
-            "u": nil,
-            "v": Scalar("-1"),
-            "w": Pattern(r"\s+"),
-            "x": Scalar(""),
-            "y": Scalar(""),
-            "z": Scalar("abcdefghijklmnopqrstuvwxyz"),
-            "B": Block([], tokens.Name("b")),
-            "G": Block([], tokens.Name("g")),
-            "AZ": Scalar("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
-            "CZ": Scalar("bcdfghjklmnpqrstvwxyz"),
-            "NB": Pattern(r"\B"),
-            "ND": Pattern(r"\D"),
-            "NS": Pattern(r"\S"),
-            "NW": Pattern(r"\W"),
-            "PA": Scalar("".join(chr(i) for i in range(32, 127))),
-            "PI": Scalar(math.pi),
-            "VD": Scalar(version.COMMIT_DATE),
-            "VN": Scalar(version.VERSION),
-            "VW": Scalar("aeiou"),
-            "VY": Scalar("aeiouy"),
-            "XA": Pattern("[a-z]", re.IGNORECASE),
-            "XB": Pattern(r"\b"),
-            "XC": Pattern("[bcdfghjklmnpqrstvwxyz]", re.IGNORECASE),
-            "XD": Pattern(r"\d"),
-            "XH": Pattern(r"[0-9a-f]", re.IGNORECASE),
-            "XI": Pattern(r"-?\d+"),
-            "XL": Pattern("[a-z]"),
-            "XN": Pattern(r"-?\d+(?:\.\d+)?"),
-            "XS": Pattern(r"\s"),
-            "XU": Pattern("[A-Z]"),
-            "XV": Pattern("[aeiou]", re.IGNORECASE),
-            "XW": Pattern(r"\w"),
-            "XX": Pattern("."),
-            "XY": Pattern("[aeiouy]", re.IGNORECASE),
-            }
+        self.vars = {key: value.copy() for key, value in DEFAULT_VARS.items()}
         self.vars["\\g"] = List(self.args)
         for name, arg in zip("abcde", self.args):
             self.vars["\\" + name] = arg
