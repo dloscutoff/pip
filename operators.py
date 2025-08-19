@@ -167,6 +167,8 @@ precedenceTable = [
      ("FJ", "FILTERJOIN", [], RVALS),
      ("SK", "SORTKEYED", [], RVALS),
      ("DK", "DESCENDINGKEYED", [], RVALS),
+     ("MK", "MAXKEYED", [], RVALS),
+     ("NK", "MINKEYED", [], RVALS),
      ("V", "EVAL", None, RVALS),
      ],
     [3, "R",

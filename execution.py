@@ -2449,6 +2449,46 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for MAX:", type(iterable))
             return nil
 
+    def MAXKEYED(self, keyFunction, iterable):
+        """Return maximum by value of key function applied to each item.
+
+        The key function is expected to return a number. It can also
+        work if it returns a List, as long as it always returns a
+        List with the same structure. Finite Ranges also work.
+        """
+        if not isinstance(keyFunction, Block) and isinstance(iterable, Block):
+            keyFunction, iterable = iterable, keyFunction
+        if (isinstance(keyFunction, Block)
+                and isinstance(iterable, PipIterable)):
+            def pyKey(item):
+                keyValue = self.functionCall(keyFunction, [item])
+                if isinstance(keyValue, (Pattern, Block, Nil)):
+                    self.err.warn("Replacing key value of type "
+                                  f"{type(keyValue)} with 0 in MAXKEYED")
+                    return 0
+                elif (isinstance(keyValue, Range)
+                      and keyValue.getUpper() is None):
+                    self.err.warn("Replacing infinite Range key value "
+                                  "with [] in MAXKEYED")
+                    return []
+                else:
+                    # Convert Scalars to numbers, (nested) Lists to
+                    # (nested) lists of numbers, Ranges to lists of numbers
+                    return keyValue.toNumber()
+            if iterable.isFinite():
+                try:
+                    return max(iterable, key=pyKey)
+                except TypeError:
+                    self.err.warn("MAXKEYED cannot compare numbers to lists")
+                    return nil
+            else:
+                self.err.warn("Cannot take MAXKEYED of an infinite Range")
+                return nil
+        else:
+            self.err.warn("Unimplemented argtypes for MAXKEYED:",
+                          type(keyFunction), "and", type(iterable))
+            return nil
+
     def MIN(self, iterable):
         """Return numeric minimum of iterable."""
         if isinstance(iterable, PipIterable):
@@ -2472,6 +2512,46 @@ class ProgramState:
                     return nil
         else:
             self.err.warn("Unimplemented argtype for MIN:", type(iterable))
+            return nil
+
+    def MINKEYED(self, keyFunction, iterable):
+        """Return minimum by value of key function applied to each item.
+
+        The key function is expected to return a number. It can also
+        work if it returns a List, as long as it always returns a
+        List with the same structure. Finite Ranges also work.
+        """
+        if not isinstance(keyFunction, Block) and isinstance(iterable, Block):
+            keyFunction, iterable = iterable, keyFunction
+        if (isinstance(keyFunction, Block)
+                and isinstance(iterable, PipIterable)):
+            def pyKey(item):
+                keyValue = self.functionCall(keyFunction, [item])
+                if isinstance(keyValue, (Pattern, Block, Nil)):
+                    self.err.warn("Replacing key value of type "
+                                  f"{type(keyValue)} with 0 in MINKEYED")
+                    return 0
+                elif (isinstance(keyValue, Range)
+                      and keyValue.getUpper() is None):
+                    self.err.warn("Replacing infinite Range key value "
+                                  "with [] in MINKEYED")
+                    return []
+                else:
+                    # Convert Scalars to numbers, (nested) Lists to
+                    # (nested) lists of numbers, Ranges to lists of numbers
+                    return keyValue.toNumber()
+            if iterable.isFinite():
+                try:
+                    return min(iterable, key=pyKey)
+                except TypeError:
+                    self.err.warn("MINKEYED cannot compare numbers to lists")
+                    return nil
+            else:
+                self.err.warn("Cannot take MINKEYED of an infinite Range")
+                return nil
+        else:
+            self.err.warn("Unimplemented argtypes for MINKEYED:",
+                          type(keyFunction), "and", type(iterable))
             return nil
     
     def MOD(self, lhs, rhs=None):
