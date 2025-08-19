@@ -15,6 +15,12 @@ from ptypes import (PipType, PipIterable, Scalar, Pattern, List, Range,
 import ptypes
 from errors import ErrorReporter, FatalError
 
+BASE_CONVERSION_DIGITS = (
+    "0123456789"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz"
+    )
+
 # Generate some Scalar constants now to make certain operations more efficient
 SCALAR_EMPTY = Scalar("")
 SCALAR_ONE = Scalar("1")
@@ -1780,19 +1786,35 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented base type for FROMBASE:", type(base))
             return nil
-        if base < 2 or base > 36:
+        if base < 2 or base > len(BASE_CONVERSION_DIGITS):
             self.err.warn("Invalid base for FROMBASE:", base)
             return nil
         if isinstance(number, Scalar):
-            if len(number) == 0:
-                number = 0
-            try:
-                result = int(str(number).replace("_", " "), base)
-                return Scalar(result)
-            except ValueError:
-                # TBD: make more robust? Or just let it stay nil
-                self.err.warn("Failed converting", number, "from base", base)
-                return nil
+            number = str(number)
+            if number.startswith("-"):
+                sign = -1
+                number = number[1:]
+            else:
+                sign = 1
+            result = 0
+            for digit in number:
+                if digit in BASE_CONVERSION_DIGITS:
+                    digitValue = BASE_CONVERSION_DIGITS.index(digit)
+                    if digitValue >= base:
+                        # This digit is larger than the max digit in the
+                        # given base, but we can keep going with the
+                        # conversion; just give a warning
+                        if digit == str(digitValue):
+                            digitRepresentation = digit
+                        else:
+                            digitRepresentation = f"{digit} = {digitValue}"
+                        self.err.warn("Digit too large for base", base,
+                                      "in FROMBASE:", digitRepresentation)
+                    result = result * base + digitValue
+                else:
+                    self.err.warn("Unrecognized digit in FROMBASE:", digit)
+                    return nil
+            return Scalar(sign * result)
         else:
             self.err.warn("Unimplemented argtype for FROMBASE:",
                           type(number))
@@ -4193,7 +4215,7 @@ class ProgramState:
             self.err.warn("Unimplemented base type for TOBASE:",
                           type(base))
             return nil
-        if base < 2 or base > 36:
+        if base < 2 or base > len(BASE_CONVERSION_DIGITS):
             self.err.warn("Invalid base for TOBASE:", base)
             return nil
         if isinstance(number, Scalar):
@@ -4205,10 +4227,9 @@ class ProgramState:
                 number = -number
             else:
                 sign = ""
-            alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             result = ""
             while number > 0:
-                result = alphabet[number % base] + result
+                result = BASE_CONVERSION_DIGITS[number % base] + result
                 number //= base
             return Scalar(sign + result)
         else:
