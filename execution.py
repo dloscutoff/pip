@@ -1498,6 +1498,10 @@ class ProgramState:
                           type(function), "and", type(iterable))
             return nil
 
+    def FILTERFLATTEN(self, function, iterable=None):
+        """Same as FILTER, but flatten the result by one level afterwards."""
+        return self.FLATTEN(self.FILTER(function, iterable))
+
     def FILTERJOIN(self, function, iterable=None):
         """Same as FILTER, but join the result into a string afterwards."""
         return self.JOIN(self.FILTER(function, iterable))
