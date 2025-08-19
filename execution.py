@@ -1766,10 +1766,13 @@ class ProgramState:
             return nil
 
     def FROMBASE(self, number, base=None):
+        """Convert a string in the specified base to a decimal integer."""
         if base is None:
             base = 2
         elif isinstance(base, Scalar):
             base = int(base)
+        elif isinstance(base, int):
+            pass
         else:
             self.err.warn("Unimplemented base type for FROMBASE:", type(base))
             return nil
@@ -1792,10 +1795,13 @@ class ProgramState:
             return nil
 
     def FROMDIGITS(self, digits, base=None):
+        "Convert a list of digits in the specified base to a decimal integer."
         if base is None:
             base = 2
         elif isinstance(base, Scalar):
             base = base.toNumber()
+        elif isinstance(base, int):
+            pass
         else:
             self.err.warn("Unimplemented base type for FROMDIGITS:",
                           type(base))
@@ -1815,6 +1821,10 @@ class ProgramState:
             self.err.warn("Unimplemented argtype for FROMDIGITS:",
                           type(digits))
             return nil
+
+    def FROMHEX(self, number):
+        """Convert a string in hexadecimal to a decimal integer."""
+        return self.FROMBASE(number, 16)
 
     def FULLMATCH(self, string, regex):
         if isinstance(string, Pattern) and isinstance(regex, Scalar):
@@ -4093,6 +4103,8 @@ class ProgramState:
             base = 2
         elif isinstance(base, Scalar):
             base = int(base)
+        elif isinstance(base, int):
+            pass
         else:
             self.err.warn("Unimplemented base type for TOBASE:",
                           type(base))
@@ -4127,6 +4139,8 @@ class ProgramState:
             base = 2
         elif isinstance(base, Scalar):
             base = int(base)
+        elif isinstance(base, int):
+            pass
         else:
             self.err.warn("Unimplemented base type for TODIGITS:",
                           type(base))
@@ -4150,6 +4164,10 @@ class ProgramState:
         else:
             self.err.warn("Unimplemented argtype for TODIGITS:", type(number))
             return nil
+
+    def TOHEX(self, number):
+        """Convert a decimal integer to a string in hexadecimal."""
+        return self.TOBASE(number, 16)
 
     def TRANSLITERATE(self, lhs, old, new):
         """Expanded version of Python's str.translate().

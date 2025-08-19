@@ -350,7 +350,7 @@ precedenceTable = [
      (r"\,", "INCLRANGETO", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("RR", "RANDRANGETO", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("TB", "TOBASE", None, RVALS | IN_LAMBDA | RANGE_EACH),
-     # Unary mnemonic: ToBinary
+     ("TH", "TOHEX", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ],
     [2, "L",
      ("BA", "BITWISEAND", -1, RVALS | IN_LAMBDA | RANGE_EACH),
@@ -427,7 +427,7 @@ precedenceTable = [
      ("AB", "ABS", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("SG", "SIGN", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ("FB", "FROMBASE", None, RVALS | IN_LAMBDA | RANGE_EACH),
-     # Unary mnemonic: FromBinary
+     ("FH", "FROMHEX", None, RVALS | IN_LAMBDA | RANGE_EACH),
      ],
     [2, "L",
      ("@", "AT", None, VALS | IN_LAMBDA),
