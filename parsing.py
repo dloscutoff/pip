@@ -8,11 +8,25 @@ from errors import ErrorReporter, BadSyntax, IncompleteSyntax
 assignOp = operators.opsByArity[2][":"]
 err = ErrorReporter(warnings=True)  # TODO: get this setting from the args?
 
+def parseFullProgram(tokenList):
+    """Parses a list of tokens as a full program.
+
+    The program consists of zero or more statements, optionally
+    followed by output format specifiers."""
+    # Take output specifiers off the end of the code
+    outputSpecifiers = []
+    while tokenList and tokenList[-1] in operators.outputSpecifiers:
+        outputSpecifiers.insert(0, tokenList.pop())
+    # The remaining tokens are statements
+    statements = parse(tokenList)
+    return outputSpecifiers, statements
+
 def parse(tokenList):
     "Parses a list of tokens as a collection of statements."
     statements = []
-    # The last "token" is None, signalling end of program; or, we might meet
+    # The last "token" is None, signalling end of code; or, we might meet
     # a closing curly brace at the end of a block
+    tokenList.append(None)
     while tokenList[0] is not None and tokenList[0] != "}":
         statements.append(parseStatement(tokenList))
         #!print(statements)

@@ -7,7 +7,7 @@ import pprint
 import version
 from scanning import scan, addSpaces
 from operators import opsByArity, ARITIES, ASSOCIATIVITIES
-from parsing import parse
+from parsing import parse, parseFullProgram
 from ptypes import Scalar
 from execution import ProgramState, DEFAULT_VARS
 from errors import FatalError, BadSyntax, IncompleteSyntax
@@ -258,7 +258,7 @@ def pip(code=None, argv=None, interactive=True):
         print(addSpaces(tokens))
         print()
     try:
-        parse_tree = parse(tokens)
+        output_specifiers, parse_tree = parseFullProgram(tokens)
     except FatalError as err:
         print("Fatal error while parsing:", err, file=sys.stderr)
         print("Execution aborted.", file=sys.stderr)
@@ -266,7 +266,12 @@ def pip(code=None, argv=None, interactive=True):
     if options.verbose:
         pprint.pprint(parse_tree)
         print()
-    state = ProgramState(listFormat, options.warnings)
+    if ";" in output_specifiers:
+        # Semicolon at end of program suppresses autoprinting
+        autoprint = False
+    else:
+        autoprint = True
+    state = ProgramState(listFormat, options.warnings, autoprint)
     if options.readlines:
         raw_args = []
         try:

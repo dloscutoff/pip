@@ -78,8 +78,6 @@ def newToken(text, *args, **kwargs):
 def tokenize(code):
     """Returns a list of tokens."""
     tokenList = []
-    # Prefix a newline so that leading ;comments get scanned correctly
-    code = "\n" + code
     while code:
         if m := lineCommentRgx.match(code):
             # Discard line comments
@@ -128,10 +126,10 @@ def tokenize(code):
     return tokenList
 
 def scan(code):
-    """Tokenize code, and add flags to the end to make parsing easier."""
-    tokenList = tokenize(code + "\n")
-    # None at end of token list signals to terminate the program
-    return tokenList + [None]
+    """Scan a code string, returning a list of tokens."""
+    # Surround the code with newlines so that ;comments get scanned
+    # correctly
+    return tokenize("\n" + code + "\n")
 
 def addSpaces(code):
     """Returns a string of code with spaces between tokens.

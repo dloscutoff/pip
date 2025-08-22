@@ -74,6 +74,11 @@ class Operator(tokens.Token):
         return cpy
 
 
+# These symbols are output format specifiers when they occur at the end
+# of the program:
+
+outputSpecifiers = [";"]
+
 # Each entry in the command table contains the command symbol, the function,
 # and a list of parsing items that the command expects:
 # NAME - a single variable name

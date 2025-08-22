@@ -82,7 +82,8 @@ DEFAULT_VARS = {
 class ProgramState:
     """The internal state of a program during execution."""
     
-    def __init__(self, listFormat=None, showWarnings=False):
+    def __init__(self, listFormat=None, showWarnings=False,
+                 autoprint=True):
         # The listFormat parameter determines how lists are formatted when
         # converting to string (and therefore when printing)
         List.outFormat = listFormat
@@ -90,6 +91,9 @@ class ProgramState:
         # (such as dividing by 0) show warning messages or continue silently
         self.err = ErrorReporter(showWarnings)
         self.callDepth = -1
+        # The autoprint parameter determines whether the last expression
+        # in the program is printed at the end of execution
+        self.autoprint = autoprint
         # There is no maximum recursion depth, but in practice recursion is
         # severely limited by Python's maximum recursion depth. In one test,
         # the program crashed after 140 levels of recursion.
@@ -122,9 +126,11 @@ class ProgramState:
         # main function this time
         self.WIPEGLOBALS()
         # Execute the main program as a function call with args as the
-        # arguments and the return value PRINTed after execution
+        # arguments
         returnVal = self.functionCall(self.mainFunction, self.args)
-        self.PRINT(returnVal)
+        # PRINT the return val after execution if autoprint is on
+        if self.autoprint:
+            self.PRINT(returnVal)
         sys.stdout.flush()
 
     def executeStatement(self, statement):
