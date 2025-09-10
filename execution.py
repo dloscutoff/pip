@@ -4668,6 +4668,7 @@ class LocalScope:
         self.function = function
         self.argList = argList
         self.loopNestingLevel = -1
+        self.iterationCounts = []
         self.vars = {}
         if self.argList is not None:
             for name, arg in zip("abcde", argList):
@@ -4677,18 +4678,20 @@ class LocalScope:
 
     def openLoop(self):
         self.loopNestingLevel += 1
+        self.iterationCounts.append(0)
         loopVar = self.currentLoopVar()
         if loopVar is not None:
             self.vars[loopVar] = Scalar("0")
 
     def stepLoop(self):
+        self.iterationCounts[-1] += 1
         loopVar = self.currentLoopVar()
         if loopVar is not None:
-            loopCount = int(self.vars[loopVar])
-            self.vars[loopVar] = Scalar(loopCount + 1)
+            self.vars[loopVar] = Scalar(self.iterationCounts[-1])
 
     def closeLoop(self):
         self.loopNestingLevel -= 1
+        self.iterationCounts.pop()
 
     def currentLoopVar(self):
         if 0 <= self.loopNestingLevel <= 4:
