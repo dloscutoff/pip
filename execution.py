@@ -1313,8 +1313,10 @@ class ProgramState:
             keyFunction, iterable = iterable, keyFunction
         if (isinstance(keyFunction, Block)
                 and isinstance(iterable, PipIterable)):
-            def pyKey(item):
-                keyValue = self.functionCall(keyFunction, [item])
+            def pyKey(enumitem):
+                index, item = enumitem
+                keyValue = self.functionCall(keyFunction,
+                                             [item, Scalar(index)])
                 if isinstance(keyValue, (Pattern, Block, Nil)):
                     self.err.warn("Replacing key value of type "
                                   f"{type(keyValue)} with 0 in "
@@ -1329,11 +1331,18 @@ class ProgramState:
                     # Convert Scalars to numbers, (nested) Lists to
                     # (nested) lists of numbers, Ranges to lists of numbers
                     return keyValue.toNumber()
-            try:
-                return List(sorted(iterable, key=pyKey, reverse=True))
-            except TypeError:
-                self.err.warn("DESCENDINGKEYED cannot compare numbers "
-                              "to lists")
+            if iterable.isFinite():
+                try:
+                    return List(item
+                                for index, item in sorted(enumerate(iterable),
+                                                          key=pyKey,
+                                                          reverse=True))
+                except TypeError:
+                    self.err.warn("DESCENDINGKEYED cannot compare numbers "
+                                  "to lists")
+                    return nil
+            else:
+                self.err.warn("DESCENDINGKEYED cannot sort infinite Range")
                 return nil
         else:
             self.err.warn("Unimplemented argtypes for DESCENDINGKEYED:",
@@ -2492,8 +2501,10 @@ class ProgramState:
             keyFunction, iterable = iterable, keyFunction
         if (isinstance(keyFunction, Block)
                 and isinstance(iterable, PipIterable)):
-            def pyKey(item):
-                keyValue = self.functionCall(keyFunction, [item])
+            def pyKey(enumitem):
+                index, item = enumitem
+                keyValue = self.functionCall(keyFunction,
+                                             [item, Scalar(index)])
                 if isinstance(keyValue, (Pattern, Block, Nil)):
                     self.err.warn("Replacing key value of type "
                                   f"{type(keyValue)} with 0 in MAXKEYED")
@@ -2509,7 +2520,8 @@ class ProgramState:
                     return keyValue.toNumber()
             if iterable.isFinite():
                 try:
-                    return max(iterable, key=pyKey)
+                    index, item = max(enumerate(iterable), key=pyKey)
+                    return item
                 except TypeError:
                     self.err.warn("MAXKEYED cannot compare numbers to lists")
                     return nil
@@ -2557,8 +2569,10 @@ class ProgramState:
             keyFunction, iterable = iterable, keyFunction
         if (isinstance(keyFunction, Block)
                 and isinstance(iterable, PipIterable)):
-            def pyKey(item):
-                keyValue = self.functionCall(keyFunction, [item])
+            def pyKey(enumitem):
+                index, item = enumitem
+                keyValue = self.functionCall(keyFunction,
+                                             [item, Scalar(index)])
                 if isinstance(keyValue, (Pattern, Block, Nil)):
                     self.err.warn("Replacing key value of type "
                                   f"{type(keyValue)} with 0 in MINKEYED")
@@ -2574,7 +2588,8 @@ class ProgramState:
                     return keyValue.toNumber()
             if iterable.isFinite():
                 try:
-                    return min(iterable, key=pyKey)
+                    index, item = min(enumerate(iterable), key=pyKey)
+                    return item
                 except TypeError:
                     self.err.warn("MINKEYED cannot compare numbers to lists")
                     return nil
@@ -3769,8 +3784,10 @@ class ProgramState:
             keyFunction, iterable = iterable, keyFunction
         if (isinstance(keyFunction, Block)
                 and isinstance(iterable, PipIterable)):
-            def pyKey(item):
-                keyValue = self.functionCall(keyFunction, [item])
+            def pyKey(enumitem):
+                index, item = enumitem
+                keyValue = self.functionCall(keyFunction,
+                                             [item, Scalar(index)])
                 if isinstance(keyValue, (Pattern, Block, Nil)):
                     self.err.warn("Replacing key value of type "
                                   f"{type(keyValue)} with 0 in SORTKEYED")
@@ -3786,12 +3803,14 @@ class ProgramState:
                     return keyValue.toNumber()
             if iterable.isFinite():
                 try:
-                    return List(sorted(iterable, key=pyKey))
+                    return List(item
+                                for index, item in sorted(enumerate(iterable),
+                                                          key=pyKey))
                 except TypeError:
                     self.err.warn("SORTKEYED cannot compare numbers to lists")
                     return nil
             else:
-                self.err.warn("Cannot sort infinite Range")
+                self.err.warn("SORTKEYED cannot sort infinite Range")
                 return nil
         else:
             self.err.warn("Unimplemented argtypes for SORTKEYED:",
