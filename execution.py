@@ -1581,6 +1581,10 @@ class ProgramState:
                           type(function), "and", type(iterable))
             return nil
 
+    def FILTERUNIQUE(self, function, iterable=None):
+        """Same as FILTER, but uniquify the result afterwards."""
+        return self.UNIQUE(self.FILTER(function, iterable))
+
     def FILTERUNPACK(self, function, iterable=None):
         """Filter iterable: keep items where function returns truthy.
 
@@ -2417,6 +2421,10 @@ class ProgramState:
         for item in self.MAP(function, iterable):
             result = self.evaluate([plus, result, item])
         return result
+
+    def MAPUNIQUE(self, lhs, iterable):
+        """Same as MAP, but uniquify the result afterwards."""
+        return self.UNIQUE(self.MAP(lhs, iterable))
 
     def MAPUNPACK(self, function, iterable):
         """Map function over iterable, each item being a list of arguments.
