@@ -404,12 +404,17 @@ def unparseExpr(tree, statementSep):
                     operands.append(operand)
             if op == "CHAIN":
                 code = " ".join(operands)
-            elif op.arity == 1:
+            elif len(operands) == 1:
                 code = f"{op} {operands[0]}"
-            elif op.arity == 2:
+            elif len(operands) == 2:
                 code = f"{operands[0]} {op} {operands[1]}"
-            elif op.arity == 3:
+            elif len(operands) == 3:
                 code = f"{operands[0]} {op} {operands[1]}; {operands[2]}"
+            else:
+                # This should never happen, but for debugging purposes:
+                err.warn("Unexpected number of operands in parse tree:",
+                         tree)
+                code = f"({op} " + "; ".join(operands) + ")"
     elif isinstance(tree, tokens.Token):
         code = str(tree)
     else:
