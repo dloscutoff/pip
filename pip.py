@@ -69,6 +69,7 @@ def run(code=None, argv=None):
 
 
 def pip(code=None, argv=None, interactive=True):
+    # If in interactive mode, get artificial command-line args from stdin
     if code is not None or argv is not None:
         interactive = False
     if interactive:
@@ -76,6 +77,144 @@ def pip(code=None, argv=None, interactive=True):
         print("Enter command-line args, terminated by newline "
               "(-h for help, -R for repl):")
         argv = input()
+
+    # Process command-line args into the options object
+    options = getArgs(argv)
+    listFormat = ("p" if options.repr else
+                  "P" if options.reprlines else
+                  "s" if options.space else
+                  "S" if options.spacelines else
+                  "n" if options.newline else
+                  "l" if options.lines else
+                  None)
+
+    # Some options cause behavior other than running a full program
+    if options.version:
+        print(f"Pip {version.VERSION} (updated {version.COMMIT_DATE})")
+        return
+    if options.repl:
+        repl(listFormat, options.warnings)
+        return
+
+    # Get program code
+    if (code is None and options.execute is None and options.file is None
+            and not options.stdin):
+        if interactive:
+            options.stdin = True
+        elif options.args:
+            # Treat first non-option arg as name of code file
+            options.file = options.args.pop(0)
+        else:
+            print(f"Type {sys.argv[0]} -h for usage information.")
+            return
+    if code is not None:
+        # Code is passed into function
+        program = code
+    else:
+        # Load code from some source based on options
+        program = getCode(options, interactive)
+    if options.verbose:
+        charcount = len(program)
+        bytecount = len(program.encode("utf-8"))
+        print(f"{bytecount} bytes (UTF-8), {charcount} characters")
+        print()
+
+    # Scan the program into tokens
+    try:
+        tokens = scan(program)
+    except FatalError as err:
+        print("Fatal error while scanning:", err, file=sys.stderr)
+        print("Execution aborted.", file=sys.stderr)
+        raise
+    if options.verbose:
+        print(addSpaces(tokens))
+        print()
+
+    # Parse the tokens into a parse tree
+    try:
+        output_specifiers, parse_tree = parseFullProgram(tokens)
+    except FatalError as err:
+        print("Fatal error while parsing:", err, file=sys.stderr)
+        print("Execution aborted.", file=sys.stderr)
+        raise
+    if options.verbose:
+        pprint.pprint(parse_tree)
+        print()
+
+    # Create the program state object
+    if ";" in output_specifiers:
+        # Semicolon at end of program suppresses autoprinting
+        autoprint = False
+    else:
+        autoprint = True
+    state = ProgramState(listFormat, options.warnings, autoprint)
+
+    # If the readlines option was specified, read program args from stdin
+    if options.readlines:
+        raw_args = []
+        try:
+            while True:
+                raw_args.append(input())
+        except EOFError:
+            pass
+    else:
+        raw_args = options.args
+
+    # If the exec_args option was specified, evaluate the args
+    if options.exec_args:
+        # Treat each argument as a Pip statement/expression
+        program_args = []
+        for arg in raw_args:
+            try:
+                arg_tokens = scan(arg)
+            except FatalError as err:
+                print(f"Fatal error while scanning argument {arg!r}:",
+                      err, file=sys.stderr)
+                print("Execution aborted.", file=sys.stderr)
+                raise
+            try:
+                arg_parse_tree = parse(arg_tokens)
+            except FatalError as err:
+                print(f"Fatal error while parsing argument {arg!r}:",
+                      err, file=sys.stderr)
+                print("Execution aborted.", file=sys.stderr)
+                raise
+            parsed_arg = arg_parse_tree[0]
+            try:
+                program_args.append(state.evaluate(parsed_arg))
+            except (FatalError, RuntimeError) as err:
+                # RuntimeError probably means we exceeded Python's
+                # max recursion depth
+                print(f"Fatal error while evaluating argument {arg!r}:",
+                      err, file=sys.stderr)
+                print("Execution aborted.", file=sys.stderr)
+                raise FatalError(str(err))
+            except KeyboardInterrupt:
+                print("Program terminated by user while evaluating "
+                      f"argument {arg!r}.",
+                      file=sys.stderr)
+                raise FatalError("Keyboard interrupt")
+    else:
+        # Treat each argument as a Scalar
+        program_args = [Scalar(arg) for arg in raw_args]
+
+    # Execute the program
+    if interactive:
+        print("Executing...")
+    try:
+        state.executeProgram(parse_tree, program_args)
+    except (FatalError, RuntimeError) as err:
+        # RuntimeError probably means we exceeded Python's max
+        # recursion depth
+        print("Fatal error during execution:", err, file=sys.stderr)
+        print("Program terminated.", file=sys.stderr)
+        raise FatalError(str(err))
+    except KeyboardInterrupt:
+        print("Program terminated by user.", file=sys.stderr)
+        raise FatalError("Keyboard interrupt")
+
+
+def getArgs(argv):
     if argv is not None:
         # Artificial command-line input was provided
         if isinstance(argv, list):
@@ -189,147 +328,39 @@ def pip(code=None, argv=None, interactive=True):
     else:
         # Parse options from actual command-line input
         options = argparser.parse_args()
-    #!print(options)
-
-    if options.version:
-        print(f"Pip {version.VERSION} (updated {version.COMMIT_DATE})")
-        return
     if options.debug:
         options.warnings = options.verbose = options.repr = True
-    listFormat = ("p" if options.repr else
-                  "P" if options.reprlines else
-                  "s" if options.space else
-                  "S" if options.spacelines else
-                  "n" if options.newline else
-                  "l" if options.lines else
-                  None)
-    if options.repl:
-        repl(listFormat, options.warnings)
-        return
-    if (code is None and options.execute is None and options.file is None
-            and not options.stdin):
-        if interactive:
-            options.stdin = True
-            print("Enter your program, terminated by Ctrl-D or Ctrl-Z:")
-        elif options.args:
-            # Treat first non-option arg as name of code file
-            options.file = options.args.pop(0)
-        else:
-            print(f"Type {sys.argv[0]} -h for usage information.")
-            return
-    if code is not None:
-        # Code is passed into function
-        program = code
-    elif options.execute is not None:
+    #!print(options)
+    return options
+
+
+def getCode(options, interactive):
+    if options.execute is not None:
         # Code is given as command-line argument
-        program = options.execute
+        code = options.execute
     elif options.file is not None:
         # Get code from specified file
         if interactive:
             print("Reading", options.file)
         try:
             with open(options.file) as f:
-                program = f.read()
+                code = f.read()
         except:
             print("Could not read from file", options.file, file=sys.stderr)
             raise FatalError("Could not read from code file")
     elif options.stdin:
         # Get code from stdin, stopping at EOF
-        program = ""
+        if interactive:
+            print("Enter your program, terminated by Ctrl-D or Ctrl-Z:")
+        code = ""
         try:
             while True:
-                program += input() + "\n"
+                code += input() + "\n"
         except EOFError:
             pass
-        if program:
-            program = program[:-1]
-    if options.verbose:
-        charcount = len(program)
-        bytecount = len(program.encode("utf-8"))
-        print(f"{bytecount} bytes (UTF-8), {charcount} characters")
-        print()
-    try:
-        tokens = scan(program)
-    except FatalError as err:
-        print("Fatal error while scanning:", err, file=sys.stderr)
-        print("Execution aborted.", file=sys.stderr)
-        raise
-    if options.verbose:
-        print(addSpaces(tokens))
-        print()
-    try:
-        output_specifiers, parse_tree = parseFullProgram(tokens)
-    except FatalError as err:
-        print("Fatal error while parsing:", err, file=sys.stderr)
-        print("Execution aborted.", file=sys.stderr)
-        raise
-    if options.verbose:
-        pprint.pprint(parse_tree)
-        print()
-    if ";" in output_specifiers:
-        # Semicolon at end of program suppresses autoprinting
-        autoprint = False
-    else:
-        autoprint = True
-    state = ProgramState(listFormat, options.warnings, autoprint)
-    if options.readlines:
-        raw_args = []
-        try:
-            while True:
-                raw_args.append(input())
-        except EOFError:
-            pass
-    else:
-        raw_args = options.args
-    if options.exec_args:
-        # Treat each argument as a Pip statement/expression
-        program_args = []
-        for arg in raw_args:
-            try:
-                arg_tokens = scan(arg)
-            except FatalError as err:
-                print(f"Fatal error while scanning argument {arg!r}:",
-                      err, file=sys.stderr)
-                print("Execution aborted.", file=sys.stderr)
-                raise
-            try:
-                arg_parse_tree = parse(arg_tokens)
-            except FatalError as err:
-                print(f"Fatal error while parsing argument {arg!r}:",
-                      err, file=sys.stderr)
-                print("Execution aborted.", file=sys.stderr)
-                raise
-            parsed_arg = arg_parse_tree[0]
-            try:
-                program_args.append(state.evaluate(parsed_arg))
-            except (FatalError, RuntimeError) as err:
-                # RuntimeError probably means we exceeded Python's
-                # max recursion depth
-                print(f"Fatal error while evaluating argument {arg!r}:",
-                      err, file=sys.stderr)
-                print("Execution aborted.", file=sys.stderr)
-                raise FatalError(str(err))
-            except KeyboardInterrupt:
-                print("Program terminated by user while evaluating "
-                      f"argument {arg!r}.",
-                      file=sys.stderr)
-                raise FatalError("Keyboard interrupt")
-    else:
-        # Treat each argument as a Scalar
-        program_args = [Scalar(arg) for arg in raw_args]
-    if interactive:
-        print("Executing...")
-    try:
-        state.executeProgram(parse_tree, program_args)
-    except (FatalError, RuntimeError) as err:
-        # RuntimeError probably means we exceeded Python's max
-        # recursion depth
-        print("Fatal error during execution:", err, file=sys.stderr)
-        print("Program terminated.", file=sys.stderr)
-        raise FatalError(str(err))
-    except KeyboardInterrupt:
-        print("Program terminated by user.", file=sys.stderr)
-        raise FatalError("Keyboard interrupt")
+        if code:
+            code = code[:-1]
+    return code
 
 
 def repl(list_format=None, warnings=False):
@@ -359,8 +390,12 @@ def repl(list_format=None, warnings=False):
                 continue
             # Some Pip comments are used as repl commands
             if code.startswith(";") and code[1:].strip():
-                repl_command, *repl_cmd_args = code[1:].split()
+                repl_command, *repl_cmd_args = code[1:].split(maxsplit=1)
                 repl_command = repl_command.lower()
+                if repl_cmd_args:
+                    repl_cmd_arg = repl_cmd_args[0].strip()
+                else:
+                    repl_cmd_arg = None
                 if ("quit".startswith(repl_command)
                         or "exit".startswith(repl_command)
                         or repl_command == "x"):
@@ -368,42 +403,13 @@ def repl(list_format=None, warnings=False):
                     break
                 elif "help".startswith(repl_command):
                     # Show help text
-                    if len(repl_cmd_args) == 1:
-                        # With one argument, show help text for that thing
-                        found = False
-                        arg = repl_cmd_args[0]
-                        # Check if it is an operator
-                        for arity, ops in opsByArity.items():
-                            if arg in ops:
-                                print()
-                                print(ARITIES[arity],
-                                      "operator:",
-                                      ops[arg].function)
-                                print("Precedence:", ops[arg].precedence)
-                                assoc = ops[arg].associativity
-                                print("Associativity:",
-                                      ASSOCIATIVITIES[assoc])
-                                found = True
-                        if found:
-                            print()
-                        if not found:
-                            # Check if it is a global variable
-                            if arg in DEFAULT_VARS:
-                                print("Global variable:",
-                                      repr(DEFAULT_VARS[arg]))
-                                found = True
-                        # TODO: help text for other things
-                        if not found:
-                            print("No help text found for", arg)
-                    else:
-                        # Otherwise, show general help text
-                        print(REPL_HELP_TEXT)
+                    showHelp(repl_cmd_arg)
                 elif "warnings".startswith(repl_command):
                     # Turn warnings on/off
                     status_changed = False
-                    if len(repl_cmd_args) == 1:
+                    if repl_cmd_arg:
                         # With an argument, set status
-                        arg = repl_cmd_args[0].lower()
+                        arg = repl_cmd_arg.lower()
                         if arg == "on":
                             state.err.warnings = True
                             status_changed = True
@@ -433,6 +439,38 @@ def repl(list_format=None, warnings=False):
     except KeyboardInterrupt:
         pass
     print("Bye!")
+
+
+def showHelp(topic=None):
+    if topic:
+        # If a topic is specified, show help text for that topic
+        found = False
+        # Check if it is an operator
+        for arity, ops in opsByArity.items():
+            if topic in ops:
+                print()
+                print(ARITIES[arity],
+                      "operator:",
+                      ops[topic].function)
+                print("Precedence:", ops[topic].precedence)
+                assoc = ops[topic].associativity
+                print("Associativity:",
+                      ASSOCIATIVITIES[assoc])
+                found = True
+        if found:
+            print()
+        if not found:
+            # Check if it is a global variable
+            if topic in DEFAULT_VARS:
+                print("Global variable:",
+                      repr(DEFAULT_VARS[topic]))
+                found = True
+        # TODO: help text for other things
+        if not found:
+            print("No help text found for", topic)
+    else:
+        # Otherwise, show general help text
+        print(REPL_HELP_TEXT)
 
 
 if __name__ == "__main__":
